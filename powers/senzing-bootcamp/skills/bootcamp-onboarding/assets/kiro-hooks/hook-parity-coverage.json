@@ -1,0 +1,368 @@
+{
+  "coverageMapVersion": 1,
+  "kind": "senzing-bootcamp-hook-parity-coverage-map",
+  "isHookDefinition": false,
+  "summary": "Machine-readable map from every Template_Plugin hook event to the Kiro mechanism, tier, and skill-instruction location that delivers its behavior in the Bootcamp_Power. Not a hook definition: the Hook_Installer installs only files matching hookDefinitionGlob, and this file is deliberately excluded by that glob.",
+  "hookDefinitionGlob": "senzing-bootcamp-*.json",
+  "scriptsDirectoryStrategy": "in-power",
+  "requirements": ["7.4", "7.5", "7.9", "7.12", "7.13", "7.14", "10.5", "16.5"],
+  "assumptionDependentValues": {
+    "note": "Every value in this map that depends on an unverified assumption is a substitution the Transformation_Contract fills as this file is materialized, so it has exactly one home and correcting it is a one-line contract edit plus a rebuild rather than a hand-patched asset (R3 AC4). This file as authored is therefore pre-substitution content, exactly as ported content is.",
+    "values": [
+      {
+        "assumption": "A3",
+        "field": "events[write-gate].kiroMechanism.matcher, and the same hook's matcher in senzing-bootcamp-write-gate.json",
+        "contractSubstitutionSet": "tool-names",
+        "authoredAs": "fs_write|str_replace|fs_append",
+        "authoredAsNote": "The template's own PreToolUse matcher, which release 0.5.1 carries in hooks/hooks.json. The Kiro write-tool regex is written down once, as this set's replacement value in tools/bootcamp-transform/contract.yaml, and nowhere else in the authored tree.",
+        "verifiedBy": "Test_Checklist step 11",
+        "requirements": ["6.11", "3.4"]
+      },
+      {
+        "assumption": "A4",
+        "field": "scriptsDirectoryStrategy",
+        "contractSubstitutionSet": "scripts-dir-strategy",
+        "authoredAs": "in-power",
+        "authoredAsNote": "The Hook_Installer reads the resolved value from this field, the same way it reads hookDefinitionGlob. It owns the vocabulary below and the workspace copy directory name; the contract owns the choice.",
+        "verifiedBy": "Test_Checklist step 10",
+        "requirements": ["7.6", "16.3", "3.4"]
+      }
+    ]
+  },
+  "scriptsDirectory": {
+    "field": "scriptsDirectoryStrategy",
+    "assumption": "A4",
+    "summary": "How the Hook_Installer resolves <ABSOLUTE_SCRIPTS_DIR>. Both strategies are implemented in the installer; the Transformation_Contract's scripts-dir-strategy set chooses between them, so flipping the fallback on after the Test_Checklist step 10 observation needs no installer edit and no hook asset edit.",
+    "strategies": [
+      {
+        "value": "in-power",
+        "resolvesTo": "the Power's own skills/bootcamp-onboarding/scripts/ directory",
+        "workspaceFilesWritten": "the hook definitions only",
+        "appliesWhen": "assumption A4 holds — a Power's skills/*/scripts/ files are materialized at a stable absolute path after install"
+      },
+      {
+        "value": "workspace-copy",
+        "resolvesTo": "a copy of the ported script set inside the Workspace_Hooks_Directory, alongside the hook definitions",
+        "workspaceFilesWritten": "the hook definitions plus the copied script set, every path disclosed before it is written and every path under the senzing-bootcamp- prefix so removal still deletes exactly what was written",
+        "appliesWhen": "assumption A4 is observed FALSE — the in-Power scripts path is not stable, so a hook naming it would silently never fire"
+      }
+    ],
+    "requirements": ["7.6", "7.7", "7.8", "7.9", "7.10", "16.3", "16.4", "16.5"]
+  },
+  "placement": {
+    "contractRuleId": "kiro-hooks",
+    "owner": "kiro",
+    "sourceDirectory": "tools/bootcamp-transform/templates/kiro-owned/skills/bootcamp-onboarding/assets/kiro-hooks/",
+    "destinations": [
+      { "tier": 2, "path": "skills/bootcamp-onboarding/assets/kiro-hooks/", "role": "Tier 2 asset directory the Hook_Installer reads with explicit Bootcamper consent" },
+      { "tier": 3, "path": "dev.kiro/hooks/", "role": "Tier 3 forward compatibility; inert if Kiro does not load bundled hooks" }
+    ],
+    "authoredOnce": true,
+    "note": "The definitions are authored once in sourceDirectory, which mirrors the first destination of the contract's kiro-hooks rule. The engine materializes the same content at both destinations; the source is never duplicated."
+  },
+  "commandStringPolicy": {
+    "shape": "\"<ABSOLUTE_PYTHON>\" \"<ABSOLUTE_SCRIPTS_DIR>/<script>.py\"",
+    "placeholders": ["<ABSOLUTE_PYTHON>", "<ABSOLUTE_SCRIPTS_DIR>"],
+    "shippedAssetIsRunnable": false,
+    "resolvedBy": "skills/bootcamp-enforcement-setup (the Hook_Installer) at install time",
+    "forbidden": ["interpreter name", "${PLUGIN_ROOT} in the command position", "&&", "||", ";", "|", ">", ">>", "<", "shell builtin"],
+    "bothPlaceholdersQuoted": true,
+    "validatorGuidance": "Remove the two placeholder tokens from the command string before scanning for a redirection operator. The tokens are spelled with angle brackets, so a literal scan for < or > over an unresolved shipped asset reports the placeholders themselves. Scan the remainder, and scan the installer's resolved output in full.",
+    "requirements": ["10.5", "16.3", "16.4", "16.5"]
+  },
+  "noOpGuard": {
+    "probe": "config/bootcamp_progress.json",
+    "rule": "Every ported hook script exits without acting when the probe file is absent from the workspace, so an installed hook set never affects an unrelated Kiro session.",
+    "preservedFromTemplate": true,
+    "portedScriptsModified": false,
+    "note": "The guard lives in the ported script bodies. No substitution set in the Transformation_Contract touches it, so porting preserves it byte-for-byte. Tier 1 restates the same guard in senzing-bootcamp-tier1-session-lifecycle.md."
+  },
+  "tiers": [
+    { "tier": 1, "mechanism": "skill instructions", "alwaysDelivered": true, "description": "Every hook-enforced behavior is also stated as an instruction, so the complete bootcamp is delivered with zero hook definitions installed (R7 AC4)." },
+    { "tier": 2, "mechanism": "consented workspace hook install into .kiro/hooks/", "alwaysDelivered": false, "description": "Restores mechanical enforcement where Kiro has an equivalent trigger (R7 AC5, AC6)." },
+    { "tier": 3, "mechanism": "bundled dev.kiro/hooks/ definitions", "alwaysDelivered": false, "neverSoleDeliveryPath": true, "description": "Forward compatibility only; every behavior also reaches the Bootcamper through Tier 1 or Tier 2 (R7 AC12)." }
+  ],
+  "tier1InstructionFiles": [
+    "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-ground-rules.md",
+    "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-session-lifecycle.md",
+    "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-recap-folding.md"
+  ],
+  "tier1InstructionFilesNote": "Authored as kiro-owned content under the owning skill (bootcamp-onboarding), because the ported bootcamp skills come from the resolved Template_Release and are not hand-authored here. The engine materializes them at the Tier 3 destination as well (dev.kiro/hooks/tier1-instructions/), where they are inert; the paths above are the declared instruction locations.",
+  "tier1Activation": {
+    "expectedReferrers": [
+      "skills/bootcamp-enforcement-setup/SKILL.md"
+    ],
+    "note": "Tier 1 delivery depends on these files being read. The client-adaptation skill points at them whether or not the Bootcamper consents to the Tier 2 install, so declining hooks still yields the complete rule set."
+  },
+  "events": [
+    {
+      "id": "session-start",
+      "templateEvent": "SessionStart",
+      "templateMatcher": null,
+      "script": "session-start.py",
+      "behavior": "On session start, read config/bootcamp_progress.json and resume from the recorded module, or start onboarding when no module is recorded.",
+      "kiroMechanism": {
+        "type": "trigger",
+        "trigger": "SessionStart",
+        "canBlock": false,
+        "blockingRequired": false,
+        "notes": "Direct equivalent. Exit-0 stdout is forwarded to the session context."
+      },
+      "tiers": [1, 2, 3],
+      "hookDefinitions": [
+        { "file": "senzing-bootcamp-session-start.json", "hookName": "senzing-bootcamp-session-start", "tier": 2, "destination": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-session-start.json" },
+        { "file": "senzing-bootcamp-session-start.json", "hookName": "senzing-bootcamp-session-start", "tier": 3, "destination": "dev.kiro/hooks/senzing-bootcamp-session-start.json" }
+      ],
+      "skillInstructions": [
+        {
+          "marker": "SENZING-BOOTCAMP-TIER1:resume-on-session-start",
+          "location": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-session-lifecycle.md",
+          "owningSkill": "bootcamp-onboarding",
+          "advisoryOnly": false
+        }
+      ],
+      "portedProseLocations": {
+        "status": "unverified-until-port",
+        "paths": ["skills/bootcamp-onboarding/SKILL.md"],
+        "note": "Design-declared Tier 1 placement in ported prose. The ported files come from the resolved Template_Release, so these paths are reinforcement, not the declared instruction location."
+      },
+      "parityGap": null,
+      "residualGap": null
+    },
+    {
+      "id": "feedback-capture",
+      "templateEvent": "UserPromptSubmit",
+      "templateMatcher": null,
+      "script": "feedback-capture.py",
+      "behavior": "Watch each Bootcamper prompt for feedback about the bootcamp and run the feedback capture workflow, appending to docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md.",
+      "kiroMechanism": {
+        "type": "trigger",
+        "trigger": "UserPromptSubmit",
+        "canBlock": true,
+        "blockingRequired": false,
+        "notes": "Direct equivalent. Exit-0 stdout is forwarded to the session context."
+      },
+      "tiers": [1, 2, 3],
+      "hookDefinitions": [
+        { "file": "senzing-bootcamp-feedback-capture.json", "hookName": "senzing-bootcamp-feedback-capture", "tier": 2, "destination": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-feedback-capture.json" },
+        { "file": "senzing-bootcamp-feedback-capture.json", "hookName": "senzing-bootcamp-feedback-capture", "tier": 3, "destination": "dev.kiro/hooks/senzing-bootcamp-feedback-capture.json" }
+      ],
+      "skillInstructions": [
+        {
+          "marker": "SENZING-BOOTCAMP-TIER1:feedback-watch",
+          "location": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-session-lifecycle.md",
+          "owningSkill": "bootcamp-onboarding",
+          "advisoryOnly": false
+        }
+      ],
+      "portedProseLocations": {
+        "status": "unverified-until-port",
+        "paths": ["skills/bootcamp-onboarding/feedback.md"],
+        "note": "The capture workflow itself is ported prose; the Tier 1 instruction points at it rather than restating its format."
+      },
+      "parityGap": null,
+      "residualGap": "The script does not read a literal manifest path; plugin_version() builds one from joined path segments. The manifest-path substitution set repoints it to the Power's plugin.json at the Power root, replacing the .claude-plugin segment with the two parent levels the move from <pluginRoot>/scripts/ to skills/bootcamp-onboarding/scripts/ added. Behavior is unchanged."
+    },
+    {
+      "id": "checkpoint-tick",
+      "templateEvent": "UserPromptSubmit",
+      "templateMatcher": null,
+      "script": "checkpoint-tick.py",
+      "behavior": "Keep the recap checkpoint current on every turn, so recap material is never more than one turn behind.",
+      "kiroMechanism": {
+        "type": "trigger",
+        "trigger": "UserPromptSubmit",
+        "canBlock": true,
+        "blockingRequired": false,
+        "notes": "Direct equivalent. Also the carrier that bounds the loss from Kiro having no PreCompact trigger."
+      },
+      "tiers": [1, 2, 3],
+      "hookDefinitions": [
+        { "file": "senzing-bootcamp-checkpoint-tick.json", "hookName": "senzing-bootcamp-checkpoint-tick", "tier": 2, "destination": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-checkpoint-tick.json" },
+        { "file": "senzing-bootcamp-checkpoint-tick.json", "hookName": "senzing-bootcamp-checkpoint-tick", "tier": 3, "destination": "dev.kiro/hooks/senzing-bootcamp-checkpoint-tick.json" }
+      ],
+      "skillInstructions": [
+        {
+          "marker": "SENZING-BOOTCAMP-TIER1:per-turn-checkpoint",
+          "location": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-session-lifecycle.md",
+          "owningSkill": "bootcamp-onboarding",
+          "advisoryOnly": false
+        }
+      ],
+      "portedProseLocations": {
+        "status": "unverified-until-port",
+        "paths": ["skills/bootcamp-onboarding/module-completion.md"],
+        "note": "Design-declared Tier 1 placement in ported prose."
+      },
+      "parityGap": null,
+      "residualGap": null
+    },
+    {
+      "id": "write-gate",
+      "templateEvent": "PreToolUse",
+      "templateMatcher": ["Write", "Edit"],
+      "templateMatcherNote": "Recorded as the template's two tool names rather than as its `fs_write|str_replace|fs_append` alternation string, because this file is pre-substitution content and the contract's tool-names set rewrites that exact alternation wherever it appears — including here, where the record of what the template matched must survive the rewrite.",
+      "script": "write-gate.py",
+      "behavior": "Block a write that lands outside the Bootcamper's project (INV-200) or that carries a secret (INV-109).",
+      "kiroMechanism": {
+        "type": "trigger",
+        "trigger": "PreToolUse",
+        "matcher": "fs_write|str_replace|fs_append",
+        "canBlock": true,
+        "blockingRequired": true,
+        "notes": "Direct equivalent with a matcher rewritten to Kiro's write-tool names by the tool-names substitution set; exit 2 blocks the tool call. The matcher above is authored in the template's tool vocabulary and carries the Kiro regex only once the contract has been applied — see assumptionDependentValues. The matcher name set is assumption A3, verified by Test_Checklist step 11."
+      },
+      "tiers": [1, 2, 3],
+      "hookDefinitions": [
+        { "file": "senzing-bootcamp-write-gate.json", "hookName": "senzing-bootcamp-write-gate", "tier": 2, "destination": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-write-gate.json" },
+        { "file": "senzing-bootcamp-write-gate.json", "hookName": "senzing-bootcamp-write-gate", "tier": 3, "destination": "dev.kiro/hooks/senzing-bootcamp-write-gate.json" }
+      ],
+      "skillInstructions": [
+        {
+          "marker": "SENZING-BOOTCAMP-TIER1:write-location",
+          "location": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-ground-rules.md",
+          "owningSkill": "bootcamp-onboarding",
+          "advisoryOnly": true,
+          "invariant": "INV-200"
+        },
+        {
+          "marker": "SENZING-BOOTCAMP-TIER1:secrets",
+          "location": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-ground-rules.md",
+          "owningSkill": "bootcamp-onboarding",
+          "advisoryOnly": true,
+          "invariant": "INV-109"
+        }
+      ],
+      "portedProseLocations": {
+        "status": "unverified-until-port",
+        "paths": ["skills/bootcamp-onboarding/ground-rules.md"],
+        "note": "Design-declared Tier 1 placement in ported prose."
+      },
+      "parityGap": null,
+      "residualGap": "Without the Tier 2 install the gate is advisory: the rules hold as instructions, but nothing mechanically blocks an offending write."
+    },
+    {
+      "id": "stop-nudge",
+      "templateEvent": "Stop",
+      "templateMatcher": null,
+      "script": "stop-nudge.py",
+      "behavior": "Require every response that expects an answer to end with exactly one closing 👉 question, and never a second.",
+      "kiroMechanism": {
+        "type": "trigger",
+        "trigger": "Stop",
+        "canBlock": false,
+        "blockingRequired": true,
+        "notes": "Kiro has a Stop trigger but documents blocking only for PreToolUse, UserPromptSubmit, and PreTaskExec, so the installed hook can advise but not enforce."
+      },
+      "tiers": [1, 2, 3],
+      "hookDefinitions": [
+        { "file": "senzing-bootcamp-stop-nudge.json", "hookName": "senzing-bootcamp-stop-nudge", "tier": 2, "destination": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-stop-nudge.json", "advisoryOnly": true },
+        { "file": "senzing-bootcamp-stop-nudge.json", "hookName": "senzing-bootcamp-stop-nudge", "tier": 3, "destination": "dev.kiro/hooks/senzing-bootcamp-stop-nudge.json", "advisoryOnly": true }
+      ],
+      "skillInstructions": [
+        {
+          "marker": "SENZING-BOOTCAMP-TIER1:closing-question",
+          "location": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-ground-rules.md",
+          "owningSkill": "bootcamp-onboarding",
+          "advisoryOnly": true
+        }
+      ],
+      "portedProseLocations": {
+        "status": "unverified-until-port",
+        "paths": ["skills/bootcamp-onboarding/ground-rules.md", "skills/module-*/SKILL.md"],
+        "note": "Design-declared Tier 1 placement: ground rules plus each module's close phase."
+      },
+      "parityGap": {
+        "kind": "no-blocking-capability",
+        "requirement": "7.14",
+        "designDefect": "D6",
+        "permanent": true,
+        "description": "The template hook blocks a response that omits the closing 👉 question. Kiro's Stop trigger cannot block, so the rule is advisory at every tier.",
+        "mitigation": "The rule is stated as an instruction in the Tier 1 ground rules, and the installed Stop hook still nudges. The template biased this hook toward silence because duplicate closing questions are the top complaint, so an advisory-only version fails in the safe direction."
+      },
+      "residualGap": "Enforcement is advisory at every tier, including Tier 2."
+    },
+    {
+      "id": "precompact-recap",
+      "templateEvent": "PreCompact",
+      "templateMatcher": null,
+      "script": "precompact-recap.py",
+      "behavior": "Fold the recap checkpoint into the durable recap before context compaction discards the material it is built from.",
+      "kiroMechanism": {
+        "type": "none",
+        "trigger": null,
+        "canBlock": false,
+        "blockingRequired": false,
+        "notes": "Kiro provides no PreCompact trigger. No hook definition exists for this behavior at any tier.",
+        "carriedBy": ["checkpoint-tick"]
+      },
+      "tiers": [1],
+      "hookDefinitions": [],
+      "skillInstructions": [
+        {
+          "marker": "SENZING-BOOTCAMP-TIER1:recap-folding",
+          "location": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-recap-folding.md",
+          "owningSkill": "bootcamp-onboarding",
+          "advisoryOnly": true
+        }
+      ],
+      "portedProseLocations": {
+        "status": "unverified-until-port",
+        "paths": ["skills/bootcamp-onboarding/module-completion.md", "skills/graduation/SKILL.md"],
+        "note": "Design-declared Tier 1 placement: module close phase and the graduation recap."
+      },
+      "parityGap": {
+        "kind": "no-kiro-trigger",
+        "requirement": "7.13",
+        "permanent": true,
+        "description": "Folding is not guaranteed at the exact pre-compaction moment, because nothing fires there.",
+        "mitigation": "The per-turn UserPromptSubmit checkpoint tick keeps the checkpoint at most one turn behind and guarantees the checkpoint file exists, and the Tier 1 instruction folds at module close, at graduation, and at session close-out. Worst-case loss is one turn of unfolded recap material."
+      },
+      "residualGap": "Timing, not content: folding happens at declared boundaries rather than immediately before compaction."
+    },
+    {
+      "id": "session-end",
+      "templateEvent": "SessionEnd",
+      "templateMatcher": null,
+      "script": "session-end.py",
+      "behavior": "On session end, stop any container the bootcamp started — stop, never remove (INV-101) — and perform a final recap fold.",
+      "kiroMechanism": {
+        "type": "none",
+        "trigger": null,
+        "canBlock": false,
+        "blockingRequired": false,
+        "notes": "Kiro provides no SessionEnd trigger. No hook definition exists for this behavior at any tier."
+      },
+      "tiers": [1],
+      "hookDefinitions": [],
+      "skillInstructions": [
+        {
+          "marker": "SENZING-BOOTCAMP-TIER1:session-close-out",
+          "location": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-session-lifecycle.md",
+          "owningSkill": "bootcamp-onboarding",
+          "advisoryOnly": true
+        },
+        {
+          "marker": "SENZING-BOOTCAMP-TIER1:container-stop-not-remove",
+          "location": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-ground-rules.md",
+          "owningSkill": "bootcamp-onboarding",
+          "advisoryOnly": true,
+          "invariant": "INV-101"
+        }
+      ],
+      "portedProseLocations": {
+        "status": "unverified-until-port",
+        "paths": ["skills/bootcamp-onboarding/ground-rules.md", "skills/module-02-sdk-setup/SKILL.md"],
+        "note": "Design-declared Tier 1 placement: ground rules plus the module that starts the container."
+      },
+      "parityGap": {
+        "kind": "no-kiro-trigger",
+        "requirement": "7.13",
+        "permanent": true,
+        "description": "Nothing fires when a Kiro session ends, so container stop and the final fold cannot be automatic.",
+        "mitigation": "Both become explicit close-out steps the agent performs at every point it controls — Bootcamper says they are stopping, module close, and before a long pause — with INV-101's stop-never-remove rule stated in the Tier 1 ground rules. An abrupt end leaves the container running rather than removed, which is the recoverable direction."
+      },
+      "residualGap": "An abrupt session end performs no close-out; the container stays running and the per-turn checkpoint is the recovery point."
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+# Line-ending normalization (R16 AC8).
+#
+# The transform engine writes LF unconditionally and records a SHA-256 of every
+# output file *as written* in the Build_Manifest. Without this declaration, git's
+# core.autocrlf would rewrite text files to CRLF on a Windows checkout, changing
+# their bytes and making every checked-out file fail the Build_Manifest hash
+# comparison (E_HASH_MISMATCH, R16 AC9). Declaring eol=lf keeps LF on checkout on
+# every Supported_Platform, so the manifest hash stays valid everywhere.
+#
+# This file is a committed repository artifact, not generated output: the
+# Transformation_Contract references it via output.gitattributes rather than
+# emitting it per build.
+
+* text=auto eol=lf
+
+# Excluded from normalization: the transform must keep these byte-for-byte
+# identical to the template source (R10 AC3), so no line-ending transform may
+# touch their bytes.
+*.png binary
+*.pdf binary
+*.min.js -text

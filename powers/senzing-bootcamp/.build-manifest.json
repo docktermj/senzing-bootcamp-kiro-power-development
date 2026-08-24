@@ -1,0 +1,679 @@
+{
+  "manifestVersion": 1,
+  "templateRelease": "0.5.1",
+  "contractVersion": 1,
+  "files": [
+    {
+      "path": "LICENSE",
+      "ruleId": "license",
+      "owner": "template",
+      "sourcePath": null,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "dev.kiro/hooks/hook-parity-coverage.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "850bc4cfffc04d2022cc693f9f72bfc6bdc9ffb052f74132ca08b2f6a6d1eaa1"
+    },
+    {
+      "path": "dev.kiro/hooks/senzing-bootcamp-checkpoint-tick.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "4e8182a85d3f9fc631dc29d42ba7541b298ddbbfaef84f3c56dde307d5eb2e9e"
+    },
+    {
+      "path": "dev.kiro/hooks/senzing-bootcamp-feedback-capture.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "0207674527cc269f96e86bbd1f1de49f9cb9c941d254db2658c995f5d9a6bb84"
+    },
+    {
+      "path": "dev.kiro/hooks/senzing-bootcamp-session-start.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "7c92c58e26383cfe53b5b20e98d9c77384008932a4fb7c2f750cac069d0565bf"
+    },
+    {
+      "path": "dev.kiro/hooks/senzing-bootcamp-stop-nudge.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "db48a7cd7097b4394f46a043388d9d628ca772a2e9459422b4e4554057048eda"
+    },
+    {
+      "path": "dev.kiro/hooks/senzing-bootcamp-write-gate.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "b1b13e6a9b79c7dc9e677793d8c96ce0e62e6129ebd51ebf4848a08360533324"
+    },
+    {
+      "path": "dev.kiro/hooks/tier1-instructions/senzing-bootcamp-tier1-ground-rules.md",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "50df6cda5b64292b8158b767d9b74745028d062f7f4b634317209297a5e8eaf6"
+    },
+    {
+      "path": "dev.kiro/hooks/tier1-instructions/senzing-bootcamp-tier1-recap-folding.md",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "27e240f530d2358da9c44af7c576de3adc731b73ead3cdb2127430054f2dfc85"
+    },
+    {
+      "path": "dev.kiro/hooks/tier1-instructions/senzing-bootcamp-tier1-session-lifecycle.md",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "ba0fa6dbbdadda90c1321ef2bf4d3297089be1c80e7cf3b8cbd44196f1fdca93"
+    },
+    {
+      "path": "docs/examples/bootcamp_recap.example.md",
+      "ruleId": "docs",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/bootcamp_recap.example.md",
+      "sha256": "20c1bfb60d04e86a308bdf708cc209a6a4b9bac28dfd615e570290684874a743"
+    },
+    {
+      "path": "docs/examples/bootcamp_recap.example.pdf",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/bootcamp_recap.example.pdf",
+      "sha256": "7e9282664d723f491a5e21b4a9661dcc7c80a54341c034309c46918ee4f38fbd"
+    },
+    {
+      "path": "docs/examples/bootcamp_recap.example.truthset.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/bootcamp_recap.example.truthset.png",
+      "sha256": "7a463c77b3fe933a15019302be8daaff040eb751df86f6596023b4e3c8715cec"
+    },
+    {
+      "path": "docs/examples/visualizations/data_quality_assessment.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/data_quality_assessment.png",
+      "sha256": "2172de441c2d09e2202b192d9fde972f920eeba8b68c0a525cc91148e59b6348"
+    },
+    {
+      "path": "docs/examples/visualizations/results_visualization-cross-source.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/results_visualization-cross-source.png",
+      "sha256": "e27bcc5156a3600145c81fb083f4d4c65d4d4174770be88f819fd9ccb321ac27"
+    },
+    {
+      "path": "docs/examples/visualizations/results_visualization-entity-graph.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/results_visualization-entity-graph.png",
+      "sha256": "31c99bdc1a0468a4a3a9e108e7a8ef3a4514555d50871ff9c383efc9562c4acc"
+    },
+    {
+      "path": "docs/examples/visualizations/results_visualization-feature-scores.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/results_visualization-feature-scores.png",
+      "sha256": "b3fa084e9e6b674187ad840f930d5b8a64c55f52d7b3946694819600a04aa67d"
+    },
+    {
+      "path": "docs/examples/visualizations/results_visualization-match-keys.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/results_visualization-match-keys.png",
+      "sha256": "e64b7a9598240d942d28fca90ecae48cdb84393960199ff3aeecc98eb25925d6"
+    },
+    {
+      "path": "docs/examples/visualizations/results_visualization-merge-statistics.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/results_visualization-merge-statistics.png",
+      "sha256": "d8a4d6b96d9968fde14271cc555d12452f1d4ab440742aa3503433c620fa3348"
+    },
+    {
+      "path": "docs/examples/visualizations/results_visualization-search-probe.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/results_visualization-search-probe.png",
+      "sha256": "aadfd8cd8b04ceabfba77cf9d9ef43eb8701ce32670aeb4869b25c032986aadb"
+    },
+    {
+      "path": "docs/examples/visualizations/truthset_verification-cross-source.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/truthset_verification-cross-source.png",
+      "sha256": "72626b910d6dbcbb427fca167a687cbf6eca144f3aa2e06e98a687e67565cfc5"
+    },
+    {
+      "path": "docs/examples/visualizations/truthset_verification-entity-graph.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/truthset_verification-entity-graph.png",
+      "sha256": "5fc096e03f5db8a1d2acc210f22770b11b59202afaf367b7d68fb3fcc4454217"
+    },
+    {
+      "path": "docs/examples/visualizations/truthset_verification-feature-scores.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/truthset_verification-feature-scores.png",
+      "sha256": "1fe23ca863615374027e292e91168fc4e0299e80c115b55614c1e157e8361868"
+    },
+    {
+      "path": "docs/examples/visualizations/truthset_verification-match-keys.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/truthset_verification-match-keys.png",
+      "sha256": "556da8b7d61112314aa7bc83d40850dcfc0290ff88df37ee1dfd51e2afdd8998"
+    },
+    {
+      "path": "docs/examples/visualizations/truthset_verification-merge-statistics.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/truthset_verification-merge-statistics.png",
+      "sha256": "c51754f10b14884700997a4e212b26741dc26effc69fd59dd884c550d3be1c37"
+    },
+    {
+      "path": "docs/examples/visualizations/truthset_verification-search-probe.png",
+      "ruleId": "docs-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/examples/visualizations/truthset_verification-search-probe.png",
+      "sha256": "e790a09ba586b6a697e78efb733b75bd957511453410b6b7af1bf26a63a06037"
+    },
+    {
+      "path": "docs/model-selection.md",
+      "ruleId": "docs",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/docs/model-selection.md",
+      "sha256": "6f7c4a7935cb5a2d274341b7216725eaa14f4eeec236cf29f8c5f46709d08eb9"
+    },
+    {
+      "path": "mcp.json",
+      "ruleId": "mcp",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/.mcp.json",
+      "sha256": "05acddfd9b1d6aaebc61fe83275d100eb0ae1151bacf2c118a0025fa1b41c517"
+    },
+    {
+      "path": "plugin.json",
+      "ruleId": "manifest",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/.claude-plugin/plugin.json",
+      "sha256": "00fb8bb98961cf9c4ebfb57d97ce9db3836ac747fd29b53db866ee59a9143d28"
+    },
+    {
+      "path": "skills/bootcamp-enforcement-setup/SKILL.md",
+      "ruleId": "enforcement-setup-skill",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "411349db120f5e0509cb573c3784afeab47a8ef0793f2c24c195484ca84cafaf"
+    },
+    {
+      "path": "skills/bootcamp-enforcement-setup/scripts/install_hooks.py",
+      "ruleId": "enforcement-setup-skill",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "8e266de51d484f4d3eca80b88b55dc59821bb0101aa73f0fc89688b2c3bc2f14"
+    },
+    {
+      "path": "skills/bootcamp-feedback/SKILL.md",
+      "ruleId": "command-skills",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "b77fa62a80cfa71a5316432d49deaee5885f33e25c7790f874e9319683add96f"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/SKILL.md",
+      "ruleId": "skill-onboarding",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/bootcamp-onboarding/SKILL.md",
+      "sha256": "fd1450f8d83f30a8f488e8892864319cfe89f64379f5b5c1ac9a86e5ad3e9e85"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/hook-parity-coverage.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "850bc4cfffc04d2022cc693f9f72bfc6bdc9ffb052f74132ca08b2f6a6d1eaa1"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-checkpoint-tick.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "4e8182a85d3f9fc631dc29d42ba7541b298ddbbfaef84f3c56dde307d5eb2e9e"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-feedback-capture.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "0207674527cc269f96e86bbd1f1de49f9cb9c941d254db2658c995f5d9a6bb84"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-session-start.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "7c92c58e26383cfe53b5b20e98d9c77384008932a4fb7c2f750cac069d0565bf"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-stop-nudge.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "db48a7cd7097b4394f46a043388d9d628ca772a2e9459422b4e4554057048eda"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-write-gate.json",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "b1b13e6a9b79c7dc9e677793d8c96ce0e62e6129ebd51ebf4848a08360533324"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-ground-rules.md",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "50df6cda5b64292b8158b767d9b74745028d062f7f4b634317209297a5e8eaf6"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-recap-folding.md",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "27e240f530d2358da9c44af7c576de3adc731b73ead3cdb2127430054f2dfc85"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-session-lifecycle.md",
+      "ruleId": "kiro-hooks",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "ba0fa6dbbdadda90c1321ef2bf4d3297089be1c80e7cf3b8cbd44196f1fdca93"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/feedback.md",
+      "ruleId": "skill-onboarding",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/bootcamp-onboarding/feedback.md",
+      "sha256": "c6deaaa92b73e23f40b8dc13bb3c395c25997213c884773160aa26195e3dff88"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/ground-rules.md",
+      "ruleId": "skill-onboarding",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/bootcamp-onboarding/ground-rules.md",
+      "sha256": "1e712bbae78ea85895f00dea120285b924f2370faa1931cc6575b55effed1889"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/module-completion.md",
+      "ruleId": "skill-onboarding",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/bootcamp-onboarding/module-completion.md",
+      "sha256": "3a96d3e321b38a4b8a4045dd951bd7e9b7bc13ee2ce9354d80c157a74612532b"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/onboarding-flow.md",
+      "ruleId": "skill-onboarding",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/bootcamp-onboarding/onboarding-flow.md",
+      "sha256": "8e2c116a841328a70b0e93679a5056d4dc8523db2864be26eed67dc30a862ec1"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/brand_tokens.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/brand_tokens.py",
+      "sha256": "e0b1111aae894a4ec7c9b0b367b1c334a78b901b68e2b2b8151e684f9e9d9c78"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/capture_screenshots.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/capture_screenshots.py",
+      "sha256": "0adb00437ac4584d4a03fe268c5c73f196cbc4e1d824d1302b760bb2f5fbaa7b"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/checkpoint-tick.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/checkpoint-tick.py",
+      "sha256": "46b2b70ac378ac080185c1bbcebeb6090e1227e502d6c88e526207da522678c6"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/docker_lifecycle.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/docker_lifecycle.py",
+      "sha256": "06ab15b6a2908ae9d51219835a8cc56c574ddf9dc8ce16377b15e3486bc1c148"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/feedback-capture.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/feedback-capture.py",
+      "sha256": "063abf3286db558818f5675309735481542bd3f4abc8f541502feb7dae463fd6"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/generate_discoveries_pdf.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/generate_discoveries_pdf.py",
+      "sha256": "4e67e81d4b097a8b4f7ce19d08deb2eddf4cb35b932e6ebcb8d0db00492ee7ab"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/generate_document_pdf.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/generate_document_pdf.py",
+      "sha256": "f140e7ef7c75befbe29cff1ac7c2111c8e2aa2f50f5ae567f0617bade262854c"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/generate_recap_pdf.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/generate_recap_pdf.py",
+      "sha256": "5c4470109cf920916a3f9a024b0cee414478964d4599da31c9d94db16e826e3a"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/normalize_docs_markdown.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/normalize_docs_markdown.py",
+      "sha256": "270fe1b5e8ea3743ae2088cfac24f64565fe4ee8197af373eafd1b3135ef0b87"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/optional_runtime.py",
+      "ruleId": "optional-runtime-guard",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "81fc87a756af1e37d93c1517af703455ab52682995ec17be0690c2491d1cd2ad"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/precompact-recap.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/precompact-recap.py",
+      "sha256": "091c9b98432f91755f3e60bee9a244c05c5f83def7083089fc3a89a29b376c86"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/recap_checkpoint.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/recap_checkpoint.py",
+      "sha256": "927db32f9f9f92dffc00ab8c75408237f8d11792fc97c53453c364c6be64b838"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/senzing_logo_light.png",
+      "ruleId": "scripts-assets",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/senzing_logo_light.png",
+      "sha256": "b98d7261b58f6b14eb99f08271f1c9ac133d97c8617021ab701a176b1559c9de"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/senzing_viz_server.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/senzing_viz_server.py",
+      "sha256": "d3f25de55ae3e9d095e54543563df91773150f0a236f683daa43476c6473c1af"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/session-end.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/session-end.py",
+      "sha256": "90c3e3c452057dd344dee0e3e5b256420de5cdfb896cf42e60fd37c0e2bccb66"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/session-start.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/session-start.py",
+      "sha256": "080857686405da1b6a7e1db8d5ffcea8ba56a15cba34a0fcaaaf8ebdcd861d9a"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/stop-nudge.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/stop-nudge.py",
+      "sha256": "84b9bf698cc9c0ea69f1b65a1ecd1d0134a5772c888818aa1f7b84ca783228e0"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/vendor/d3.v7.min.js",
+      "ruleId": "scripts-vendor",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/vendor/d3.v7.min.js",
+      "sha256": "f2094bbf6141b359722c4fe454eb6c4b0f0e42cc10cc7af921fc158fceb86539"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/write-gate.py",
+      "ruleId": "scripts-owned",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/scripts/write-gate.py",
+      "sha256": "575c8ffc6e268615f4ded695042d8f9255f758d0cffc3b8470e2236497e7f636"
+    },
+    {
+      "path": "skills/bootcamp-preparation/SKILL.md",
+      "ruleId": "skill-preparation",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/bootcamp-preparation/SKILL.md",
+      "sha256": "90b2a292f03bb1e81cb34f24b9cc555cbe96aaa1715efeaf457e7a81316aaae2"
+    },
+    {
+      "path": "skills/graduate-bootcamp/SKILL.md",
+      "ruleId": "command-skills",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "afb9ad2c428d8b3e84924b73f307db3635f0569b3b35211d2e943e484d2577c1"
+    },
+    {
+      "path": "skills/graduation/SKILL.md",
+      "ruleId": "skill-graduation",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/graduation/SKILL.md",
+      "sha256": "7ee62f9c1049acfda44a46f6fb8feeb7d069310def7deb935d8705e9011fc712"
+    },
+    {
+      "path": "skills/module-00-entity-resolution-concepts/SKILL.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-00-entity-resolution-concepts/SKILL.md",
+      "sha256": "85dbd4e50345cad553589d00bf4d7b2fcbf107a54dd55881cbd02de52c1cc38a"
+    },
+    {
+      "path": "skills/module-00-entity-resolution-concepts/concepts.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-00-entity-resolution-concepts/concepts.md",
+      "sha256": "f1df4755e58fc005eb7cb31359a4ffa7c600ba5312f41f4592f3c9f87906556f"
+    },
+    {
+      "path": "skills/module-01-business-problem/SKILL.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-01-business-problem/SKILL.md",
+      "sha256": "b128e0a0edc31119a2d2278a83c393ecdd936c65e85c9687d999ef78dcd1f47c"
+    },
+    {
+      "path": "skills/module-01-business-problem/phase1-discovery.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-01-business-problem/phase1-discovery.md",
+      "sha256": "b5a069983d73235a80734918f1ec1247891274b5d77ba055a3e229f88475cec1"
+    },
+    {
+      "path": "skills/module-01-business-problem/phase2-document-confirm.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-01-business-problem/phase2-document-confirm.md",
+      "sha256": "aeb9eeef81cd0c7ea1aa34ef2009e8d708b1fee0e7639cc819550ba348a4733c"
+    },
+    {
+      "path": "skills/module-02-sdk-setup/SKILL.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-02-sdk-setup/SKILL.md",
+      "sha256": "0549f0eac371aeda61811e289f40f20bb69abd4dc24b324d37a890d20b5a2b27"
+    },
+    {
+      "path": "skills/module-03-system-verification/SKILL.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-03-system-verification/SKILL.md",
+      "sha256": "e4406cae8aa4e8ace25458329e483069a017a1a1b40a8873cc92fc929a6a89f2"
+    },
+    {
+      "path": "skills/module-03-system-verification/phase1-verification.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-03-system-verification/phase1-verification.md",
+      "sha256": "1df986aace543f92b4ea8b81544bb97d3d6370fe5308a16aa9c5bcca4095fa81"
+    },
+    {
+      "path": "skills/module-03-system-verification/phase2-report-close.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-03-system-verification/phase2-report-close.md",
+      "sha256": "50361fca333b9c3c2c6e2283559dc816e085ee5e878b226cbcce3a8fd70932d3"
+    },
+    {
+      "path": "skills/module-03b-truthset-visualization/SKILL.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-03b-truthset-visualization/SKILL.md",
+      "sha256": "94260d1acf441398b9ff60f634cf45a491907b9c7cb70b9e86bac4707d622dfc"
+    },
+    {
+      "path": "skills/module-03b-truthset-visualization/phase1-visualization.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-03b-truthset-visualization/phase1-visualization.md",
+      "sha256": "b224fd7df7133e35be344eb9fdaf70e69238378da4ec0350fa54b8d9dc98f61c"
+    },
+    {
+      "path": "skills/module-03b-truthset-visualization/phase2-close.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-03b-truthset-visualization/phase2-close.md",
+      "sha256": "5cb4b59a8adc8aaed54ed2c2ccca1e23fc8bbf69b243e9eae340d0e0fccc54bd"
+    },
+    {
+      "path": "skills/module-03b-truthset-visualization/visualization-api-reference.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-03b-truthset-visualization/visualization-api-reference.md",
+      "sha256": "d913735f7efafc19648442d7137424e54a2eae62c3aa10921b1176b2603389ad"
+    },
+    {
+      "path": "skills/module-04-data-collection/SKILL.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-04-data-collection/SKILL.md",
+      "sha256": "21182e9b100051270ab4d4844d4d7c062e5bb0ba87813f50af111fa06c235aae"
+    },
+    {
+      "path": "skills/module-05-data-quality-mapping/SKILL.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-05-data-quality-mapping/SKILL.md",
+      "sha256": "5cfa939bcefd52d99c8d3fb587ad98922a7b5f0dcf279bee9eed801f34971433"
+    },
+    {
+      "path": "skills/module-05-data-quality-mapping/phase1-quality-assessment.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-05-data-quality-mapping/phase1-quality-assessment.md",
+      "sha256": "ab06d0231434163d8db891e7674e4c118fee97366cb87abb3f6707b0c0511ce0"
+    },
+    {
+      "path": "skills/module-05-data-quality-mapping/phase2-data-mapping.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-05-data-quality-mapping/phase2-data-mapping.md",
+      "sha256": "9fea3cc1b5e2f5fd9997e8bffc91915e59ea15c82707860938d362e1357b588a"
+    },
+    {
+      "path": "skills/module-05-data-quality-mapping/phase3-test-load.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-05-data-quality-mapping/phase3-test-load.md",
+      "sha256": "04ba7d66c31b181e9bef417faf8a6373c416384632097ae6a77613ff254ab699"
+    },
+    {
+      "path": "skills/module-06-data-processing/SKILL.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-06-data-processing/SKILL.md",
+      "sha256": "ae71c40063d1c6d350ee2128d6661bf2948fd7d4c091f72cb8bcbe481f0fda58"
+    },
+    {
+      "path": "skills/module-06-data-processing/phaseA-build-loading.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-06-data-processing/phaseA-build-loading.md",
+      "sha256": "192969164900cc74a9fd12eaf60a96d2b7f55fd09991d3a08eadfbd35bad15bb"
+    },
+    {
+      "path": "skills/module-06-data-processing/phaseB-load-first-source.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-06-data-processing/phaseB-load-first-source.md",
+      "sha256": "dfcb06bc81f30024a8a173842d4907bc5c3049554cd1f3c5d3c09d4c64b4a2af"
+    },
+    {
+      "path": "skills/module-06-data-processing/phaseC-multi-source.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-06-data-processing/phaseC-multi-source.md",
+      "sha256": "8bd35b0d7e1c85e13bc863b1a67a33cc622eaccf4025757a34185fbdb41f187f"
+    },
+    {
+      "path": "skills/module-06-data-processing/phaseD-validation.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-06-data-processing/phaseD-validation.md",
+      "sha256": "610391737d9b36e3045f5eecc180df748df61b30d30d03b48347533978c533bd"
+    },
+    {
+      "path": "skills/module-07-query-visualize-discover/SKILL.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-07-query-visualize-discover/SKILL.md",
+      "sha256": "e746a8cfecee7ae82a33fa9420b39ba049c3ae1c75b101732b2621d60c3cac5a"
+    },
+    {
+      "path": "skills/module-07-query-visualize-discover/phase1-query-visualize.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-07-query-visualize-discover/phase1-query-visualize.md",
+      "sha256": "5b0b0dce62b7fb99bf1ac1a11c275b5b7ffd841e2a233bf6c0dce5e429e5bf79"
+    },
+    {
+      "path": "skills/module-07-query-visualize-discover/phase2-discover.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-07-query-visualize-discover/phase2-discover.md",
+      "sha256": "4269ae0e12901d1b2529becd549f8f4aaa8a9d601493c764036a2fe7e2b006a6"
+    },
+    {
+      "path": "skills/module-07-query-visualize-discover/phase2b-discover.md",
+      "ruleId": "skills-modules",
+      "owner": "template",
+      "sourcePath": "plugins/senzing-bootcamp/skills/module-07-query-visualize-discover/phase2b-discover.md",
+      "sha256": "dab341d2fb5a69b0d9744c6e07688861f2b3ac37d181279b8656b0478e674010"
+    },
+    {
+      "path": "skills/start-bootcamp/SKILL.md",
+      "ruleId": "command-skills",
+      "owner": "kiro",
+      "sourcePath": null,
+      "sha256": "c5a055adabe551f471ece3d0383e1797f88f642cd4cc66ae294c8d00eaac0bd3"
+    }
+  ]
+}

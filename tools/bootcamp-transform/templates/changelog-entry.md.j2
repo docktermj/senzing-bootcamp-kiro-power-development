@@ -1,0 +1,61 @@
+{#-
+  One Bootcamp_Power changelog entry — appended to powers/senzing-bootcamp/CHANGELOG.md
+  after a successful update (R5 AC8). A failed update renders nothing and appends
+  nothing (R5 AC7).
+
+  Render context. Render with `jinja2.StrictUndefined`; the two required names must be
+  supplied, the rest are optional and each is guarded by `is defined`:
+
+    tag                  str   REQUIRED. The newer resolved Template_Release tag, e.g.
+                               "0.5.1". Named in the heading and in the entry body, so
+                               the entry identifies its source Template_Release (R5 AC8,
+                               Property 22). Equals the Power version (R2 AC2).
+    template_repository  str   REQUIRED. Template_Plugin "owner/name" slug, e.g.
+                               "Senzing/senzing-bootcamp-claude-plugin".
+    previous_tag         str   Optional. The Template_Release the Power was built from
+                               before this update.
+    contract_version     int   Optional. contract.yaml `contractVersion`.
+    added                list  Optional. Power-relative paths added by this update.
+    modified             list  Optional. Power-relative paths modified by this update.
+    removed              list  Optional. Power-relative paths removed by this update.
+
+  The three path lists come from the ReconciliationReport. They are rendered sorted, so
+  reconciliation ordering cannot leak into the entry text.
+
+  Determinism (R16 AC8, Property 4): deliberately NO date, NO timestamp, and NO run id —
+  the tag is the only identifier an entry carries, so re-rendering the same update yields
+  byte-identical text. Do not add a `## <tag> - <date>` heading. Render with
+  `keep_trailing_newline=True` and write with `newline="\n"`; the entry starts at its
+  `## <tag>` heading and ends with exactly one LF, so the appender is responsible for the
+  blank line separating it from the preceding changelog content.
+-#}
+{%- set release_url = "https://github.com/" ~ template_repository ~ "/releases/tag/" ~ tag -%}
+## {{ tag }}
+
+{% if previous_tag is defined and previous_tag -%}
+Updated from Template_Release `{{ previous_tag }}` to Template_Release [`{{ tag }}`]({{ release_url }})
+{%- else -%}
+Generated from Template_Release [`{{ tag }}`]({{ release_url }})
+{%- endif -%}
+{%- if contract_version is defined %}, transformation contract version {{ contract_version | int }}{% endif %}.
+{%- if added is defined and added %}
+
+### Added
+{% for path in added | sort %}
+- `{{ path }}`
+{%- endfor %}
+{%- endif %}
+{%- if modified is defined and modified %}
+
+### Changed
+{% for path in modified | sort %}
+- `{{ path }}`
+{%- endfor %}
+{%- endif %}
+{%- if removed is defined and removed %}
+
+### Removed
+{% for path in removed | sort %}
+- `{{ path }}`
+{%- endfor %}
+{%- endif %}

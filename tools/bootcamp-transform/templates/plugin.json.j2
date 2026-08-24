@@ -1,0 +1,50 @@
+{#-
+  Bootcamp_Power manifest — powers/senzing-bootcamp/plugin.json.
+
+  Rendered by the `manifest` rule (kind: generate) in contract.yaml. Produces the
+  Agent Plugins v1.0.0 plugin document: the fixed top-level field set, plus all
+  Senzing/Kiro provenance under `extensions["com.senzing.bootcamp"]` because the
+  schema's top-level field set is closed (R2 AC5, design defect D3).
+
+  Render context — every name below is REQUIRED. Render with
+  `jinja2.StrictUndefined` so a missing value raises rather than emitting an empty
+  field; a silently empty `version` would defeat the version-match check (R2 AC3).
+
+    tag                  str  ResolvedRelease.tag — the resolved Template_Release
+                              tag, e.g. "0.5.1". Written to `version` and to
+                              `extensions[...].templateRelease` character-for-character
+                              (R2 AC1, AC2, AC5).
+    template_repository  str  ResolvedRelease.repository — the Template_Plugin
+                              "owner/name" slug, e.g. "Senzing/senzing-bootcamp-claude-plugin".
+    contract_version     int  contract.yaml `contractVersion` — the transformation
+                              contract that produced this Power (R3).
+
+  Determinism (R16 AC8, Property 4): keys are literal and in fixed order, values come
+  only from the context above, and nothing here reads a clock, a run id, an environment
+  variable, or the filesystem — so the same (contract, source, tag) renders byte-identical
+  output. Render with `keep_trailing_newline=True` and write with `newline="\n"` so the
+  file ends in exactly one LF.
+
+  `license` is fixed at "Apache-2.0" to match the repository root LICENSE (R4 AC4, R14 AC3).
+  Identity fields (name, description, author, homepage, repository, keywords) are Kiro-owned
+  constants, not template-derived, so they are literal here rather than context-supplied.
+-#}
+{%- set template_repository_url = "https://github.com/" ~ template_repository -%}
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "senzing-bootcamp",
+  "version": {{ tag | tojson }},
+  "description": "Guided Senzing entity resolution bootcamp. Use when learning Senzing, working through the bootcamp modules, or onboarding to entity resolution.",
+  "author": { "name": "Senzing", "url": "https://senzing.com" },
+  "license": "Apache-2.0",
+  "homepage": {{ template_repository_url | tojson }},
+  "repository": "https://github.com/docktermj/senzing-bootcamp-kiro-powers-development",
+  "keywords": ["senzing", "entity-resolution", "bootcamp", "training", "onboarding", "data-quality"],
+  "extensions": {
+    "com.senzing.bootcamp": {
+      "templateRepository": {{ template_repository_url | tojson }},
+      "templateRelease": {{ tag | tojson }},
+      "contractVersion": {{ contract_version | int }}
+    }
+  }
+}

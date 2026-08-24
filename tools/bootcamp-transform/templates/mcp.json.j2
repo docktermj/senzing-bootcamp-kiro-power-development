@@ -1,0 +1,31 @@
+{#-
+  Bootcamp_Power MCP declaration — powers/senzing-bootcamp/mcp.json.
+
+  Rendered by the `mcp` rule (kind: generate) in contract.yaml. Translates the
+  template's `{"type": "http", "url": "https://mcp.senzing.com/mcp"}` declaration
+  into the Agent Plugins v1.0.0 MCP document (R11 AC2).
+
+  Render context: none. Every value the Senzing_MCP_Server declaration needs is
+  fixed by requirement, so nothing is parameterized and nothing can drift:
+
+    $schema                       present, required (R11 AC2, AC5)
+    mcpServers.senzing.type       exactly "streamable-http" (R11 AC1, AC4)
+    mcpServers.senzing.url        exactly "https://mcp.senzing.com/mcp" (R11 AC1, AC4)
+
+  The Schema_Validator checks all three by exact comparison and blocks tagging on any
+  deviation, including near misses such as `http://`, a trailing slash, or `type: http`
+  (R11 AC3–AC5). Do not template these values.
+
+  Determinism (R16 AC8, Property 4): literal keys in fixed order, no context, no clock,
+  no run id. Render with `keep_trailing_newline=True` and write with `newline="\n"` so the
+  file ends in exactly one LF.
+-#}
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "senzing": {
+      "type": "streamable-http",
+      "url": "https://mcp.senzing.com/mcp"
+    }
+  }
+}

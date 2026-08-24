@@ -1,0 +1,314 @@
+# Watch the upstream Template_Release and report when a newer one exists.
+#
+# WHAT THIS WORKFLOW DOES NOT DO: it does not open an update PR, and it does not
+# run the transform. Requirement 5.1 keeps the update itself manual and
+# Maintainer-run for v1 — the Update_Skill presents a reconciliation report, and
+# a Maintainer decides what to do with preserved adaptations and flagged
+# invariant discounts before anything is committed. A bot that transformed and
+# pushed would be making those calls unattended, and a PR with no transform in
+# it would carry an empty diff. So this workflow does exactly one thing: it
+# DETECTS a newer upstream Template_Release and REPORTS it, by filing a tracking
+# issue that tells the Maintainer to run "update the senzing bootcamp power".
+# Automating the transform is the future enhancement the requirements defer.
+#
+# Detection is the Version_Resolver's job, not this file's: the workflow shells
+# out to `tools/bootcamp-transform/resolve_release.py --min-version <current>`
+# and reads its JSON. Semver comparison, the published/non-draft/non-prerelease
+# filter, the 3-attempt / 30 s budget, and the E_ALREADY_CURRENT predicate all
+# live there and stay single-sourced.
+#
+# The version compared against is read from the committed Power rather than
+# hardcoded here — `plugin.json` records it under
+# `extensions["com.senzing.bootcamp"].templateRelease`, with
+# `.build-manifest.json` `templateRelease` as the fallback. The upstream
+# repository is not named here either: the resolver reads `template.repository`
+# from `contract.yaml`, which is the contract's to own.
+
+name: Watch upstream Template_Release
+
+on:
+  schedule:
+    # Mondays, 07:23 UTC. Off the hour, because the top of the hour is the
+    # busiest scheduling window and delays scheduled runs.
+    - cron: '23 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      min-version:
+        description: >-
+          Bare semver to compare against, overriding the version the committed
+          Power records. Useful for a dry run before the Power exists.
+        required: false
+        type: string
+
+# Narrowest set that does the job: read the tree to get the committed version
+# and the resolver, and write issues to file the report. No `contents: write`,
+# no `pull-requests: write` — this workflow commits nothing and opens no PR.
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: watch-upstream-release
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Detect a newer Template_Release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Scheduled workflows stay enabled in forks; only the source repository
+    # should be filing issues about upstream releases.
+    if: github.repository == 'docktermj/senzing-bootcamp-kiro-powers-development'
+
+    steps:
+      - name: Check out the repository
+        # Pinned to the commit behind the release tag, not to the floating major
+        # ref, so a retag cannot change what runs here.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so the checkout credential is unnecessary.
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # pyproject.toml declares requires-python >= 3.10; pinning the minor
+          # keeps the runner image's default from drifting under the job.
+          python-version: '3.12'
+
+      - name: Install the pinned tooling dependencies
+        # The resolver reads contract.yaml through PyYAML. Installing the `dev`
+        # extra keeps every version pin in pyproject.toml and nowhere else.
+        run: python -m pip install --disable-pip-version-check ".[dev]"
+
+      - name: Read the Template_Release the committed Power records
+        id: current
+        env:
+          # Via env, never interpolated into the script body: a workflow_dispatch
+          # input is untrusted text.
+          MIN_VERSION_OVERRIDE: ${{ inputs.min-version }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+
+          POWER = pathlib.Path("powers/senzing-bootcamp")
+          PLUGIN = POWER / "plugin.json"
+          MANIFEST = POWER / ".build-manifest.json"
+
+          version = ""
+          source = ""
+
+          override = (os.environ.get("MIN_VERSION_OVERRIDE") or "").strip()
+          if override:
+              version, source = override, "the workflow_dispatch min-version input"
+          else:
+              # plugin.json is the Power's own record of its provenance (R2 AC5).
+              if PLUGIN.is_file():
+                  data = json.loads(PLUGIN.read_text(encoding="utf-8"))
+                  extension = (data.get("extensions") or {}).get("com.senzing.bootcamp") or {}
+                  candidate = str(extension.get("templateRelease") or "").strip()
+                  if candidate:
+                      version = candidate
+                      source = f'{PLUGIN} extensions["com.senzing.bootcamp"].templateRelease'
+              # The Build_Manifest records the same tag, so it covers a Power
+              # whose plugin.json is missing or mid-edit.
+              if not version and MANIFEST.is_file():
+                  data = json.loads(MANIFEST.read_text(encoding="utf-8"))
+                  candidate = str(data.get("templateRelease") or "").strip()
+                  if candidate:
+                      version = candidate
+                      source = f"{MANIFEST} templateRelease"
+
+          if version:
+              print(f"comparing against Template_Release {version}, read from {source}")
+          else:
+              print(
+                  "no committed Bootcamp_Power records a Template_Release "
+                  f"(looked at {PLUGIN} and {MANIFEST}); there is nothing to "
+                  "compare an upstream release against yet"
+              )
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"version={version}\n")
+              handle.write(f"present={'true' if version else 'false'}\n")
+          PY
+
+      - name: Resolve the latest upstream Template_Release
+        id: resolve
+        if: steps.current.outputs.present == 'true'
+        env:
+          # `gh release list` needs a token even for a public repository; the
+          # resolver's REST fallback reads the same variable. The default job
+          # token is read-only against other public repositories, which is all
+          # the resolver asks of it.
+          GH_TOKEN: ${{ github.token }}
+          MIN_VERSION: ${{ steps.current.outputs.version }}
+        run: |
+          set -uo pipefail
+          # `--out` is required by the resolver, and on the newer-release path it
+          # fetches the source tree at the resolved tag. That tree is discarded
+          # with the runner: this workflow never transforms it.
+          status=0
+          python3 tools/bootcamp-transform/resolve_release.py \
+            --min-version "$MIN_VERSION" \
+            --out "$RUNNER_TEMP/upstream-source" \
+            > "$RUNNER_TEMP/resolve.json" || status=$?
+
+          echo "--- resolver record ---"
+          cat "$RUNNER_TEMP/resolve.json" || true
+          echo "--- exit status: $status ---"
+
+          python3 - "$status" <<'PY'
+          import json
+          import os
+          import pathlib
+          import sys
+
+          status = int(sys.argv[1])
+          raw = pathlib.Path(os.environ["RUNNER_TEMP"], "resolve.json").read_text(
+              encoding="utf-8"
+          ).strip()
+          record = json.loads(raw) if raw else {}
+          error = str(record.get("error") or "")
+          tag = str(record.get("tag") or "")
+
+          # The resolver's four outcomes, mapped onto what this workflow reports.
+          if error == "E_ALREADY_CURRENT":
+              outcome = "current"
+              message = record.get("message") or "the Bootcamp_Power is current"
+          elif status != 0 or error:
+              outcome = "failed"
+              message = record.get("message") or (
+                  f"release resolution failed with exit status {status} and no record"
+              )
+          else:
+              outcome = "newer"
+              message = (
+                  f"Template_Release {tag} is newer than "
+                  f"{os.environ['MIN_VERSION']}"
+              )
+
+          # GITHUB_OUTPUT is line-oriented `key=value`, so a message carrying a
+          # newline would corrupt the following outputs. The message is the
+          # resolver's text, not this workflow's, so collapse it to one line.
+          message = " ".join(str(message).split())
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"outcome={outcome}\n")
+              handle.write(f"tag={tag}\n")
+              handle.write(f"error={error}\n")
+              handle.write(f"message={message}\n")
+
+          print(f"{outcome}: {message}")
+          if outcome == "failed":
+              # E_NO_RELEASE and E_RESOLVE_FAILED are real failures, not "no news":
+              # a red run is how a broken watch becomes visible.
+              sys.exit(1)
+          PY
+
+      - name: File the tracking issue for the newer Template_Release
+        if: steps.resolve.outputs.outcome == 'newer'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          UPSTREAM_TAG: ${{ steps.resolve.outputs.tag }}
+          CURRENT_VERSION: ${{ steps.current.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          ISSUE_TITLE="Upstream Template_Release ${UPSTREAM_TAG} available (committed Power records ${CURRENT_VERSION})"
+          export ISSUE_TITLE
+
+          python3 - <<'PY' > "$RUNNER_TEMP/issue-body.md"
+          import os
+
+          tag = os.environ["UPSTREAM_TAG"]
+          current = os.environ["CURRENT_VERSION"]
+          run_url = os.environ["RUN_URL"]
+
+          print(
+              f"""The upstream Senzing Bootcamp Claude Plugin has published
+          Template_Release `{tag}`. The committed Bootcamp_Power records `{current}`.
+
+          ## What to do
+
+          Run the Update_Skill from this repository as the open workspace:
+
+          > update the senzing bootcamp power
+
+          It resolves `{tag}`, re-runs the Transformation_Contract, and presents a
+          reconciliation report. Read that report before accepting anything —
+          specifically the preserved Kiro-specific adaptations, any conflicts, and
+          any `flaggedInvariantDiscounts` entry, which means an invariant recorded
+          in the discount register changed text upstream and needs re-evaluating.
+
+          Then work `docs/test-checklist.md` and record outcomes in
+          `docs/test-records/{tag}.md`. Tagging stays blocked until every step,
+          including all nine per-platform cells, has a recorded pass.
+
+          ## Why this is an issue and not a pull request
+
+          Updating is manual and Maintainer-run by design. The reconciliation
+          report needs a human decision, and the manual Test_Checklist gates the
+          release, so an unattended bot cannot carry the update to a mergeable
+          state. This workflow only detects and reports.
+
+          ---
+
+          Detected by [the upstream-release watch]({run_url}), via
+          `tools/bootcamp-transform/resolve_release.py --min-version {current}`."""
+          )
+          PY
+
+          # Exact-title dedupe against the open issues, so a weekly schedule files
+          # one issue per upstream release rather than one per run. Listing and
+          # matching locally avoids depending on search-index freshness.
+          existing=$(gh issue list --state open --limit 100 --json number,title \
+            | python3 -c 'import json, os, sys; wanted = os.environ["ISSUE_TITLE"]; print(next((str(issue["number"]) for issue in json.load(sys.stdin) if issue["title"] == wanted), ""))')
+
+          if [ -n "$existing" ]; then
+            echo "issue #${existing} already tracks Template_Release ${UPSTREAM_TAG}; leaving it as it is"
+          else
+            gh issue create --title "$ISSUE_TITLE" --body-file "$RUNNER_TEMP/issue-body.md"
+          fi
+
+      - name: Summarize the outcome
+        if: always()
+        env:
+          PRESENT: ${{ steps.current.outputs.present }}
+          CURRENT_VERSION: ${{ steps.current.outputs.version }}
+          OUTCOME: ${{ steps.resolve.outputs.outcome }}
+          UPSTREAM_TAG: ${{ steps.resolve.outputs.tag }}
+          RESOLVER_ERROR: ${{ steps.resolve.outputs.error }}
+          RESOLVER_MESSAGE: ${{ steps.resolve.outputs.message }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Upstream Template_Release watch"
+            echo
+            if [ "$PRESENT" != "true" ]; then
+              echo "No committed Bootcamp_Power records a Template_Release yet, so there was"
+              echo "nothing to compare against. Nothing was resolved and no issue was filed."
+              echo "Use the workflow_dispatch \`min-version\` input to check upstream anyway."
+            else
+              echo "- Committed Power records: \`${CURRENT_VERSION}\`"
+              case "$OUTCOME" in
+                newer)
+                  echo "- Latest upstream Template_Release: \`${UPSTREAM_TAG}\`"
+                  echo "- **A newer Template_Release exists.** A tracking issue reports it."
+                  echo
+                  echo "The update itself stays manual: run \`update the senzing bootcamp power\`."
+                  ;;
+                current)
+                  echo "- The Power is current. No newer Template_Release exists."
+                  ;;
+                *)
+                  echo "- Release resolution did not complete: \`${RESOLVER_ERROR:-unknown}\`"
+                  echo "- ${RESOLVER_MESSAGE:-no resolver record was produced}"
+                  ;;
+              esac
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
