@@ -58,9 +58,9 @@ recap PDF you can keep and share, and a production starter. See
     1. Select "Import power from GitHub"
     1. Enter the following GitHub repository URL:
 
-      ```text
-      https://github.com/Senzing/senzing-bootcamp-kiro-power/tree/main/senzing-bootcamp
-      ```
+        ```text
+        https://github.com/Senzing/senzing-bootcamp-kiro-power/tree/main/senzing-bootcamp
+        ```
 
 1. In Kiro's agentic chat, enter the following to begin the bootcamp:
 
