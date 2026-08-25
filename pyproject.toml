@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "senzing-bootcamp-kiro-powers-development"
+version = "0.0.0"
+description = "Deterministic transformation pipeline and maintainer Power that generate the Senzing Bootcamp Kiro Power from a Senzing Bootcamp Claude plugin release."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+
+# The transformation engine at tools/bootcamp-transform/ is run as scripts, not
+# installed as a package, so there is no runtime dependency set. Everything the
+# engine and its tests need is pinned in the dev extra below.
+dependencies = []
+
+[project.optional-dependencies]
+# Pinned exactly: the Build_Manifest hashes and the golden-tree regression check
+# depend on serializer and renderer behavior staying byte-stable across runs.
+dev = [
+  "pytest==9.0.3",
+  "hypothesis==6.152.3",
+  "pyyaml==6.0.1",
+  "jsonschema==4.10.3",
+  "jinja2==3.1.2",
+]
+
+[tool.setuptools]
+# Nothing in this repository is importable as an installed package; the engine
+# scripts and the generated Powers are plain files.
+packages = []
+
+# Single-run invocation: `pytest --no-header -q`
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tools/bootcamp-transform/tests"]
+pythonpath = ["tools/bootcamp-transform", "tools/bootcamp-transform/tests"]
+python_files = ["test_*.py"]
+addopts = "--strict-markers"
+markers = [
+  "integration: touches the network or the real upstream template repository",
+]

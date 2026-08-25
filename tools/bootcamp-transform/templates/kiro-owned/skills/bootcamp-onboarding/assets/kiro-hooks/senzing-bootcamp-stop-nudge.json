@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "senzing-bootcamp-stop-nudge",
+      "trigger": "Stop",
+      "action": {
+        "type": "command",
+        "command": "\"<ABSOLUTE_PYTHON>\" \"<ABSOLUTE_SCRIPTS_DIR>/stop-nudge.py\""
+      },
+      "timeout": 10
+    }
+  ]
+}

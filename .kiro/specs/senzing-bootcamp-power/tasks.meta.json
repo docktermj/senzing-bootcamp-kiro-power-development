@@ -1,0 +1,1771 @@
+{
+  "pbtResults": {
+    "2.2 Write property test for release selection": {
+      "status": "passed",
+      "lastRunTimestamp": 1787188682470
+    },
+    "4.2 Write property test for total rule coverage": {
+      "status": "passed",
+      "lastRunTimestamp": 1787191302634
+    },
+    "4.5 Write property test for failure atomicity": {
+      "status": "passed",
+      "lastRunTimestamp": 1787195974628
+    },
+    "5.2 Write property test for substitution completeness": {
+      "status": "passed",
+      "lastRunTimestamp": 1787240746135
+    },
+    "5.4 Write property test for rule-kind fidelity": {
+      "status": "passed",
+      "lastRunTimestamp": 1787325092681
+    },
+    "8.3 Write property test for the Senzing MCP declaration": {
+      "status": "passed",
+      "lastRunTimestamp": 1787326329943
+    },
+    "8.5 Write property test for frontmatter validation": {
+      "status": "passed",
+      "lastRunTimestamp": 1787328357221
+    },
+    "8.7 Write property test for cross-reference integrity": {
+      "status": "passed",
+      "lastRunTimestamp": 1787331809889
+    },
+    "8.11 Write property test for residual Claude reference detection": {
+      "status": "passed",
+      "lastRunTimestamp": 1787338929906
+    },
+    "8.13 Write property test for inventory bijections": {
+      "status": "passed",
+      "lastRunTimestamp": 1787341828334
+    },
+    "8.14 Write property test for progression order": {
+      "status": "passed",
+      "lastRunTimestamp": 1787344383373
+    },
+    "10.2 Write property test for reconciliation classification": {
+      "status": "passed",
+      "lastRunTimestamp": 1787418523791
+    },
+    "10.8 Write property test for changelog recording": {
+      "status": "passed",
+      "lastRunTimestamp": 1787421715028
+    },
+    "11.2 Write property test for trigger-phrase exclusivity": {
+      "status": "passed",
+      "lastRunTimestamp": 1787422442429
+    },
+    "13.3 Write property test for the test-record gate": {
+      "status": "passed",
+      "lastRunTimestamp": 1787452640094
+    }
+  },
+  "executionHistory": {
+    "1.1 Create Python project scaffolding and a runnable test command": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184626916
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184639169
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787185391542
+      }
+    ],
+    "1.2 Commit the repository `.gitattributes` line-ending declaration": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627115
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184642306
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186709581
+      }
+    ],
+    "1.3 Author the shared Hypothesis strategies in `tools/bootcamp-transform/tests/strategies.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627187
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787185399604
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186713666
+      }
+    ],
+    "2.1 Implement `tools/bootcamp-transform/resolve_release.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627246
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186765940
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787187887940
+      }
+    ],
+    "2.2 Write property test for release selection": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627286
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787187921410
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787189974590
+      }
+    ],
+    "2.3 Write unit tests for resolver timeout and error distinctness in `tools/bootcamp-transform/tests/test_units.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627330
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787189999209
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787191359507
+      }
+    ],
+    "3.1 Author the rules, substitution sets, and ignore list in `tools/bootcamp-transform/contract.yaml`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627385
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787185403194
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186718059
+      }
+    ],
+    "3.2 Add the `invariantDiscounts` register and the `output.lineEndings` policy to `contract.yaml`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627465
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186770763
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787187891893
+      }
+    ],
+    "3.3 Author the generation templates under `tools/bootcamp-transform/templates/`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627521
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787185406791
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186721662
+      }
+    ],
+    "3.4 Write structural tests for contract single-sourcing and repository invariants in `tools/bootcamp-transform/tests/test_structure.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627584
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787187925154
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787189979535
+      }
+    ],
+    "4.1 Implement source enumeration and rule matching in `tools/bootcamp-transform/transform.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627637
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186774594
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787187895994
+      }
+    ],
+    "4.2 Write property test for total rule coverage": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627685
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787190003119
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787191363914
+      }
+    ],
+    "4.3 Implement staging output, build manifest, atomic swap, and write containment in `transform.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627733
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787187928749
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787189985862
+      }
+    ],
+    "4.4 Write property test for transform determinism": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627780
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787191381709
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787193968692
+      }
+    ],
+    "4.5 Write property test for failure atomicity": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627818
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787193986340
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787196013789
+      }
+    ],
+    "4.6 Write property test for write containment": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627880
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787196041286
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787198061774
+      }
+    ],
+    "4.7 Write property test for create/update output equivalence": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627932
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787198126435
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787232330852
+      }
+    ],
+    "5.1 Implement the substitution engine and named substitution sets in `transform.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184627973
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787190007652
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787191367971
+      }
+    ],
+    "5.2 Write property test for substitution completeness": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628021
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787232385511
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787240819384
+      }
+    ],
+    "5.3 Implement the `copy` and `substitute` rule kinds in `transform.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628074
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787191387842
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787196018235
+      }
+    ],
+    "5.4 Write property test for rule-kind fidelity": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628121
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787240893097
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323352566
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323590497
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787325118096
+      }
+    ],
+    "5.5 Implement the `skill` rule kind in `transform.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628179
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787196031270
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787198069575
+      }
+    ],
+    "5.6 Implement script porting, vendored assets, and missing-asset detection in `transform.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628236
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787198110181
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787232340149
+      }
+    ],
+    "6. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628284
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323352815
+      },
+      {
+        "executionId": "b3372273-95a5-458e-b666-b90c12c6ce07",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787534278121
+      },
+      {
+        "executionId": "b3372273-95a5-458e-b666-b90c12c6ce07",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787576789773
+      }
+    ],
+    "7.1 Implement `plugin.json` generation with version stamping and provenance in `transform.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628331
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787232369381
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787240849673
+      }
+    ],
+    "7.2 Implement `mcp.json` generation in `transform.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628379
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787240874667
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323352915
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323374302
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323586879
+      }
+    ],
+    "7.3 Write unit tests for license, provenance, and MCP translation in `tests/test_units.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628418
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323352978
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323595453
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787325121655
+      }
+    ],
+    "8.1 Implement `tools/bootcamp-transform/validate.py` core: report model and tagging gate": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628462
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787187912008
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787189990462
+      }
+    ],
+    "8.2 Implement schema checks for `plugin.json` and `mcp.json`, plus Senzing MCP exactness, in `validate.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628502
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787240900446
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353042
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323596891
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787325122981
+      }
+    ],
+    "8.3 Write property test for the Senzing MCP declaration": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628571
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353100
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787325126943
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787326913904
+      }
+    ],
+    "8.4 Implement `SKILL.md` frontmatter validation in `validate.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628621
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353162
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787325133113
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787326917346
+      }
+    ],
+    "8.5 Write property test for frontmatter validation": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628667
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353230
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787326922195
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787328382993
+      }
+    ],
+    "8.6 Implement cross-reference resolution checking in `validate.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628741
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353292
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787326925689
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787328386482
+      }
+    ],
+    "8.7 Write property test for cross-reference integrity": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628791
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353363
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787328391615
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787331916989
+      }
+    ],
+    "8.8 Implement the version-match check in `validate.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628836
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353425
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787328395119
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787331920629
+      }
+    ],
+    "8.9 Write property test for version stamp and provenance": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628890
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353486
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787331927074
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787337861818
+      }
+    ],
+    "8.10 Implement the residual-Claude reference scan with the `INV-NNN` exemption in `validate.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184628950
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353549
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787331932085
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787337865962
+      }
+    ],
+    "8.11 Write property test for residual Claude reference detection": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629000
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353634
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787337872796
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787340372574
+      }
+    ],
+    "8.12 Implement inventory bijection and progression-order checks in `validate.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629051
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353699
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787337876649
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787340376380
+      }
+    ],
+    "8.13 Write property test for inventory bijections": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629101
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353766
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787340381779
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787341937778
+      }
+    ],
+    "8.14 Write property test for progression order": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629152
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353832
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787341945052
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787344407526
+      }
+    ],
+    "8.15 Implement the broken-import and asset-reference checks in `validate.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629203
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353910
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787340385953
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787341941407
+      }
+    ],
+    "8.16 Write property test for script layout and dangling assets": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629254
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323353963
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787344416074
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787349741811
+      }
+    ],
+    "8.17 Implement the Invariant_Discount_Register checks in `validate.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629303
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354030
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787341948729
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787344411393
+      }
+    ],
+    "8.18 Implement the Hook_Command_String checks in `validate.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629354
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787198132940
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787232349896
+      }
+    ],
+    "8.19 Implement the Build_Manifest hash check in `validate.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629405
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787232392836
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787240857685
+      }
+    ],
+    "8.20 Write property test for the discount register and invariant citations": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629453
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354115
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787349745917
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787351403765
+      }
+    ],
+    "8.21 Write property test for report completeness and gating": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629515
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354178
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787351407942
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787417084605
+      }
+    ],
+    "9. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629565
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354231
+      },
+      {
+        "executionId": "b3372273-95a5-458e-b666-b90c12c6ce07",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787576793163
+      },
+      {
+        "executionId": "b3372273-95a5-458e-b666-b90c12c6ce07",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787577286296
+      }
+    ],
+    "10.1 Implement three-way classification in `tools/bootcamp-transform/reconcile.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629618
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787190013222
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787191372424
+      }
+    ],
+    "10.2 Write property test for reconciliation classification": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629669
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354295
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787413162479
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787418547892
+      }
+    ],
+    "10.3 Implement adaptation preservation and conflict reporting in `reconcile.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629722
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787191392353
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787193973752
+      }
+    ],
+    "10.4 Write property test for adaptation survival": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629782
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354363
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787418552224
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787419362361
+      }
+    ],
+    "10.5 Implement invariant-text drift flagging and the `flaggedInvariantDiscounts` report field in `reconcile.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629841
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787193991787
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787196022839
+      }
+    ],
+    "10.6 Write unit tests for discount drift flagging in `tests/test_units.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629900
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787196045808
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787198078961
+      }
+    ],
+    "10.7 Implement CHANGELOG entry generation for successful updates": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184629951
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787196050842
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787198087610
+      }
+    ],
+    "10.8 Write property test for changelog recording": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630033
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354425
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787419365269
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787421738566
+      }
+    ],
+    "11.1 Author the three command-derived skills under `tools/bootcamp-transform/templates/kiro-owned/skills/`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630093
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787185412263
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186725333
+      }
+    ],
+    "11.2 Write property test for trigger-phrase exclusivity": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630152
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354491
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787421743560
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787422472601
+      }
+    ],
+    "11.3 Author the Kiro hook JSON assets, the parity coverage map, and the Tier 1 instruction content": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630202
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186778180
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787187900284
+      }
+    ],
+    "11.4 Author the `bootcamp-enforcement-setup` skill and its `install_hooks.py` installer": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630252
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787187932379
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787189994667
+      }
+    ],
+    "11.5 Write property test for generated hook command portability": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630305
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354561
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787422475694
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787450156028
+      }
+    ],
+    "11.6 Write property test for hook behavior reachability": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630351
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354619
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787450158945
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787451926951
+      }
+    ],
+    "11.7 Write structural tests for hook definitions in `tests/test_structure.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630403
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787190017315
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787191376756
+      }
+    ],
+    "11.8 Implement optional-runtime degradation for runtimes other than the resolved interpreter": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630441
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787198140329
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787232358684
+      }
+    ],
+    "11.9 Write unit tests for optional-runtime absence in `tests/test_units.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630501
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787232404107
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787240865760
+      }
+    ],
+    "12.1 Create `powers/senzing-bootcamp-maintainer/plugin.json`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630565
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186749006
+      },
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787187904181
+      }
+    ],
+    "12.2 Author `powers/senzing-bootcamp-maintainer/skills/create-bootcamp-power/SKILL.md`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630615
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354679
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787325134542
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787326918695
+      }
+    ],
+    "12.3 Author `powers/senzing-bootcamp-maintainer/skills/update-bootcamp-power/SKILL.md`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630666
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354745
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787326926925
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787328387823
+      }
+    ],
+    "12.4 Write structural tests for maintainer tooling placement in `tests/test_structure.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630712
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354796
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787328396551
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787331922037
+      }
+    ],
+    "12.5 Write unit tests for create/update orchestration edge cases in `tests/test_units.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630764
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354847
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787331933422
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787337868153
+      }
+    ],
+    "13.1 Author `docs/test-checklist.md`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630815
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354905
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787328397460
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787331922983
+      }
+    ],
+    "13.2 Implement the test-record tooling at `tools/bootcamp-transform/testrecord.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630866
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323354959
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787331930733
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787337868490
+      }
+    ],
+    "13.3 Write property test for the test-record gate": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630922
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323355014
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787451963692
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787452661729
+      }
+    ],
+    "13.4 Write structural tests for the checklist in `tests/test_structure.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184630979
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323355085
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787337877808
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787340377662
+      }
+    ],
+    "14.1 Run the full pipeline against the real Template_Release `0.5.1` and commit `powers/senzing-bootcamp/`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184631035
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323355142
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787452669040
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787457256362
+      }
+    ],
+    "14.2 Write integration tests in `tools/bootcamp-transform/tests/test_integration.py`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184631085
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323355213
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787457259803
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787458501521
+      }
+    ],
+    "15. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184631135
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323355281
+      },
+      {
+        "executionId": "b3372273-95a5-458e-b666-b90c12c6ce07",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787577289412
+      },
+      {
+        "executionId": "b3372273-95a5-458e-b666-b90c12c6ce07",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787579110601
+      }
+    ],
+    "16.1 Generate the test-record skeleton for the committed release at `docs/test-records/0.5.1.md`": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184631190
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323355338
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787458506572
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787459395765
+      }
+    ],
+    "16.2 Make every assumption-dependent value a single point of change": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184631281
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323355388
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787459399210
+      },
+      {
+        "executionId": "b3372273-95a5-458e-b666-b90c12c6ce07",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787534269170
+      }
+    ],
+    "17.1 Add a GitHub Action that watches upstream releases and opens an update PR": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787184631332
+      },
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787323355438
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787452672083
+      },
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787457252830
+      }
+    ],
+    "1. Project scaffolding and repository-level cross-platform artifacts": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787186713718
+      }
+    ],
+    "3. Author the Transformation_Contract and generation templates": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787189979682
+      }
+    ],
+    "2. Implement the Version_Resolver": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787191359676
+      }
+    ],
+    "4. Implement the transform engine: rule matching, staging, and atomicity": [
+      {
+        "executionId": "0eb9a7b2-961b-4355-9626-cbc066a88b70",
+        "chatSessionId": "sess_bda6c23d-cd05-46ae-917c-15ad79cf0d40",
+        "timestamp": 1787232331798
+      }
+    ],
+    "5. Implement the transform engine: rule kinds and content fidelity": [
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787325118163
+      }
+    ],
+    "7. Implement the `generate` rule kind for `plugin.json` and `mcp.json`": [
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787325121729
+      }
+    ],
+    "12. Build the maintainer Power": [
+      {
+        "executionId": "4996b2fb-bfe0-433e-9bb1-5bd8eb89657e",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787337868253
+      }
+    ],
+    "8. Implement the Schema_Validator": [
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787417084687
+      }
+    ],
+    "10. Implement the Reconciler and changelog generation": [
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787421738630
+      }
+    ],
+    "11. Author the `kiro-owned` content (hand-authored, no template source)": [
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787451927049
+      }
+    ],
+    "13. Build the Test_Checklist and its record-based tagging gate": [
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787452661801
+      }
+    ],
+    "17. Optional forward-looking work": [
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787457252910
+      }
+    ],
+    "14. Generate and commit the deliverable Bootcamp_Power": [
+      {
+        "executionId": "4d9963b4-af10-4500-a6a4-0a42d2dd166d",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787458501615
+      }
+    ],
+    "16. Wire the release gate and keep assumption-dependent values single-sourced": [
+      {
+        "executionId": "b3372273-95a5-458e-b666-b90c12c6ce07",
+        "chatSessionId": "sess_e3399158-5ca0-4ae9-abc3-d631c793022a",
+        "timestamp": 1787534269303
+      }
+    ]
+  }
+}

@@ -1,0 +1,690 @@
+# Transformation_Contract — the single shared source of Template_Plugin -> Bootcamp_Power
+# mapping rules (R3 AC1).
+#
+# This file is REFERENCED, never duplicated, by both maintainer skills: the
+# Create_Skill and the Update_Skill each invoke tools/bootcamp-transform/transform.py
+# over *this* file, so the two paths cannot diverge (R3 AC2, AC3) and a rule change
+# has exactly one home (R3 AC4). That single-sourcing is what makes create and update
+# produce byte-for-byte identical output from identical input (R3 AC5).
+#
+# The contract is data, not prose: the engine executes it. No rule is interpreted by
+# an agent, and no substitution is hardcoded in Python.
+#
+# ---------------------------------------------------------------------------
+# Rule kinds
+# ---------------------------------------------------------------------------
+#   copy        Byte-for-byte copy. Vendored assets, images, PDFs, minified JS
+#               (R10 AC3, R12 AC1).
+#   substitute  Copy, then apply the named substitution sets in declared order.
+#   skill       Parse SKILL.md frontmatter, apply additive frontmatter adaptation,
+#               apply substitution sets to the body, and copy every sibling .md file
+#               to the SAME relative location it holds in the source skill directory
+#               (R8 AC1, AC2). The layout is preserved verbatim; nothing is
+#               relocated into a `references/` subdirectory, and no such directory is
+#               created. NO template skill has one: in release 0.5.1 every supporting
+#               document sits directly beside its SKILL.md, and skills reach each
+#               other's documents by sibling-relative link — `../bootcamp-onboarding/
+#               ground-rules.md` alone appears 50 times. Introducing a `references/`
+#               level would break every one of those links, which is exactly what
+#               R8 AC2 forbids and what the Schema_Validator's cross-reference check
+#               would report. Verbatim layout is therefore the mechanism, not a
+#               simplification of one.
+#   generate    Produced from tools/bootcamp-transform/templates/ plus ResolvedRelease
+#               data. Where a generate rule declares a `source`, that template file is
+#               consumed and superseded by the generated artifact.
+#   kiro-owned  Exists only in the Bootcamp_Power; has no Template_Plugin source.
+#               Marked `owner: kiro`, therefore preserved verbatim by update (R5 AC5).
+#               May declare `substitutions`, and one rule does: `kiro-hooks`, so that
+#               the two assumption-dependent values in the shipped hook assets — the
+#               `PreToolUse` matcher (A3) and the <ABSOLUTE_SCRIPTS_DIR> resolution
+#               strategy (A4) — live in this contract and nowhere else. Authored
+#               `kiro-owned` content is therefore pre-substitution content, exactly as
+#               ported content is.
+#   ignore      Matched deliberately and not ported, with the reason recorded inline.
+#
+# Every non-`kiro-owned` rule produces `owner: template` in the Build_Manifest; the
+# engine defaults it, so only the `kiro-owned` rules state `owner` explicitly.
+#
+# ---------------------------------------------------------------------------
+# Matching semantics
+# ---------------------------------------------------------------------------
+# Every file under `template.pluginRoot` must match exactly one `rules` entry or one
+# `ignore` entry. A file matching neither halts the run with E_UNMATCHED_FILE naming
+# that file, and produces no output (R3 AC6). The `ignore` list is what makes that
+# signal meaningful: "unmatched" then means genuinely new upstream content — the early
+# warning a Maintainer needs when upstream adds a module, a script, or a doc.
+#
+# Rule `source` patterns are POSIX glob patterns relative to `template.pluginRoot`.
+# They are authored to be **mutually exclusive**, using `exclude` where a glob would
+# otherwise overlap a more specific rule, so the contract is correct whether the
+# engine resolves matches by declaration order or requires exactly one match.
+#
+# `dest` is relative to the Bootcamp_Power root (powers/senzing-bootcamp/). A `dest`
+# list means the same content is materialized at each listed location. The
+# `{skillName}` placeholder expands to the source skill directory name
+# byte-identically, so `skills/<skill-name>/` matches the template exactly (R8 AC1).
+#
+# The `ignore` list is consulted on BOTH sides of the transform, against the same
+# patterns:
+#
+#   * every enumerated template path, relative to `template.pluginRoot` — the
+#     E_UNMATCHED_FILE gate above;
+#   * every authored `kiro-owned` file, at its Bootcamp_Power-relative destination.
+#     Because the authored tree under `templates/kiro-owned/` mirrors the `dest`
+#     layout exactly, that is the same string as the authored file's path relative to
+#     `templates/kiro-owned/`, so one pattern reads identically on either side.
+#
+# One list, two sides, because "never ports into the Power" is one idea. It is also
+# what keeps a local build byproduct out of the deliverable declaratively: the engine
+# consults the contract and never names a byproduct itself.
+
+contractVersion: 1
+
+# The template is a *marketplace* repository: `.claude-plugin/marketplace.json` sits at
+# the repo root and the plugin itself lives in a subdirectory. Sources are therefore
+# rooted at `plugins/senzing-bootcamp`, not the repo root.
+template:
+  repository: Senzing/senzing-bootcamp-claude-plugin
+  pluginRoot: plugins/senzing-bootcamp
+
+# ---------------------------------------------------------------------------
+# Invariant_Discount_Register (R15 AC1-AC4, AC11)
+# ---------------------------------------------------------------------------
+# The template's `INV-NNN` invariants were authored for a Claude plugin. They are
+# NON-NORMATIVE for Bootcamp_Power packaging, Bootcamp_Power structure, and
+# Bootcamp_Power hook definition format (R15 AC1).
+#
+# Where honoring an invariant would conflict with the Agent Plugins v1.0.0
+# specification or with a documented Kiro mechanism, the Kiro-correct construction
+# wins, the conflicting invariant is DISCOUNTED, and the discount is recorded here
+# (R15 AC2, AC4).
+#
+# Discounting is not the default. Where an invariant states a portability, security,
+# or correctness guarantee in host-specific vocabulary, that guarantee is instead
+# PRESERVED RESTATED IN KIRO MECHANISMS and the invariant is RETAINED AS HONORED
+# (R15 AC3). The question is never "does this mention Claude?" — nearly all of them
+# do — but "what does this protect?". An invariant about `.claude-plugin/plugin.json`
+# paths protects nothing once the manifest moves to the Power root; an invariant
+# about shell dependency protects Windows Bootcampers.
+#
+# All three fields of an entry are mandatory and non-empty. An incomplete entry is
+# E_INCOMPLETE_DISCOUNT and blocks tagging (R15 AC5). Living here — inside the
+# contract — is what makes the Create_Skill and the Update_Skill apply an identical
+# discount set (R15 AC11).
+#
+# INV-052 IS DELIBERATELY ABSENT AND MUST NEVER BE ADDED. It is honored, not
+# discounted: its exec-form wording (`command` + `args`) cannot be reproduced under
+# Kiro's single-command-string hook schema, but its stated guarantee — no shell
+# dependency on Linux, macOS, or Windows — is preserved by install-time absolute-path
+# interpreter resolution (R16 AC3, AC4). An INV-052 entry appearing here is the
+# validator error E_HONORED_INVARIANT_DISCOUNTED and blocks tagging (R15 AC6).
+# Do not add one.
+#
+# Entry shape (all three fields required, all three non-empty):
+#   - invariant:     "INV-NNN"
+#     conflictsWith: "the Agent Plugins clause or Kiro mechanism that it conflicts with"
+#     resolution:    "the construction implemented instead, and why nothing protected is lost"
+#
+# The register is reviewed, not merely appended to: when a newer Template_Release
+# edits the text of an invariant recorded here, the Update_Skill flags that entry for
+# Maintainer re-evaluation rather than carrying the judgment forward unexamined
+# (R15 AC10).
+invariantDiscounts: []
+
+# ---------------------------------------------------------------------------
+# Output policy
+# ---------------------------------------------------------------------------
+# Line-ending normalization declared within this repository (R16 AC8). The engine
+# writes LF unconditionally; the committed `.gitattributes` keeps it LF on checkout on
+# every Supported_Platform, so a Windows checkout cannot rewrite bytes and invalidate
+# the Build_Manifest hashes (R16 AC9).
+output:
+  lineEndings: lf
+  gitattributes: ".gitattributes"     # committed repo artifact, not generated output
+
+# ---------------------------------------------------------------------------
+# Bootcamp progression order (R7 AC3)
+# ---------------------------------------------------------------------------
+# The ordered phases a Bootcamper moves through, onboarding through graduation.
+# The Schema_Validator derives BOTH progression sequences from this one declaration
+# — the template's, from the skill directories present in the resolved release, and
+# the Bootcamp_Power's, from the skills that stand for them — and compares them
+# element-for-element. The order is therefore stated once, here, and never in
+# Python (R3 AC4).
+#
+# A phase's `match` is a POSIX glob over a SKILL DIRECTORY NAME, matched with the
+# same semantics as every other contract glob. A name contains no `/`, so `*` spans
+# the whole remainder of the name and `module-*` claims every numbered module.
+# Phases are consulted in declaration order and the first one claiming a name
+# places it.
+#
+# NO COUNT AND NO SKILL LIST IS DECLARED HERE, deliberately (design defect D1).
+# The phases describe the SHAPE of the progression; the inventory that fills them
+# is derived from whichever skill directories the resolved Template_Release
+# carries. A release that adds `module-08-…` needs no edit. A release that adds a
+# skill no phase claims fails the gate by name, which is the early warning a
+# Maintainer needs — the answer is a new phase, not a silently reordered bootcamp.
+#
+# Within the `modules` phase the order is by the module's leading number and then
+# by its interstitial suffix, so `module-03b-truthset-visualization` sits between
+# `module-03-…` and `module-04-…` rather than wherever a lexicographic sort over
+# whole directory names would land it (R7 AC3).
+#
+# The first phase must be `onboarding` and the last must be `graduation`: that is
+# R7 AC3's "from onboarding through graduation" read literally, and the validator
+# refuses a declaration whose endpoints are anything else rather than comparing two
+# sequences that are both ordered wrongly in the same way.
+progression:
+  - { id: onboarding,  match: "bootcamp-onboarding" }
+  - { id: preparation, match: "bootcamp-preparation" }
+  - { id: modules,     match: "module-*" }
+  - { id: graduation,  match: "graduation" }
+
+# ---------------------------------------------------------------------------
+# Named substitution sets
+# ---------------------------------------------------------------------------
+# Substitution is literal-string or anchored-regex only, applied in the order the sets
+# are declared on a rule, single pass per set. No heuristic and no model-generated
+# rewriting — that is what makes the engine deterministic and what keeps inline
+# INV-NNN invariant citations intact (R7 AC15, R15 AC7).
+#
+# Entry shapes (only these two are permitted):
+#   { find: "<literal>", replace: "<literal>", literal: true }
+#   { pattern: "^<anchored regex>$", replace: "<literal>", regex: true }
+# Nearly every entry below is literal. The one regex entry — the third in
+# `manifest-path` — is there because the text it must rewrite is a whole line of Python
+# rather than a term embedded in prose, and a line-anchored pattern is what says "this
+# entire line and nothing else". An unanchored regex is not a permitted entry shape, a
+# `regex` entry may not name a capture group, and its `replace` is literal in both
+# shapes: no backreference, no template expansion.
+#
+# Single pass per set is a correctness guarantee, not an optimization: it is what stops
+# `script-paths` from rewriting a destination it just produced.
+#
+# NO SUBSTITUTION SET MAPS AN INTERPRETER NAME TO ANYTHING, AND NO SET NAMES EITHER
+# HOOK_COMMAND PLACEHOLDER. There is deliberately no `python3` rule, because an
+# interpreter name must never appear in generated output at all, and deliberately no
+# <ABSOLUTE_PYTHON> or <ABSOLUTE_SCRIPTS_DIR> rule, because resolving those is the
+# Hook_Installer's job and only its job (R7 AC6, R16 AC3, AC4). Hook_Command_Strings
+# come from `kiro-owned` hook JSON carrying only those two placeholders; the sets
+# `kiro-hooks` declares reach a `matcher` (a tool-name position) and a coverage-map
+# policy field, never a command string. The shipped commands therefore travel through
+# the build byte-for-byte and stay unresolved until install time.
+# Template_Invariant INV-052 is honored this way, not discounted.
+#
+# NO SUBSTITUTION SET REWRITES A PORTED SCRIPT'S OPTIONAL-RUNTIME HANDLING EITHER.
+# The scripts already warn-and-continue when a runtime other than the resolved Python
+# interpreter is absent, so the R16 AC7 guard is declared as `kiro-owned` content by
+# the `optional-runtime-guard` rule below rather than substituted into script bodies.
+# A literal rewrite of an exit status would hit the whole ported set, and
+# `write-gate.py` must keep its blocking exit 2.
+substitutionSets:
+  # R10 AC2: zero occurrences of the template root path token may remain.
+  plugin-root:
+    - { find: "${CLAUDE_PLUGIN_ROOT}", replace: "${PLUGIN_ROOT}", literal: true }
+
+  # The manifest moved from `<pluginRoot>/.claude-plugin/plugin.json` to the Power
+  # root (R10 AC2). Two shapes of reference need repointing, and they are NOT the
+  # same problem.
+  #
+  # 1. PROSE, in ported skill bodies, which writes the path as a literal: release
+  #    0.5.1's `bootcamp-onboarding/onboarding-flow.md`, `bootcamp-onboarding/
+  #    feedback.md`, and `graduation/SKILL.md` each spell out the manifest lookup
+  #    order. The two literal entries cover both spellings they use. The
+  #    parent-relative form is listed first so the more specific match wins:
+  #    `<this-skill-dir>/../../.claude-plugin/plugin.json` becomes
+  #    `<this-skill-dir>/../../plugin.json`, which stays correct because a ported
+  #    skill directory sits two levels below the Power root exactly as it sat two
+  #    below the plugin root. The bare form and the `${PLUGIN_ROOT}`-prefixed form
+  #    (already rewritten by `plugin-root`, which every rule declaring this set
+  #    declares ahead of it) are covered by the second entry.
+  #
+  # 2. CODE, in `feedback-capture.py`, which does NOT write a literal path at all.
+  #    `plugin_version()` builds it from joined segments:
+  #
+  #        manifest = os.path.join(
+  #            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+  #            ".claude-plugin",
+  #            "plugin.json",
+  #        )
+  #
+  #    Neither literal entry above can match that, and the DEPTH changed as well as
+  #    the segment name: the script moves from `<pluginRoot>/scripts/` to
+  #    `<powerRoot>/skills/bootcamp-onboarding/scripts/`, so
+  #    `dirname(dirname(abspath(__file__)))` now lands on the owning skill
+  #    directory — two levels below the Power root — instead of on the plugin root.
+  #    Repointing the name alone would resolve
+  #    `skills/bootcamp-onboarding/plugin.json`, which does not exist, and
+  #    `plugin_version()` would keep answering "Unknown" while looking fixed.
+  #
+  #    The third entry does both jobs at once, in ONE entry, by replacing the
+  #    `.claude-plugin` path segment with the two levels the move added:
+  #
+  #            os.pardir, os.pardir,  # skills/<skill>/scripts/ -> Power root
+  #
+  #    so the join resolves to `<powerRoot>/plugin.json`. `os` is already imported
+  #    by the script, and `os.pardir` is the platform's parent segment on every
+  #    Supported_Platform.
+  #
+  #    ONE entry, deliberately. `replace` is literal and patterns are line-anchored,
+  #    so a multi-line `os.path.join(...)` call cannot be rewritten as a whole; the
+  #    alternative — one entry deepening the `dirname` line and a second dropping the
+  #    `.claude-plugin` line — is two entries that are only correct together. Either
+  #    one firing alone, after an upstream reformat of just one of those two adjacent
+  #    lines, yields an unbalanced expression and a script that cannot be imported.
+  #    This entry is correct standing alone and needs nothing from the `dirname`
+  #    line, whatever that line comes to say.
+  #
+  #    It is pinned to the line exactly as release 0.5.1 writes it, indentation
+  #    included, and that is the fail-loud choice: should upstream reformat that
+  #    line, the entry stops matching, the `.claude-plugin` segment survives into the
+  #    ported script, and the Schema_Validator's residual-reference check names it.
+  #    A laxer pattern would instead re-emit this indentation into a body that has
+  #    moved on. A wrong path that reports itself beats a wrong path that does not.
+  manifest-path:
+    - { find: "../.claude-plugin/plugin.json", replace: "../plugin.json", literal: true }
+    - { find: ".claude-plugin/plugin.json", replace: "plugin.json", literal: true }
+    - pattern: '^        "\.claude-plugin",$'
+      replace: "        os.pardir, os.pardir,  # skills/<skill>/scripts/ -> Power root"
+      regex: true
+
+  # The client the Bootcamper is sitting in. The two surface phrases below name
+  # Claude clients that have no Kiro counterpart under that name; Kiro's surfaces are
+  # the IDE, the CLI, and the web. Longest spelling first, determiners included, so
+  # each rewrite lands grammatical in the sentence it fires in ("In Claude Desktop,
+  # the Claude web app, or a Claude IDE extension" becomes "In Kiro, Kiro on the web,
+  # or the Kiro IDE").
+  client-names:
+    - { find: "Claude Code", replace: "Kiro", literal: true }
+    - { find: "Claude Desktop", replace: "Kiro", literal: true }
+    - { find: "the Claude web app", replace: "Kiro on the web", literal: true }
+    - { find: "Claude web app", replace: "Kiro on the web", literal: true }
+    - { find: "a Claude IDE extension", replace: "the Kiro IDE", literal: true }
+    - { find: "your Claude IDE extension", replace: "the Kiro IDE", literal: true }
+    - { find: "their Claude IDE extension", replace: "the Kiro IDE", literal: true }
+    - { find: "Claude IDE extension", replace: "the Kiro IDE", literal: true }
+    # The host-client abstraction the ported prose reasons about — "adapt the wording
+    # to the Claude interface in use". Kiro's own word for it is a surface: one agent
+    # harness across the IDE, the CLI, and the web.
+    - { find: "Claude-interface", replace: "Kiro-surface", literal: true }
+    - { find: "Claude interface", replace: "Kiro surface", literal: true }
+
+  # R12 AC2: Claude subscription plan, model name, and effort setting references become
+  # their Kiro equivalents.
+  #
+  # THE MODEL NAMES THEMSELVES ARE ALREADY THE KIRO EQUIVALENTS, and that is why this
+  # set does not rewrite them. Kiro's model picker offers the same Opus, Sonnet, and
+  # Haiku tiers (https://kiro.dev/docs/models/available-models/) and reasoning effort
+  # is a documented Kiro setting with the same low/medium/high/xhigh/max levels
+  # (https://kiro.dev/docs/models/effort/), so "Opus 5, high reasoning effort" is
+  # correct guidance for a Kiro Bootcamper as written. Rewriting it to a placeholder
+  # would leave the per-stage tables naming nothing anybody can select, and it is what
+  # the earlier `Sonnet 5 -> <kiro-model>` entry did: it turned "Sonnet 5's listed rate
+  # is its standard price" into a sentence about a placeholder. The Schema_Validator's
+  # residual scan matches this reading — a model name counts as a residual Claude
+  # reference only in its Claude-qualified spelling.
+  #
+  # What this set rewrites is therefore the Claude-*specific* material around those
+  # names: the API model ids, and the Claude Code slash-command pairs that tell the
+  # Bootcamper how to set the dials.
+  model-guidance:
+    # No occurrence in release 0.5.1. Kept because a plan reference is the first
+    # category R12 AC2 names, and Kiro's paid tiers carry their own names.
+    - { find: "Claude Max plan", replace: "paid Kiro plan", literal: true }
+
+    # Anthropic API model ids. A Kiro Bootcamper chooses a model in the picker and
+    # never types an id, so the id is dropped where the table already gives the name
+    # beside it and replaced by the picker's name where the id stands alone.
+    - { find: "Fable 5 (`claude-fable-5`)", replace: "Fable 5", literal: true }
+    - { find: "Opus 5 (`claude-opus-5`)", replace: "Opus 5", literal: true }
+    - { find: "Sonnet 5 (`claude-sonnet-5`)", replace: "Sonnet 5", literal: true }
+    - { find: "Haiku 4.5 (`claude-haiku-4-5`)", replace: "Haiku 4.5", literal: true }
+    - { find: "`/model claude-opus-5`", replace: "Opus 5 in the model picker", literal: true }
+    - { find: "`/model claude-sonnet-5`", replace: "Sonnet 5 in the model picker", literal: true }
+    # The feedback report's worked example. A Bootcamper reports what the picker
+    # shows them, so the field asks for the model name and the example gives one.
+    - find: '[model ID and reasoning-effort level; e.g. "claude-opus-5[1m] / high", or "Unknown"]'
+      replace: '[model name and reasoning-effort level; e.g. "Opus 5 / high", or "Unknown"]'
+      literal: true
+
+    # The Claude Code CLI command pairs, and the table column that carries them.
+    # Kiro sets both dials through pickers rather than through a chained pair of
+    # slash commands, so each cell says which value to select in which picker. The
+    # `{model}`/`{effort}` pair is the pinned nudge template in `ground-rules.md`,
+    # whose placeholders the guide fills at module start — they survive the rewrite
+    # because the entry is a literal around them, not a rewrite of them.
+    - { find: "`/model sonnet` · `/effort medium`", replace: "Sonnet 5 in the model picker · medium in the effort picker", literal: true }
+    - { find: "`/model sonnet` · `/effort high`", replace: "Sonnet 5 in the model picker · high in the effort picker", literal: true }
+    - { find: "`/model opus` · `/effort high`", replace: "Opus 5 in the model picker · high in the effort picker", literal: true }
+    - { find: "`/model opus` + `/effort high`", replace: "Opus 5 in the model picker and high in the effort picker", literal: true }
+    - { find: "`/model {model}` + `/effort {effort}`", replace: "{model} in the model picker and {effort} in the effort picker", literal: true }
+    - { find: "| Stage | Recommended | CLI commands |", replace: "| Stage | Recommended | Where to set it in Kiro |", literal: true }
+    - { find: "the **CLI commands** column", replace: "the **Where to set it in Kiro** column", literal: true }
+
+  # Kiro's write-tool names, for PreToolUse matcher positions only (assumption A3,
+  # verified by Test_Checklist step 11). This set never touches an interpreter name and
+  # never produces a command string.
+  #
+  # THIS ENTRY IS THE ONLY PLACE THE KIRO MATCHER REGEX IS WRITTEN DOWN, and that is
+  # deliberate: A3 is unverified, so correcting it after the Test_Checklist step 11
+  # observation must be a one-line edit here plus a rebuild — never a code edit and
+  # never a hand-patched hook file. The `kiro-hooks` rule declares this set for exactly
+  # that reason: the shipped `PreToolUse` definition and the hook parity coverage map
+  # are authored in the TEMPLATE's tool vocabulary (`Write|Edit`, the matcher release
+  # 0.5.1's `hooks/hooks.json` carries) and this set rewrites it as they are
+  # materialized. So `find` is the template's spelling, `replace` is the Kiro spelling,
+  # and the Kiro spelling exists nowhere else in the authored tree.
+  #
+  # The `matcher` position is a *tool name* position, not a command position: it never
+  # names an interpreter and never becomes a command string, which is why applying a
+  # substitution set to `kiro-owned` hook JSON cannot reach a Hook_Command_String. The
+  # command strings in the same files carry only <ABSOLUTE_PYTHON> and
+  # <ABSOLUTE_SCRIPTS_DIR>, no set names either token, and the Hook_Installer resolves
+  # both at install time (R16 AC3, AC4).
+  tool-names:
+    - { find: "Write|Edit", replace: "fs_write|str_replace|fs_append", literal: true }
+
+  # The A4 fallback selector: how the Hook_Installer resolves <ABSOLUTE_SCRIPTS_DIR>.
+  #
+  # Assumption A4 is that a Power's `skills/*/scripts/` files are materialized on disk
+  # at a stable absolute path after install. If they are not, a hook whose command
+  # names that path silently never fires, and the design's stated fallback is for the
+  # installer to copy the ported script set into the workspace alongside the hook JSON
+  # and resolve <ABSOLUTE_SCRIPTS_DIR> to that copy instead.
+  #
+  # BOTH BEHAVIORS ARE IMPLEMENTED IN THE INSTALLER; THIS ENTRY CHOOSES BETWEEN THEM.
+  # The chosen value is substituted into the hook parity coverage map's
+  # `scriptsDirectoryStrategy` field, which is the one field the installer reads it
+  # from — the same way it already reads `hookDefinitionGlob` from that map. So flipping
+  # the fallback on after the Test_Checklist step 10 observation is a one-line edit
+  # here plus a rebuild, with no installer edit and no hook asset edit.
+  #
+  #   in-power        <ABSOLUTE_SCRIPTS_DIR> resolves to the Power's own
+  #                   skills/bootcamp-onboarding/scripts/ directory. Nothing is copied
+  #                   into the workspace but the hook JSON. This is the value while A4
+  #                   holds, and it is the current selection.
+  #   workspace-copy  the installer copies the ported script set into the
+  #                   Workspace_Hooks_Directory under a `senzing-bootcamp-` prefixed
+  #                   directory and resolves <ABSOLUTE_SCRIPTS_DIR> to that copy. Every
+  #                   copied path is disclosed before it is written (R7 AC7), the copy
+  #                   is idempotent (R7 AC8), it stays inside the prefix so removal
+  #                   still deletes exactly what was written (R7 AC9, AC10), and the
+  #                   command strings stay absolute, quoted, and shell-free (R16 AC3-AC5).
+  #
+  # The installer owns the vocabulary and the directory name; the contract owns the
+  # choice. Nothing else in the authored tree spells a strategy value.
+  scripts-dir-strategy:
+    - { find: "<SCRIPTS_DIR_STRATEGY>", replace: "in-power", literal: true }
+
+  # All ported scripts live under the single owning skill, so a non-owning skill
+  # reaches them by relative path. Applied only to non-owning skills; the owning skill
+  # `bootcamp-onboarding` does not declare this set, because its own `scripts/`
+  # references are already correct.
+  script-paths:
+    - { find: "scripts/", replace: "../bootcamp-onboarding/scripts/", literal: true }
+
+# ---------------------------------------------------------------------------
+# Per-skill trigger phrase declarations (R8 AC6)
+# ---------------------------------------------------------------------------
+# Every template skill's `description` already states its own trigger phrase as a
+# "Use when ..." clause, and the additive frontmatter adaptation preserves that
+# description character-for-character — so for almost every ported skill, R8 AC6 is
+# satisfied by preservation and this section says nothing about it.
+#
+# `bootcamp-preparation` in release 0.5.1 is the exception. Its description states
+# *when* the module runs ("Use right after the onboarding WELCOME preface, before the
+# entity-resolution primer / Module 1") but names no phrase a Bootcamper can state, so
+# the Schema_Validator reports E_FRONTMATTER_INVALID for it and Test_Checklist step 6 —
+# stating each of the 16 skills' trigger phrases and observing activation — has nothing
+# to state for that one skill.
+#
+# The phrase is declared HERE, as contract data, and not synthesized in the engine: a
+# trigger phrase is a mapping decision about what the Bootcamper is told to say, and an
+# engine-invented phrase would be a phrase nobody documented. Each entry is one
+# sentence appended verbatim to that skill's `description`, after a single space, and
+# only when the description does not already contain it — so the append is idempotent
+# and the create and update paths produce the same frontmatter (R3 AC5).
+#
+# Keys are skill directory names. A key naming a skill a later release renames or
+# drops appends nothing, and that does not pass silently: the renamed skill arrives
+# carrying whatever description upstream wrote, and if it still states no phrase the
+# Schema_Validator reports it as E_FRONTMATTER_INVALID and blocks the tag — the same
+# signal that put this entry here, raised by the gate that owns it. Nothing is
+# asserted about this list at build time, so a partial tree still builds.
+#
+# Phrases stay lexically disjoint from the three command-derived triggers ("start the
+# senzing bootcamp", "graduate the senzing bootcamp", "give senzing bootcamp
+# feedback"), so no single statement matches two skills (R9 AC3).
+skillTriggers:
+  bootcamp-preparation: 'Use when the bootcamper says "prepare the senzing bootcamp".'
+
+# ---------------------------------------------------------------------------
+# Matched and deliberately not ported
+# ---------------------------------------------------------------------------
+# Patterns are matched against the path relative to `template.pluginRoot` and, for the
+# entries that live above it in the marketplace repository, against the repository-root
+# relative path — so enumeration cannot pick them up from either side.
+ignore:
+  # Marketplace registration for the Claude plugin catalog; the Power is not published
+  # through it.
+  - ".claude-plugin/marketplace.json"
+  # Template repository CI, linters, contributor agreements, and editor settings.
+  - ".github/**"
+  - ".vscode/**"
+  # The *template repository's* root changelog. The Power keeps its own CHANGELOG.md,
+  # to which the Update_Skill appends an entry naming the source Template_Release
+  # (R5 AC8).
+  - "CHANGELOG.md"
+  # Claude hook registration, replaced by the Kiro hook JSON shipped as Tier 2 skill
+  # assets and Tier 3 `dev.kiro/hooks/` content (R7 AC5, AC12).
+  - "hooks/hooks.json"
+  # Claude hook documentation, replaced by the three-tier hook parity documentation.
+  - "hooks/README.md"
+  # The Template_Plugin invariant registry is maintainer-facing template development
+  # material, not bootcamp content, so the Bootcamp_Power excludes it (R15 AC9). No
+  # registry file ships in release 0.5.1; these patterns match it in whichever
+  # location a later release places it, rather than letting it halt the build as
+  # unrecognized new content. Every Template_Invariant definition the tooling reads
+  # still comes from the resolved Template_Release, never from the template's
+  # development repository.
+  - "INVARIANTS.md"
+  - "**/INVARIANTS.md"
+  - "invariants/**"
+  - "**/invariants/**"
+  # Python bytecode caches. These are byproducts of *running* a script, never
+  # content: they are gitignored, they carry the interpreter's magic number and
+  # version in their name and bytes, and they are regenerated on demand from the
+  # `.py` beside them. Porting one would put an environment-dependent file into the
+  # deliverable and into the Build_Manifest, so a checkout on a different Python
+  # would report E_HASH_MISMATCH for a file nothing reads.
+  #
+  # This entry matters most on the `kiro-owned` side: the authored tree at
+  # `templates/kiro-owned/` picks these up whenever a maintainer imports
+  # `install_hooks.py` or `optional_runtime.py` — from a test run, for instance. The
+  # rule is declared here rather than handled in the engine, so the exclusion is
+  # visible where every other porting decision is.
+  - "**/__pycache__/**"
+  - "**/*.pyc"
+  - "**/*.pyo"
+
+# ---------------------------------------------------------------------------
+# Rules
+# ---------------------------------------------------------------------------
+rules:
+  # --- Ported bootcamp skills (R7 AC1, AC2, AC15, R8) ----------------------
+  # `bootcamp-onboarding` is the owning skill for the ported script set (it is the
+  # entry point and the owner of session lifecycle and ground rules), so it is the one
+  # skill that does NOT declare `script-paths`.
+  - id: skill-onboarding
+    kind: skill
+    source: "skills/bootcamp-onboarding/**"
+    dest: "skills/bootcamp-onboarding/"
+    substitutions: [plugin-root, manifest-path, client-names, model-guidance]
+
+  - id: skills-modules
+    kind: skill
+    source: "skills/module-*/**"
+    dest: "skills/{skillName}/"
+    substitutions: [plugin-root, manifest-path, client-names, model-guidance, script-paths]
+
+  - id: skill-preparation
+    kind: skill
+    source: "skills/bootcamp-preparation/**"
+    dest: "skills/bootcamp-preparation/"
+    substitutions: [plugin-root, manifest-path, client-names, model-guidance, script-paths]
+
+  - id: skill-graduation
+    kind: skill
+    source: "skills/graduation/**"
+    dest: "skills/graduation/"
+    substitutions: [plugin-root, manifest-path, client-names, model-guidance, script-paths]
+
+  # --- Ported scripts (R10) ------------------------------------------------
+  # Every ported script lands together under ONE owning skill's scripts/ directory, so
+  # the same-directory Python module imports between them (`import recap_checkpoint`,
+  # `import docker_lifecycle`) keep resolving (R10 AC1). File names and the relative
+  # sub-structure below `scripts/` are preserved byte-identically.
+  #
+  # `client-names` is declared here because a ported script's docstrings and its
+  # messages address the client by name — `feedback-capture.py` explains that the
+  # host substitutes `${CLAUDE_PLUGIN_ROOT}` in a hook's `args`, `write-gate.py`
+  # names the sessions its guard protects, `stop-nudge.py` names whose turn limit it
+  # re-fired against. A Bootcamper reads those strings, so they are ported prose in a
+  # `.py` file and R12 AC2 applies to them exactly as it does to a `.md` file.
+  - id: scripts-owned
+    kind: substitute
+    source: "scripts/**/*.py"
+    exclude: ["scripts/vendor/**"]
+    dest: "skills/bootcamp-onboarding/scripts/"
+    substitutions: [plugin-root, manifest-path, client-names, tool-names]
+
+  # Vendored third-party assets, byte-for-byte at the same relative location
+  # (R10 AC3). Declared as `copy`, never `substitute`: a single rewritten byte in
+  # `d3.v7.min.js` is a corrupted dependency.
+  - id: scripts-vendor
+    kind: copy
+    source: "scripts/vendor/**"
+    dest: "skills/bootcamp-onboarding/scripts/vendor/"
+
+  # Non-Python assets that sit beside the scripts and are loaded by them (for example
+  # `senzing_logo_light.png`). Byte-for-byte, same relative location (R10 AC3).
+  - id: scripts-assets
+    kind: copy
+    source: "scripts/**"
+    exclude: ["scripts/**/*.py", "scripts/vendor/**"]
+    dest: "skills/bootcamp-onboarding/scripts/"
+
+  # --- Ported documentation (R12) -----------------------------------------
+  - id: docs
+    kind: substitute
+    source: "docs/**/*.md"
+    dest: "docs/"
+    substitutions: [client-names, model-guidance]
+
+  # Documentation examples and reference assets — PNG screenshots, the example recap
+  # PDF, the truth-set visualization images — are ported as embedded assets, byte-for-
+  # byte, so every reference from a ported document still resolves (R12 AC1).
+  - id: docs-assets
+    kind: copy
+    source: "docs/**"
+    exclude: ["docs/**/*.md"]
+    dest: "docs/"
+
+  # --- Generated Agent Plugins manifests (R4 AC1, AC2, AC3) ---------------
+  # Each generate rule names the template document it supersedes, so the superseded
+  # source is accounted for by a rule rather than reported as unmatched content.
+  - id: manifest
+    kind: generate
+    source: ".claude-plugin/plugin.json"
+    template: "templates/plugin.json.j2"
+    dest: "plugin.json"
+
+  # Translates the template's {"type": "http"} declaration into the Agent Plugins
+  # streamable-http form and adds $schema (R11 AC1, AC2).
+  - id: mcp
+    kind: generate
+    source: ".mcp.json"
+    template: "templates/mcp.json.j2"
+    dest: "mcp.json"
+
+  # --- Deliberately not ported, with a rule rather than a bare path -------
+  # The template's three slash commands are thin wrappers around
+  # `bootcamp-onboarding`. Kiro has no plugin-level slash commands, so each is
+  # represented instead by one trigger-phrase skill materialized by the
+  # `command-skills` rule below (R9 AC1). The command markdown itself is therefore
+  # matched and not ported; the Schema_Validator still checks the one-to-one
+  # correspondence between this command set and those three skills.
+  - id: commands-superseded
+    kind: ignore
+    source: "commands/*.md"
+
+  # --- Kiro-owned content: no template source (R5 AC5) --------------------
+  # Shipped hook JSON carries the <ABSOLUTE_PYTHON> and <ABSOLUTE_SCRIPTS_DIR>
+  # placeholders only. The Hook_Installer resolves both to quoted absolute paths at
+  # install time (R16 AC3, AC4); no substitution set ever writes an interpreter name.
+  # Both destinations receive the same JSON: the skill asset directory is Tier 2, the
+  # consented workspace install the Bootcamper actually runs (R7 AC5), and
+  # `dev.kiro/hooks/` is Tier 3 forward compatibility — inert if Kiro ignores it, and
+  # never the sole delivery path for any behavior (R7 AC12).
+  #
+  # THE TWO SETS BELOW ARE WHY THIS RULE DECLARES SUBSTITUTIONS AT ALL, and they are
+  # the only reason a `kiro-owned` rule ever does. Both carry a value that depends on
+  # an unverified assumption, so both must have exactly one home — this contract —
+  # rather than being spelled into an authored asset that a Maintainer would then have
+  # to hand-patch:
+  #
+  #   tool-names           the `PreToolUse` matcher (A3). The definitions are authored
+  #                        in the template's tool vocabulary and rewritten here.
+  #   scripts-dir-strategy how the installer resolves <ABSOLUTE_SCRIPTS_DIR> (A4). The
+  #                        coverage map carries the placeholder; this fills it.
+  #
+  # Neither set can reach a Hook_Command_String: no set names <ABSOLUTE_PYTHON>,
+  # <ABSOLUTE_SCRIPTS_DIR>, or any interpreter name, so the shipped commands are
+  # materialized byte-for-byte as authored and stay unresolved until install time.
+  - id: kiro-hooks
+    kind: kiro-owned
+    owner: kiro
+    dest: ["skills/bootcamp-onboarding/assets/kiro-hooks/", "dev.kiro/hooks/"]
+    substitutions: [tool-names, scripts-dir-strategy]
+
+  # The three command-derived skills, one per template command, each carrying exactly
+  # one distinct trigger phrase (R9 AC1, AC2, AC3).
+  - id: command-skills
+    kind: kiro-owned
+    owner: kiro
+    dest: ["skills/start-bootcamp/", "skills/graduate-bootcamp/", "skills/bootcamp-feedback/"]
+
+  # The client-adaptation skill that realizes the Hook_Installer (R7 AC6-AC11).
+  - id: enforcement-setup-skill
+    kind: kiro-owned
+    owner: kiro
+    dest: "skills/bootcamp-enforcement-setup/"
+
+  # The Optional_Runtime guard (R16 AC7). Only the resolved Python interpreter is
+  # required; every other runtime a ported script may want — a container CLI for the
+  # SDK modules, a browser for the truth-set visualization screenshots — is optional,
+  # and its absence reduces capability without failing, blocking a hook trigger, or
+  # wedging a session.
+  #
+  # DECLARED HERE, NOT SUBSTITUTED IN. Release 0.5.1's ported scripts already degrade
+  # this way: `docker_lifecycle.py` gates every container-CLI call on `shutil.which`
+  # and warns-and-continues, the two hook scripts that import it (`session-start.py`,
+  # `session-end.py`) exit 0 unconditionally, no hook script touches a browser at all,
+  # and `capture_screenshots.py` — agent-invoked, never a hook — reports every location
+  # it searched and says to keep the HTML link. Nothing needs rewriting, so no
+  # substitution set touches a ported script body: a literal rewrite of an exit status
+  # would be indiscriminate across the ported set, and `write-gate.py` MUST keep its
+  # blocking exit 2 (R7 AC5). The guard therefore ships as `kiro-owned` content instead.
+  #
+  # `dest` is a FILE, not a directory, and deliberately so. A directory `dest` here
+  # would make the whole ported script set Kiro-owned on the update path, where
+  # `--carry-forward` is consulted before `templates/kiro-owned/`: the engine would
+  # walk the existing Power's `scripts/` directory, claim every ported script as
+  # authored content, and collide with the `scripts-owned` rule. A file `dest` claims
+  # exactly this one module. It lands beside the ported scripts, so any of them reaches
+  # it through the same-directory import that already joins them
+  # (`import optional_runtime`) — no per-script patching, on any Supported_Platform.
+  - id: optional-runtime-guard
+    kind: kiro-owned
+    owner: kiro
+    dest: "skills/bootcamp-onboarding/scripts/optional_runtime.py"

@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "senzing-bootcamp-session-start",
+      "trigger": "SessionStart",
+      "action": {
+        "type": "command",
+        "command": "\"<ABSOLUTE_PYTHON>\" \"<ABSOLUTE_SCRIPTS_DIR>/session-start.py\""
+      },
+      "timeout": 15
+    }
+  ]
+}
