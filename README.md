@@ -64,9 +64,9 @@ recap PDF you can keep and share, and a production starter. See
 
 1. In Kiro's agentic chat, enter the following to begin the bootcamp:
 
-  ```console
-  Start the bootcamp
-  ```
+    ```console
+    Start the bootcamp
+    ```
 
 Kiro's agentic chat will guide you through the Bootcamp.
 
