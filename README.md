@@ -38,13 +38,9 @@ recap PDF you can keep and share, and a production starter. See
   A business problem requiring Entity Resolution
   and 5,000 to 20,000 records that illustrate the problem.
 
-## Prerequisites
+## Install and start
 
-1. [Install Kiro](docs/install-kiro.md)
-    - Make sure you are using Kiro 1.0.0 or greater. (`Help` > `About`)
-
-## Start Kiro in a Senzing Bootcamp directory
-
+1. [Install Kiro]
 1. From a terminal window, start Kiro in a new, empty directory.
    Example:
 
@@ -54,37 +50,25 @@ recap PDF you can keep and share, and a production starter. See
     kiro .
     ```
 
-1. In macOS, start "Kiro" and open a new project on an empty directory.
+    - In macOS, start "Kiro" and open a new project on an empty directory.
 
-## Install the Senzing Bootcamp Power
+1. Install the Senzing Bootcamp Power.
+    1. In Kiro's left-hand icon bar, click on the **Powers** icon.
+    1. In the **Powers** panel, under **Installed**, click on "Add Custom Power".
+    1. Select "Import power from GitHub"
+    1. Enter the following GitHub repository URL:
 
-1. In Kiro's left-hand icon bar, click on the **Powers** icon.
-1. In the **Powers** panel, under **Installed**, click on "Add Custom Power".
-1. Select "Import power from GitHub"
-1. Enter the following GitHub repository URL:
+      ```text
+      https://github.com/Senzing/senzing-bootcamp-kiro-power/tree/main/senzing-bootcamp
+      ```
 
-   ```text
-   https://github.com/Senzing/senzing-bootcamp-kiro-power/tree/main/senzing-bootcamp
-   ```
-
-## Follow the Senzing Bootcamp
-
-In Kiro's agentic chat, enter the following to begin the bootcamp:
+1. In Kiro's agentic chat, enter the following to begin the bootcamp:
 
 ```console
 Start the bootcamp
 ```
 
 Kiro's agentic chat will guide you through the Bootcamp.
-
-## Reporting Bootcamp improvements
-
-To report a bug or improvement, start your prompt with `Bootcamp Feedback:`.
-Example:
-
-```console
-Bootcamp Feedback: You asked me to recommend a restaurant. That shouldn't be asked in the bootcamp.
-```
 
 ## What you finish with
 
@@ -94,6 +78,7 @@ a professional recap PDF you can keep and share (e.g. [bootcamp_recap.pdf], but 
 and a `production/` starter project.
 
 [bootcamp_recap.pdf]: https://raw.githubusercontent.com/docktermj/senzing-bootcamp-claude-plugin-development/refs/heads/main/plugins/senzing-bootcamp/docs/examples/bootcamp_recap.example.pdf
+[Install Kiro]: https://kiro.dev/
+[Kiro credits]: https://kiro.dev/pricing/
 [Senzing MCP server]: https://mcp.senzing.com/mcp
 [Senzing]: https://senzing.com
-[Kiro credits]: https://kiro.dev/pricing/
