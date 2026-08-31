@@ -2,7 +2,7 @@
 
 Extracted from the Senzing "Obsidian & Ember" style reference
 (`resources/senzing-style-reference.pdf`, a maintainer asset that is NOT shipped
-with the plugin). The generators that produce bootcamper-facing visual
+with the Power). The generators that produce bootcamper-facing visual
 deliverables — the Truth-Set visualization web app / snapshot
 (`senzing_viz_server.py`) and the recap PDF (`generate_recap_pdf.py`) —
 consume these tokens so every artifact shares one look and feel, rather than each

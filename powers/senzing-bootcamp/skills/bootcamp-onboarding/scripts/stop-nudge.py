@@ -12,7 +12,8 @@ gate passes:
   2. No config/bootcamp_progress.json -> not a bootcamp; never touch unrelated
      sessions.
   3. The bootcamper opted out (env var or preferences key) -> stay silent. Gives a
-     documented way to disable/quiet the nudge (see hooks/README.md).
+     documented way to quiet the nudge without removing the hook; removing it
+     outright is the `bootcamp-enforcement-setup` skill's `remove` path.
   3b. The bootcamp is complete (``bootcamp_complete: true`` in preferences, set by
      graduation before the terminal "END OF SENZING BOOTCAMP" banner) -> stay silent,
      so the net never nudges for a closing question after the bootcamp is over.

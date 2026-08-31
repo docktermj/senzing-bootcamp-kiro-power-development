@@ -4,7 +4,7 @@
 Only active during a bootcamp (a config/bootcamp_progress.json file exists in the
 working directory). If the bootcamper's message asks to give feedback or to change
 verbosity, inject guidance so those "at any time" requests are handled the same way
-anywhere in the bootcamp. Emits nothing otherwise, so the plugin never alters
+anywhere in the bootcamp. Emits nothing otherwise, so the Power never alters
 unrelated Kiro sessions.
 
 Cross-platform: invoked in exec form (``python3 <path>``) so no shell is required.
@@ -16,12 +16,12 @@ import sys
 
 
 def plugin_version():
-    """The version of the plugin THIS hook ships in, resolved from the hook's own path.
+    """The version of the Power THIS hook ships in, resolved from the hook's own path.
 
     Kiro substitutes ``${PLUGIN_ROOT}`` in the hook's ``args``, but not
     inside the text the hook injects -- so handing the guide that path leaves it to
     resolve the manifest with a variable that may be unset, and on a machine carrying
-    two plugin roots (an installed plugin plus a clone, or an un-removed upgrade) a
+    two Power roots (an installed Power plus a clone, or an un-removed upgrade) a
     search for `plugin.json` then answers with the wrong checkout's version. This file
     always knows where it lives, so it answers with the value instead of a path.
 
@@ -58,7 +58,7 @@ lower = prompt.lower()
 # Widening this pattern looks like a free win and is not. Modules 5-7 have the bootcamper
 # writing and debugging *their own* loader, mapper and query code, so in this bootcamp
 # "I found a bug", "something is broken" and "this is wrong" overwhelmingly mean THEIR
-# code, not the plugin. Injecting the feedback workflow there is not a harmless false
+# code, not the Power. Injecting the feedback workflow there is not a harmless false
 # positive: it prepends an instruction to open a feedback entry, present a banner and
 # gather structured feedback on top of a turn where the bootcamper wants their traceback
 # explained. A missed capture is far cheaper than a spurious one (INV-054's reasoning by
@@ -83,8 +83,8 @@ _GAP = r"(?:\W+\w+){0,3}?\W+"
 #: Words that attribute a fault to the bootcamp rather than to the bootcamper's own code.
 #: ⛔ Deliberately does NOT include "this step", "these instructions" or "this skill". In
 #: Modules 5-7 "this step is wrong" is far more often the bootcamper's own work in
-#: progress than a defect in the plugin, so those phrasings stay in the ambiguous half.
-#: The referents here are the four the plugin can actually be blamed by name for.
+#: progress than a defect in the Power, so those phrasings stay in the ambiguous half.
+#: The referents here are the four the Power can actually be blamed by name for.
 _OURS = r"(?:bootcamp|plugin|senzing bootcamp|this tutorial|tutorial|module \d+)"
 
 FEEDBACK = re.compile(
@@ -123,12 +123,12 @@ if FEEDBACK.search(lower):
         "feedback workflow (the feedback.md file in the bootcamp-onboarding skill): "
         "begin with the pinned BOOTCAMP FEEDBACK entry banner and end with the "
         "FEEDBACK SAVED exit banner (see feedback.md for the verbatim banner wording); "
-        "silently capture as much relevant context as possible (the time; the plugin "
+        "silently capture as much relevant context as possible (the time; the Power "
         "version, which is " + plugin_version() + " -- already resolved from the running "
         "plugin, so record it as given and do NOT go looking for a plugin.json; "
         "current_module, current_step, and "
         "completed modules from config/bootcamp_progress.json; the recent questions "
-        "asked and the bootcamper's responses; what the plugin was doing behind the "
+        "asked and the bootcamper's responses; what the Power was doing behind the "
         "scenes; the observed problem; the expected behavior per the active "
         "hooks/skills; and why expected did not match actual) -- never ask extra "
         "questions, and record \"Unknown\" when a source is missing. Then gather the "
@@ -137,7 +137,7 @@ if FEEDBACK.search(lower):
         "creating that file with its header if it does not exist; then verify the "
         "entry landed (re-read and re-append if missing) before telling the "
         "bootcamper it was saved (INV-067). Triage whether the issue is in this "
-        "plugin or in the Senzing MCP server (feedback.md Step 2b) and record the "
+        "Power or in the Senzing MCP server (feedback.md Step 2b) and record the "
         "verdict in the entry's Routing field -- every entry is saved locally "
         "whatever the verdict (INV-015). Only for an mcp-server/both verdict, and "
         "only after the local entry is confirmed saved, offer ONCE to forward it via "

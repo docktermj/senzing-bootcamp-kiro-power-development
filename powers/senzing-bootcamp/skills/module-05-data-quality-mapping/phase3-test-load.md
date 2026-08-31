@@ -131,8 +131,8 @@ datasource name).
 #### 24c. Compare against baseline
 
 When a baseline exists, compute the diff between `config/er_baseline_{datasource}.json` and
-`config/er_current_{datasource}.json` and present it. (The Kiro `compare_results.py` helper is a
-later porting phase; compute the per-metric deltas directly for now.) Show per-metric deltas
+`config/er_current_{datasource}.json` and present it. (No comparison helper is bundled; compute
+the per-metric deltas directly.) Show per-metric deltas
 (entities gained/lost, matches gained/lost) and an overall quality assessment (improved,
 degraded, or unchanged). Explain what the changes mean:
 
@@ -222,9 +222,8 @@ request, per the ground rules):
 > **Optional: baseline status summary (advisory, non-blocking):** On Phase 3 completion you
 > MAY surface which data sources still lack an ER baseline (compare the set of
 > `config/er_baseline_*.json` files against the mapped sources). It is read-only, never blocks
-> the workflow, and never creates, modifies, or deletes a baseline. (The Kiro
-> `baseline_status.py` helper is a later porting phase; report coverage directly if you choose
-> to.)
+> the workflow, and never creates, modifies, or deletes a baseline. (No baseline-status helper
+> is bundled; report coverage directly if you choose to.)
 
 **Checkpoint:** write step 26.
 
@@ -296,7 +295,9 @@ exit code was.
 
 ## Hooks
 
-In the Kiro plugin, bootcamp hooks ship with the plugin: there is no manual hook-install
-step (this replaces the Kiro `install_hooks.py` / `.kiro/hooks/` workflow). The plugin's Stop
-hook is a safety net for the closing 👉 question; you still own that question on every yielding
-turn (see the ground rules).
+Kiro does not load hooks bundled inside a Power, so the bootcamp's enforcement hooks are
+**opt-in**: the `bootcamp-enforcement-setup` skill installs them into `.kiro/hooks/` after
+disclosure and an explicit yes, and the bootcamp is complete and correct with none installed.
+Do not assume any hook is active here. When the hooks *are* installed, the `Stop` hook is a
+safety net for the closing 👉 question — you still own that question on every yielding turn,
+installed or not (see the ground rules).

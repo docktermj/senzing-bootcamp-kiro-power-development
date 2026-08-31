@@ -5,7 +5,7 @@ module, or graduation. Feedback is saved locally to
 `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` and is never sent anywhere
 unless the bootcamper explicitly asks.
 
-This workflow is triggered by the plugin's `UserPromptSubmit` hook ("to capture
+This workflow is triggered by the Power's `UserPromptSubmit` hook ("to capture
 bootcamp feedback") or by the `/bootcamp-feedback` command, or whenever the
 bootcamper says something like "bootcamp feedback", "I have feedback", or "report
 an issue". Follow `ground-rules.md`: one 👉 question per turn (INV-251), end the turn on it.
@@ -22,13 +22,13 @@ source is missing:
 - **Plugin version:** the `version` field of the plugin manifest, resolved exactly as
   `onboarding-flow.md` step 0 specifies — `${PLUGIN_ROOT}/plugin.json`, else
   `<this-skill-dir>/../../plugin.json`, else "Unknown". ⛔ Never found by searching
-  the filesystem: a machine carrying two plugin checkouts then reports the wrong version (INV-252).
+  the filesystem: a machine carrying two Power checkouts then reports the wrong version (INV-252).
 - **Workstation:** the operating system and platform the bootcamper is running on, from the environment/system context — OS name and version, and architecture if available.
 - **Model and effort:** the model name/ID and the reasoning-effort level in use, from the environment/system context.
 - **Context size:** the approximate size of the conversation context at the time of feedback — a token count and/or percentage of the context window in use. If only an estimate is available, label it as approximate rather than recording a precise-looking guess.
 - **Module and step:** `current_module`, `current_step`, and completed modules from `config/bootcamp_progress.json`.
 - **Recent questions and responses:** the last few 👉 questions asked and the bootcamper's answers, from the transcript.
-- **Behind the scenes:** what the plugin was doing — which hook fired, which skill/phase/gate was active, and any relevant config or state.
+- **Behind the scenes:** what the Power was doing — which hook fired, which skill/phase/gate was active, and any relevant config or state.
 - **Observed problem:** what the bootcamper saw.
 - **Expected behavior:** what the active hooks, skills, and `ground-rules.md` imply should have happened.
 - **Divergence:** the best assessment of why the expected action did not occur.
@@ -84,20 +84,20 @@ captured and proceed.
 
 Decide, silently (no 👉 question), which component the report is actually about. This is an
 assessment you make from the captured context, not something to ask the bootcamper — they reported a
-symptom; identifying the component is the plugin's job.
+symptom; identifying the component is the Power's job.
 
 **The discriminating test — ask the third question first, because a yes there settles it:**
 
-- *Would this still happen with a perfect bootcamp plugin **and** a perfect Senzing MCP server?*
+- *Would this still happen with a perfect bootcamp Power **and** a perfect Senzing MCP server?*
   If yes → **host** (the bootcamper's Kiro surface owns it; neither component ships it).
-- *Would this still happen if the bootcamp plugin were perfect?* If yes → **MCP server**.
+- *Would this still happen if the bootcamp Power were perfect?* If yes → **MCP server**.
 - *Would this still happen if the Senzing MCP server were perfect?* If yes → **plugin**.
-- Yes to the middle two → **both** (the plugin repeated or failed to guard an upstream defect).
+- Yes to the middle two → **both** (the Power repeated or failed to guard an upstream defect).
 - Nothing above is clear → **unclear**.
 
 ⚠️ **`host` exists because the first two questions alone give the wrong answer (INV-248).** A defect in the
-Kiro harness survives a perfect plugin *and* a perfect server, so a two-question test lands
-it on `both` — "the plugin repeated or failed to guard an **upstream** defect" — when there is no
+Kiro harness survives a perfect Power *and* a perfect server, so a two-question test lands
+it on `both` — "the Power repeated or failed to guard an **upstream** defect" — when there is no
 upstream Senzing defect at all. `unclear` is wrong for it too: that verdict means the component
 *cannot be identified*, and here it can be, exactly.
 
@@ -105,7 +105,7 @@ upstream Senzing defect at all. `unclear` is wrong for it too: that verdict mean
 |---|---|---|
 | `plugin` | The bootcamp's own skills, hooks, bundled scripts, questions, gates, banners, ordering, module content or generated deliverables | A question asked twice; a stale instruction; a PDF generator dropping a table off the page; a screenshot helper capturing the wrong tab; a module omitted from the Core path |
 | `mcp-server` | A Senzing MCP **tool** returned wrong, incomplete, truncated or unusable output, or its reference data does not match the installed SDK | `mapping_workflow` step-3 validation rejecting a payload with the reason truncated away; `get_sdk_reference` not covering parameter shapes; a flag documented for one language binding but absent from another; a tool unreachable or erroring |
-| `both` | The plugin's guidance propagated or failed to guard an upstream defect | The plugin's own docs repeated an incorrect flag claim that came from a tool |
+| `both` | The Power's guidance propagated or failed to guard an upstream defect | The Power's own docs repeated an incorrect flag claim that came from a tool |
 | `host` | The bootcamper's **Kiro surface** owns it — a harness prompt, dialog, toggle or session control that neither the bootcamp nor Senzing ships, and neither can fix | The Kiro "Set up auto mode for your environment?" prompt appearing over a pending 👉 question during the onboarding preface (reported twice on 2026-08-15) |
 | `unclear` | The symptom is real but the component cannot be identified from the evidence | Wrong entity-resolution results with no way to tell whether the mapping, the SDK, or the guidance caused it |
 

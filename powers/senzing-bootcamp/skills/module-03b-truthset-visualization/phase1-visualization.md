@@ -96,7 +96,7 @@ The Senzing MCP server is the primary and preferred source; it always takes prec
    > CORD collections plus `truthset` (`available: true`) — and `dataset='truthset', source='list'`
    > returns the Truth Set's sources with their record counts. So the primary path normally succeeds;
    > treat the fallback below as genuinely exceptional rather than expected. Re-check rather than
-   > trusting this note: the server ships independently of the plugin.
+   > trusting this note: the server ships independently of the Power.
 2. **Available (primary path):** ⛔ **`get_sample_data(dataset='truthset', source='<CODE>')` returns
    a PREVIEW plus URLs — not the
    dataset.** Its `records` array is a sample (the response's `citation.note` says how many of how
@@ -204,13 +204,13 @@ Whatever the language, the server MUST reproduce the reference's behavior:
 - Serve the live D3 v7 page as a **single consolidated, tabbed app** (all tabs in 2.4), and write a
   self-contained standalone HTML snapshot.
 - **Render offline (INV-091):** inline the vendored D3 at
-  `${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/vendor/d3.v7.min.js` (skill-relative fallback:
-  `../../../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`, INV-252) into both
+  `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/vendor/d3.v7.min.js` (skill-relative fallback:
+  `../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`, INV-252) into both
   the live page and the standalone snapshot; never fetch from a CDN. (D3 runs in the browser, so
   this holds regardless of the server's language.)
 - **Use the Senzing brand (INV-081):** take the palette and typography from the shipped brand
-  tokens (`${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/brand_tokens.py`, skill-relative fallback
-  `../../../bootcamp-onboarding/scripts/brand_tokens.py` — INV-252; mirrored in `senzing_viz_server.py`). A non-Python server
+  tokens (`${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/brand_tokens.py`, skill-relative fallback
+  `../bootcamp-onboarding/scripts/brand_tokens.py` — INV-252; mirrored in `senzing_viz_server.py`). A non-Python server
   cannot import the Python module, so replicate the token **values** from the reference; never
   invent an ad-hoc palette. ⛔ **Assign data-source colors from the sources actually present in the
   data, never by lookup in a map keyed by expected source names** (INV-127) — the Truth Set happens
@@ -223,8 +223,8 @@ Whatever the language, the server MUST reproduce the reference's behavior:
   empty graph.
 
 Save the generated server and its assets under `src/server/` (INV-050). The Senzing native library
-must be importable, so run everything with the project env sourced (the `src/../bootcamp-onboarding/scripts/senzing-env.sh`
-/ `senzing-env.bat` created in Module 2): `source src/../bootcamp-onboarding/scripts/senzing-env.sh` on Linux/macOS, or
+must be importable, so run everything with the project env sourced (the `src/scripts/senzing-env.sh`
+/ `senzing-env.bat` created in Module 2): `source src/scripts/senzing-env.sh` on Linux/macOS, or
 `src\scripts\senzing-env.bat` on Windows first.
 
 ### 2.1 Choose the path
@@ -232,8 +232,8 @@ must be importable, so run everything with the project env sourced (the `src/../
 Read `programming_language` from `config/bootcamp_preferences.yaml`:
 
 - **Python** → the reference implementation *is* the server. Resolve `../bootcamp-onboarding/scripts/senzing_viz_server.py`
-  (`${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/senzing_viz_server.py` in a command/hook context, else
-  `../../../bootcamp-onboarding/scripts/senzing_viz_server.py` relative to this skill) and run it directly. This is the
+  (`${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/senzing_viz_server.py` in a command/hook context, else
+  `../bootcamp-onboarding/scripts/senzing_viz_server.py` relative to this skill) and run it directly. This is the
   **only** path on which `senzing_viz_server.py` runs.
 - **Any other language** → generate the server in that language per the contract above, modeled on
   `senzing_viz_server.py` + `visualization-api-reference.md`, saved under `src/server/`. Do **not**

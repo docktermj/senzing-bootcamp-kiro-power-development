@@ -210,8 +210,8 @@ reference how the bootcamp implements it.
 
 - **If the problem involves search/lookup:** clarify the correct layering: Senzing first for
   entity resolution, THEN a search index (Elasticsearch/OpenSearch) over resolved entities.
-  This prevents a common architecture mistake. (Full `design-patterns` reference is a later
-  porting phase; use `search_docs` for specifics.)
+  This prevents a common architecture mistake. There is no bundled `design-patterns`
+  reference; use `search_docs` for specifics.
 - **If integration targets were identified** (`integration_targets` in `config/bootcamp_preferences.yaml`, captured in Phase 2 Step 10a — INV-097): reference them and use `search_docs`
   for Senzing's guidance on integrating with those systems.
 
@@ -265,8 +265,8 @@ sourced statement is the correct outcome, not a failure of the step.
 
 Always produce `docs/stakeholder_summary_module1.md` — no gate, no 👉 question. It covers problem,
 approach, data sources, key findings, next steps, and ROI considerations, filled with Module 1
-context from `docs/business_problem.md`. (The Kiro `templates/stakeholder_summary.md` port is a
-later phase; compose the summary directly for now.) Do not ask whether to create it; announce it
+context from `docs/business_problem.md`. (No stakeholder-summary template is bundled; compose
+the summary directly.) Do not ask whether to create it; announce it
 as a statement in the end-of-module summary (Step 17) — noting the file was created and where to
 find it — via the module-completion "Files produced" list. **Checkpoint:** write step 16.
 

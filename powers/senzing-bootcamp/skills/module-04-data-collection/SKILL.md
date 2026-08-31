@@ -59,8 +59,8 @@ and the single-write checkpoint that follows from it; it is stated once, there, 
 banner, journey map, before/after framing, a brief numbered overview of this module's steps, an estimated time-to-complete (INV-096), and the recommended model/effort nudge (INV-063), before any module work. Read `current_step` and
 resume at the right step.
 
-> **User reference:** Detailed background for this module lives in the Kiro Power at
-> `docs/modules/MODULE_4_DATA_COLLECTION.md` (the docs port is a later porting phase).
+> **User reference:** There is no separate background document for this module. Teach the
+> steps directly from this skill.
 
 **Prerequisites:** ✅ Module 1 complete (business problem defined, data sources identified).
 System verification is optional (a deselectable module); when selected it precedes Data
@@ -82,9 +82,8 @@ When the bootcamper hits an error during this module:
 1. **SENZ error code** (message contains `SENZ` + digits, e.g. `SENZ2027`): call
    `explain_error_code(error_code="<code>", version="current")` and present the explanation and
    recommended fix. If it returns nothing, continue to step 2.
-2. Present the matching pitfall/fix for this module (full `common-pitfalls` reference is a
-   later porting phase; for now, use `search_docs` to look up the symptom, then check any
-   cross-module troubleshooting once ported).
+2. Present the matching pitfall/fix for this module. There is no bundled `common-pitfalls`
+   reference, so use `search_docs` to look up the symptom.
 
 ## License limit and dataset size (canonical framing)
 
@@ -473,7 +472,7 @@ Not all data arrives as CSV. Common formats and how to handle them:
 - **Database exports (SQL dump):** Extract the relevant tables to CSV using the database's
   export tools.
 - **API pagination:** If the API returns paginated results, document the pagination strategy
-  and write a collection script in `src/../bootcamp-onboarding/scripts/` that fetches all pages and saves to
+  and write a collection script in `src/scripts/` that fetches all pages and saves to
   `data/raw/`.
 - **Real-time streams (Kafka, etc.):** For the bootcamp, capture a snapshot to a file. Document
   the stream details for production use (a production follow-up; see the graduation migration checklist).
@@ -492,8 +491,8 @@ Module 5 can evaluate.
 > `quality_score: null`, `mapping_status: pending`, `load_status: not_loaded`,
 > `validation_status: pending`, `validation_checks: {}`, and `added_at` and
 > `updated_at` to the current ISO 8601 timestamp. If an entry already exists for that
-> DATA_SOURCE key, update it and set `updated_at`. _(The Kiro registry helpers are a later
-> porting phase; write/update the YAML directly for now.)_
+> DATA_SOURCE key, update it and set `updated_at`. _(No registry helper is bundled; write and
+> update the YAML directly.)_
 >
 > `validation_status` (`pending` | `passed` | `failed`) and `validation_checks` (one key per check
 > with its outcome) are written by the Data File Validation step below and read back by Step 7 —
@@ -508,15 +507,14 @@ Module 5 can evaluate.
 > and move on to the next data source. If any check fails, show the failure details and
 > remediation guidance, then help the bootcamper resolve the issue (re-upload, convert format,
 > fix encoding, etc.) before proceeding. Re-check after each fix attempt until the file passes.
-> _(The Kiro `validate_data_files.py` validator is a later porting phase; perform the checks
-> directly for now.)_
+> _(No file validator is bundled; perform the checks directly.)_
 
 > **CORD Metadata Capture:** If the bootcamper chose their own data instead of CORD data, skip
 > this. Otherwise, after CORD data has been downloaded via `get_sample_data` and validated,
 > capture a metadata snapshot (dataset name, file paths, a content hash or size/mtime) so
 > Module 6 can detect if files changed between download and load time. Store it in
-> `config/cord_metadata.yaml`. _(The Kiro `cord_metadata.py` helper is a later porting phase;
-> record the snapshot directly for now.)_
+> `config/cord_metadata.yaml`. _(This Power ships no metadata-capture helper; write the
+> snapshot directly.)_
 
 > **CORD Provenance Recording:** After each data source file is collected and its registry
 > entry created/updated in `config/data_sources.yaml`, set the `provenance` field based on the
@@ -557,9 +555,8 @@ Get-Content data\raw\vendor_api.json -TotalCount 5
 (INV-012). Create `docs/data_collection_checklist.md` with a Data Inventory Table (one row per
 data source) and a Validation Checklist, and guide the bootcamper to fill in one row per source
 and complete the checklist before Module 5. Announce it as a produced file in the Step 9
-end-of-module summary's "Files produced" list (INV-032). _(The Kiro
-`templates/data_collection_checklist.md` port is a later porting phase; compose the checklist
-directly for now.)_
+end-of-module summary's "Files produced" list (INV-032). _(No checklist template is bundled;
+compose the checklist directly.)_
 
 Also create or update `docs/data_source_locations.md`:
 
@@ -623,8 +620,8 @@ Never generate SQL against `database/G2C.db`.
 
 ### 5. Handle sensitive data appropriately
 
-- Remind the bootcamper about data privacy (the Kiro `security-privacy` steering reference is a
-  later porting phase; use `search_docs` for Senzing's guidance in the meantime).
+- Remind the bootcamper about data privacy. No privacy reference is bundled; use `search_docs`
+  for Senzing's guidance.
 - If data contains PII, suggest anonymizing for testing.
 - Ensure `.gitignore` excludes `data/raw/*` to prevent committing sensitive data.
 - Document any data handling requirements in `docs/security_compliance.md`.
@@ -872,7 +869,7 @@ about a roughly half-hour load, for a load of about two minutes.
      missing key means Module 2 Step 7 did not record the choice, not that the engine is
      non-SQLite — and because step 2 below treats indeterminate inputs as "say nothing", an absent
      key makes this warning unable to fire **at all**, for any database or dataset size. That is a
-     plugin defect, not a bootcamper outcome: note it internally so it surfaces in the recap, and
+     Power defect, not a bootcamper outcome: note it internally so it surfaces in the recap, and
      fall back to the engine recorded by Module 2 in `config/bootcamp_progress.json` before giving
      up on the check.
 
@@ -932,8 +929,8 @@ about a roughly half-hour load, for a load of about two minutes.
      the strategy **and the reason for it** in a sample manifest. Then record the decision
      (sub-step 4).
    - **Switch to an alternative database (e.g. PostgreSQL):** route the bootcamper to the
-     database-migration guide (the Kiro `docs/guides/DATABASE_MIGRATION.md` guide is a later
-     porting phase). Do not inline or restate the migration steps here. Then record the decision
+     migration guidance from `search_docs` and the graduation migration checklist. No migration
+     guide is bundled. Do not inline or restate the migration steps here. Then record the decision
      (sub-step 4).
 
 4. **Record the decision.** Write a load-decision marker capturing the choice
@@ -941,9 +938,8 @@ about a roughly half-hour load, for a load of about two minutes.
    Module 6 SQLite heads-up does not redundantly re-ask about this same load.
 
 Refer to the Senzing MCP server by name only (never a URL). Use only synthetic/persisted values
-: never echo credentials or connection strings. _(The Kiro `volume_utils` and
-`load_time_warning` helpers, and the shared marker/identity logic, are a later porting phase;
-apply the behavior directly for now.)_
+: never echo credentials or connection strings. _(No volume or load-time helper is bundled;
+apply the behavior directly.)_
 
 **Checkpoint:** write step 8b to `config/bootcamp_progress.json`.
 

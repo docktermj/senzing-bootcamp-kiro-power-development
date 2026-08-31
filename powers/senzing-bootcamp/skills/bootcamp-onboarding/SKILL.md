@@ -38,8 +38,8 @@ bootcamper through setup and into the numbered module skills, one guided step at
      consolidated write — so every quit between those two points lands here, across the whole
      preface and all of Bootcamp preparation.
    - **Present with a `current_module`** -> a bootcamp is already underway. Read it and offer to
-     resume from the last recorded module/step. (Full session-resume behavior is a later porting
-     phase; for now, read `current_module`/`current_step` and continue from there.)
+     resume from the last recorded module/step: read `current_module`/`current_step` and
+     continue from there.
 
    ⛔ **Never announce a resume you cannot perform.** (INV-227 — the decision is made on whether
    the progress file *records a module*, never on whether it exists.) Testing only for the file's

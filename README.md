@@ -77,7 +77,7 @@ You end with working Senzing code and data in your project (`src/`, `data/`, `da
 a professional recap PDF you can keep and share (e.g. [bootcamp_recap.pdf], but yours will differ),
 and a `production/` starter project.
 
-[bootcamp_recap.pdf]: https://raw.githubusercontent.com/docktermj/senzing-bootcamp-claude-plugin-development/refs/heads/main/plugins/senzing-bootcamp/docs/examples/bootcamp_recap.example.pdf
+[bootcamp_recap.pdf]: powers/senzing-bootcamp/docs/examples/bootcamp_recap.example.pdf
 [Install Kiro]: https://kiro.dev/
 [Kiro credits]: https://kiro.dev/pricing/
 [Senzing MCP server]: https://mcp.senzing.com/mcp

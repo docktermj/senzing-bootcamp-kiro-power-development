@@ -466,8 +466,8 @@ of the Truth Set. It MUST:
   entity/relationship/report data through generated SDK code and `reporting_guide`, never direct
   SQL.
 - Render offline with the vendored D3 asset inlined, no CDN (INV-091), and take palette/typography
-  from `${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/brand_tokens.py` (INV-081; skill-relative fallback
-  `../../../bootcamp-onboarding/scripts/brand_tokens.py`, INV-252).
+  from `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/brand_tokens.py` (INV-081; skill-relative fallback
+  `../bootcamp-onboarding/scripts/brand_tokens.py`, INV-252).
 - Write a self-contained standalone HTML snapshot under `docs/visualizations/` (INV-070), passing
   the app **dataset wording that names the Bootcamper's own sources** — e.g. "your CUSTOMERS and
   REFERENCE data", built from `config/data_sources.yaml`. ⛔ Never let it default to neutral wording
@@ -608,14 +608,14 @@ fabricate to fill a field). The generator now reports every character it had to 
 and the first affected passage on stderr, so a slip is visible rather than silent — but it reports
 the loss, it cannot undo it: the characters are gone from that PDF.
 
-Then render the PDF with the bundled generator. ⛔ **It ships inside the plugin, not in the
+Then render the PDF with the bundled generator. ⛔ **It ships inside the Power, not in the
 bootcamp project** — resolve it the same way every other bundled script is resolved, and never as a
-bare `../bootcamp-onboarding/scripts/…` path, which resolves against the project working directory where no top-level
-`../bootcamp-onboarding/scripts/` exists (INV-050 puts the project's own utilities under `src/../bootcamp-onboarding/scripts/`):
+bare `scripts/…` path, which resolves against the project working directory where no top-level
+`scripts/` exists (INV-050 puts the project's own utilities under `src/scripts/`):
 
 ```bash
-python3 "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/generate_discoveries_pdf.py"
-# or, if CLAUDE_PLUGIN_ROOT is unset: python3 <this-skill-dir>/../../../bootcamp-onboarding/scripts/generate_discoveries_pdf.py
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_discoveries_pdf.py"
+# or, if PLUGIN_ROOT is unset: python3 <this-skill-dir>/../bootcamp-onboarding/scripts/generate_discoveries_pdf.py
 ```
 
 That script is the discoveries **sibling** of the recap generator — do not point

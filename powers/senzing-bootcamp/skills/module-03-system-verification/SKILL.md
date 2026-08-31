@@ -62,9 +62,8 @@ other seven are unambiguous. A results mismatch that the engine coherently expla
 as the bootcamper's system failing. Step 7 in `phase1-verification.md` states the procedure for
 telling the two apart.
 
-> **User reference:** detailed background on this module lives in the walkthrough above; a
-> standalone `docs/modules/MODULE_3_SYSTEM_VERIFICATION.md` reference is a later porting phase and
-> is not created yet.
+> **User reference:** detailed background on this module lives in the walkthrough above. There
+> is no standalone module reference document, and none is created.
 
 ## Error handling
 
@@ -74,8 +73,8 @@ When the bootcamper hits an error during this module:
    `explain_error_code(error_code="<code>", version="current")` and include the explanation in
    the Fix_Instruction.
 2. **Known pitfalls** (database lock contention, missing language
-   toolchains, MCP proxy connectivity): the full `common-pitfalls` reference is a later porting
-   phase; for now use `search_docs` to look up the symptom.
+   toolchains, MCP proxy connectivity): there is no bundled `common-pitfalls` reference, so use
+   `search_docs` to look up the symptom.
 3. **Cross-module resources:** SDK install/config issues -> Module 2 remediation; MCP issues ->
    connectivity troubleshooting; language toolchains -> platform-specific SDK guide via
    `sdk_guide`.
@@ -89,7 +88,7 @@ acquired, loaded, and visualized exclusively by the separate, standalone **Truth
 module (`../module-03b-truthset-visualization/`), which documents its own Truth Set source and
 fallback.
 
-## Reconciliation notes (Kiro Power -> Claude plugin)
+## Operating notes (MCP and tooling)
 
 - Entity operations (query, read by entity ID, search by attributes, why/how, relationship
   network, export) are NOT direct tools on this MCP server. Generate the SDK code for them via
@@ -99,8 +98,8 @@ fallback.
 - System Verification starts **no** web service (INV-087; `phase1-verification.md` → Agent Rules,
   *No orphaned processes*). Any web service belongs to the separate Truth Set visualization module,
   which starts and stops it within its own phases.
-- Kiro helper scripts (`../bootcamp-onboarding/scripts/progress_utils.py`, `../bootcamp-onboarding/scripts/fetch_fallback_truthset.py`) are
-  later porting phases; where referenced, perform the described action directly (write markers to
+- This Power ships no `progress_utils.py` or `fetch_fallback_truthset.py` helper. Where a step
+  reads as though one exists, perform the described action directly (write markers to
   `config/bootcamp_progress.json`, fetch/build inline, etc.).
 
 ## Phases

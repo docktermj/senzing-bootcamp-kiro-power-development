@@ -122,8 +122,8 @@ edge case. Three shapes, decided by the live setting rather than by the yes alon
 
 1. **The dial is not yet set** — preface the reply turn with a one-line statement telling the
    bootcamper how to make the change (run the `/model`/`/effort` commands in the Kiro CLI, or
-   use the model and reasoning-effort controls in Kiro / Kiro on the web / their Claude
-   IDE extension), then end the turn on this pinned confirmation gate (its question verbatim,
+   use the model and reasoning-effort controls in Kiro / Kiro on the web / the Kiro
+   IDE), then end the turn on this pinned confirmation gate (its question verbatim,
    INV-056/INV-069 — only the answer hint adapts) — do NOT start the graduation work yet:
 
    > 👉 **Are you done modifying the model and effort?** (Reply yes once you've set your model and effort; reply no if you need more time.)
@@ -202,7 +202,7 @@ Gather context before any step. Do this silently.
      language and database type with one 👉 question at a time; use sensible defaults for the rest
      (path unknown, data sources none).
    - **A file is present but a key is absent** → do **not** announce it and do **not** ask. An
-     absent `database_type` means SDK setup Step 7 did not record the choice — a **plugin defect**,
+     absent `database_type` means SDK setup Step 7 did not record the choice — a **Power defect**,
      not a bootcamper outcome — so note it internally so it surfaces in the Step 0 retrospective,
      exactly as Data collection does for the same key
      (`../module-04-data-collection/SKILL.md` → the SQLite volume warning), and carry on with the
@@ -277,11 +277,11 @@ Gather context before any step. Do this silently.
 
 ## Step 0: Session retrospective (self-observed feedback)
 
-Run this **before** Step 1 renders the recap PDF. Every feedback entry the plugin has ever
+Run this **before** Step 1 renders the recap PDF. Every feedback entry the Power has ever
 collected exists because the *bootcamper* noticed something and said so. That sensor is blind to
 the most valuable class of defect: **the kind that looks like it worked** — a wrong field name that
 renders blank, a tool that behaves differently than documented, a workaround you applied so
-smoothly nobody registered it as friction. This step is the plugin's second sensor, and it does not
+smoothly nobody registered it as friction. This step is the Power's second sensor, and it does not
 depend on the bootcamper noticing anything.
 
 Review **this session** for four categories:
@@ -290,7 +290,7 @@ Review **this session** for four categories:
 - **Errors** — commands, compiles, or tool calls that failed and had to be retried differently.
 - **Course corrections** — a stated plan or hypothesis that measurement disproved.
 - **Learnings** — anything you discovered about the environment, the SDK, or the MCP tools that is
-  not in the plugin's documentation.
+  not in the Power's documentation.
 
 ⛔ **The inclusion test is recurrence, not embarrassment: "would this happen to another
 bootcamper?"** A one-off typo is noise. A documented tool that behaves differently than documented
@@ -359,7 +359,7 @@ Constraints:
 The recap is the crown-jewel deliverable. Produce it before the `production/`
 project so the recap PDF always exists.
 
-A finished-recap sample ships with the plugin at
+A finished-recap sample ships with the Power at
 `${PLUGIN_ROOT}/docs/examples/bootcamp_recap.example.pdf` (skill-relative
 fallback: `../../docs/examples/bootcamp_recap.example.pdf`). You may point the
 bootcamper to it so they see what theirs is about to look like — a non-blocking
@@ -428,7 +428,7 @@ and the hardware/software it ran on. Add these header meta lines (in the preambl
   `../bootcamp-onboarding/onboarding-flow.md` step 0 specifies —
   `${PLUGIN_ROOT}/plugin.json`, else
   `<this-skill-dir>/../../plugin.json`, else "Unknown" — and ⛔ never by searching
-  the filesystem, which on a machine carrying two plugin checkouts records the wrong version in
+  the filesystem, which on a machine carrying two Power checkouts records the wrong version in
   the keepsake (INV-252). Record the version only, never the path it resolved from: an absolute
   path carries a username and this block is PII-free (INV-065).
 - `**Operating system:**` — OS + architecture, reused from the detected/persisted values in
@@ -547,8 +547,8 @@ During the bootcamp these files were written plain (see
 more importantly, enforces the content guard below in code:
 
 ```bash
-python3 "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/normalize_docs_markdown.py"
-# or, if CLAUDE_PLUGIN_ROOT is unset: python3 <this-skill-dir>/../../../bootcamp-onboarding/scripts/normalize_docs_markdown.py
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/normalize_docs_markdown.py"
+# or, if PLUGIN_ROOT is unset: python3 <this-skill-dir>/../bootcamp-onboarding/scripts/normalize_docs_markdown.py
 ```
 
 It applies blank lines around headings (MD022), fenced blocks (MD031) and lists (MD032); a language
@@ -609,14 +609,14 @@ verifying the render, below. `poppler`'s `pdftoppm` is the tool to reach for; `p
 where it happens to be installed. Neither is required — but a check that does not run MUST be
 reported as skipped rather than degrading silently, per "Say what you could not verify" below.)
 
-Locate and run the bundled script (it ships with this plugin). Use the venv's Python
+Locate and run the bundled script (it ships with this Power). Use the venv's Python
 if you created one above; otherwise `python3`:
 
 ```bash
 # fpdf2 already importable, or using the stdlib fallback:
-python3 "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/generate_recap_pdf.py"
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_pdf.py"
 # Or, when you installed fpdf2 into the project-local venv above:
-data/temp/recap-venv/bin/python "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/generate_recap_pdf.py"
+data/temp/recap-venv/bin/python "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_pdf.py"
 ```
 
 If `${PLUGIN_ROOT}` is not set in the current context, resolve the script
@@ -624,7 +624,7 @@ relative to this skill's directory instead (this skill lives at
 `skills/graduation/`, so the generator is two levels up under `../bootcamp-onboarding/scripts/`):
 
 ```bash
-python3 <this-skill-dir>/../../../bootcamp-onboarding/scripts/generate_recap_pdf.py
+python3 <this-skill-dir>/../bootcamp-onboarding/scripts/generate_recap_pdf.py
 ```
 
 The script reads `docs/bootcamp_recap.md` and writes `docs/bootcamp_recap.pdf`.
@@ -869,8 +869,8 @@ best-effort CommonMark pass over them that Step 1a made over `docs/*.md` — INV
 pass over **both** sets, and the `production/` half is why this step exists:
 
 ```bash
-python3 "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/normalize_docs_markdown.py" --docs-dir production
-# or, if CLAUDE_PLUGIN_ROOT is unset: python3 <this-skill-dir>/../../../bootcamp-onboarding/scripts/normalize_docs_markdown.py --docs-dir production
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/normalize_docs_markdown.py" --docs-dir production
+# or, if PLUGIN_ROOT is unset: python3 <this-skill-dir>/../bootcamp-onboarding/scripts/normalize_docs_markdown.py --docs-dir production
 ```
 
 It applies the same rules as in Step 1a and globs top-level `production/*.md` only, never
@@ -906,11 +906,11 @@ Render each with the bundled general renderer, resolved the same way as every ot
 script and never as a bare `../bootcamp-onboarding/scripts/…` path (INV-185):
 
 ```bash
-python3 "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/generate_document_pdf.py" \
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_document_pdf.py" \
     --input docs/business_problem.md --output docs/business_problem.pdf \
     --require-sections "<this document's own H2 headings, semicolon-separated>" \
     --subtitle "The problem this bootcamp set out to solve"
-# or, if CLAUDE_PLUGIN_ROOT is unset: python3 <this-skill-dir>/../../../bootcamp-onboarding/scripts/generate_document_pdf.py …
+# or, if PLUGIN_ROOT is unset: python3 <this-skill-dir>/../bootcamp-onboarding/scripts/generate_document_pdf.py …
 ```
 
 ⛔ **Pass `--subtitle`.** The cover's subtitle defaults to the discoveries line, "What Senzing
@@ -1020,7 +1020,7 @@ Cover:
   `config/data_sources.yaml`.
 - **Restore the database** — the exact SQLite copy-back or PostgreSQL `pg_restore` / `psql` command
   recorded in Step 6a.
-- **Re-initialize and re-run** — how to re-source `src/../bootcamp-onboarding/scripts/senzing-env.sh` (if present) and
+- **Re-initialize and re-run** — how to re-source `src/scripts/senzing-env.sh` (if present) and
   re-init the engine, then re-run the loader, queries, and visualization.
 - **License** — where the license lives (`licenses/g2.lic` when custom, else the built-in
   evaluation license) and any expiry.
@@ -1069,7 +1069,7 @@ Then stop and wait. This is the single closing question for the whole bootcamp.
 
    - **Wants to keep exploring** (asks a question, names a topic, or otherwise continues): help them, then offer the closing question again when they are ready. Do **not** show the terminal banner yet — it must never pre-empt continued exploration.
    - **Declines** ("no", "I'm done", "that's all", "nothing else"): the bootcamp is complete. Do these two things, in order:
-     1. **Stand down the Stop-hook nudge, silently.** Set a top-level `bootcamp_complete: true` key in `config/bootcamp_preferences.yaml` (a single minimal edit; do not narrate it). The `Stop` hook (`../../../bootcamp-onboarding/scripts/stop-nudge.py`) reads this key and will not nudge for a closing 👉 question once the bootcamp is over — so the terminal banner, which ends the turn with no 👉, is not re-opened.
+     1. **Stand down the Stop-hook nudge, silently.** Set a top-level `bootcamp_complete: true` key in `config/bootcamp_preferences.yaml` (a single minimal edit; do not narrate it). The `Stop` hook (`../bootcamp-onboarding/scripts/stop-nudge.py`) reads this key and will not nudge for a closing 👉 question once the bootcamp is over — so the terminal banner, which ends the turn with no 👉, is not re-opened.
      2. **Render the terminal banner, verbatim, exactly once** as the final output. It bookends the WELCOME banner that opened the bootcamp (start) and the GRADUATION banner (finish) with a clear end-of-bootcamp marker. No 👉 question follows it; the turn simply ends.
 
      ```text

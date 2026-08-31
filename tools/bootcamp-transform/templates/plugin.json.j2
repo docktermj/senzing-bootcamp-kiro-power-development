@@ -28,8 +28,21 @@
   `license` is fixed at "Apache-2.0" to match the repository root LICENSE (R4 AC4, R14 AC3).
   Identity fields (name, description, author, homepage, repository, keywords) are Kiro-owned
   constants, not template-derived, so they are literal here rather than context-supplied.
+
+  ⛔ `homepage` AND `repository` NAME THE PUBLICATION REPOSITORY — the repository a
+  Bootcamper installs this Power from — and neither may be derived from `template_repository`.
+  They were, and both were wrong in a way a Bootcamper could act on: `homepage` resolved to
+  the upstream Claude plugin the Power is BUILT FROM, which is not a page about this Power and
+  does not install it, and `repository` named this development repository, which holds the
+  engine and the contract rather than the Power's distribution tree. Someone following either
+  one arrived somewhere that could not answer "where did this come from, and how do I get it?".
+
+  The template repository is still recorded — under `extensions[...].templateRepository`, where
+  it belongs, as provenance rather than as identity. `POWER_PUBLICATION_URL` below is the one
+  place the publication location is written.
 -#}
 {%- set template_repository_url = "https://github.com/" ~ template_repository -%}
+{%- set publication_url = "https://github.com/Senzing/senzing-bootcamp-kiro-power" -%}
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "senzing-bootcamp",
@@ -37,8 +50,8 @@
   "description": "Guided Senzing entity resolution bootcamp. Use when learning Senzing, working through the bootcamp modules, or onboarding to entity resolution.",
   "author": { "name": "Senzing", "url": "https://senzing.com" },
   "license": "Apache-2.0",
-  "homepage": {{ template_repository_url | tojson }},
-  "repository": "https://github.com/docktermj/senzing-bootcamp-kiro-powers-development",
+  "homepage": {{ publication_url | tojson }},
+  "repository": {{ publication_url | tojson }},
   "keywords": ["senzing", "entity-resolution", "bootcamp", "training", "onboarding", "data-quality"],
   "extensions": {
     "com.senzing.bootcamp": {

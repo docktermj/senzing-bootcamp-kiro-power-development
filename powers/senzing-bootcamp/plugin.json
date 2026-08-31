@@ -5,8 +5,8 @@
   "description": "Guided Senzing entity resolution bootcamp. Use when learning Senzing, working through the bootcamp modules, or onboarding to entity resolution.",
   "author": { "name": "Senzing", "url": "https://senzing.com" },
   "license": "Apache-2.0",
-  "homepage": "https://github.com/Senzing/senzing-bootcamp-claude-plugin",
-  "repository": "https://github.com/docktermj/senzing-bootcamp-kiro-powers-development",
+  "homepage": "https://github.com/Senzing/senzing-bootcamp-kiro-power",
+  "repository": "https://github.com/Senzing/senzing-bootcamp-kiro-power",
   "keywords": ["senzing", "entity-resolution", "bootcamp", "training", "onboarding", "data-quality"],
   "extensions": {
     "com.senzing.bootcamp": {

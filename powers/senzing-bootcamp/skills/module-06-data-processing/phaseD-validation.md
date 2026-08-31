@@ -176,8 +176,8 @@ If loading fails partway through:
    `database/G2C.db` and re-run the Module 2 config.
 4. **Common causes:** disk full, out of memory, invalid records, network timeout.
 
-(The Kiro backup/restore helper `../bootcamp-onboarding/scripts/restore_project.py` is a later porting phase; restore
-from your own `database/G2C.db` backup for now.)
+(This Power ships no backup/restore helper. Restore from the bootcamper's own
+`database/G2C.db` backup.)
 
 ### Multi-source recovery (Phase C)
 
@@ -387,8 +387,8 @@ State which of the audit's three outcomes applies; do **not** collapse the third
 
 After validation, always produce a one-page executive summary — no question (INV-012) —
 following the Module 6 guidance, and save it to `docs/stakeholder_summary_module6.md`. Announce
-it as a produced file in the end-of-module summary's "Files produced" list (INV-032). (The Kiro
-`templates/stakeholder_summary.md` port is a later phase; compose the summary directly for now.)
+it as a produced file in the end-of-module summary's "Files produced" list (INV-032). (No
+stakeholder-summary template is bundled; compose the summary directly.)
 
 ## Success criteria
 
@@ -419,8 +419,8 @@ it as a produced file in the end-of-module summary's "Files produced" list (INV-
   `search_docs` and `generate_scaffold` for current guidance on adding new records to an existing
   database, processing redo records after incremental loads, and monitoring pipeline health.
 
-(The Kiro multi-source reference `data-processing-reference.md` and the user reference
-`docs/modules/MODULE_6_DATA_PROCESSING.md` are later porting phases.)
+(No separate multi-source reference or background document is bundled; this skill's phases are
+the whole of it.)
 
 ## Module completion and transition to Module 7
 

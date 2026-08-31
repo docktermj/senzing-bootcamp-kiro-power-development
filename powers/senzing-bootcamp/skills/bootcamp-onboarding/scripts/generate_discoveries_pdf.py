@@ -11,7 +11,7 @@ discoveries document produced a valid-but-nearly-empty PDF. Rather than
 generalize a parser whose strictness is load-bearing for the recap, this script
 renders a general Markdown subset and reuses the recap generator's low-level PDF
 plumbing (page writer, wrapping, escaping) so there is exactly one hand-rolled
-PDF writer in the plugin.
+PDF writer in the Power.
 
 Supported Markdown: an H1 title, ``**Key:** value`` preamble meta lines, H2/H3
 headings, ``-``/``*`` bullets at two indent levels, ``**Label:** text`` lines,

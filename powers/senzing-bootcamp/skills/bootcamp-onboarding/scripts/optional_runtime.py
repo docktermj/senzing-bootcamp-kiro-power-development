@@ -29,9 +29,10 @@ and nothing here rewrites them:
   skips the entry, `_container_state` answers ``unknown``, and `resume_summary`
   reports "the `docker` CLI is not available here" and offers help. Every
   subprocess call is wrapped, so an erroring CLI is also a skip, never a raise.
-* The two hook scripts that use it, `session-start.py` and `session-end.py`, end
-  with an unconditional ``sys.exit(0)``. A missing container runtime therefore
-  cannot block a trigger or wedge a session.
+* The two scripts that use it, `session-start.py` (the `SessionStart` hook) and
+  `session-end.py` (inert in Kiro; runnable by hand), end with an unconditional
+  ``sys.exit(0)``. A missing container runtime therefore cannot block a trigger or
+  wedge a session.
 * No hook script touches a browser at all. `senzing_viz_server.py` serves the
   visualization over HTTP for the Bootcamper to open; it never launches a
   browser. `capture_screenshots.py` — agent-invoked, never a hook — tries

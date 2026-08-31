@@ -105,12 +105,13 @@ ground-rules file-placement contract:
     for `JOURNAL.md`, append source B's entries onto source A's log. This matches the qualifier
     step 18 already requires for `docs/mapping/{source_name}_mapper.md`.
 - If a downloaded file matches no placement rule, leave it in the workspace and surface it as a
-  warning rather than inventing a destination. If the plugin write-gate blocks a write, leave
+  warning rather than inventing a destination. If the Power write-gate blocks a write, leave
   the file in the workspace and report it: do not retry against a different location.
 
-The plugin's PreToolUse write-gate enforces the temp-path and secret rules; file-type placement
-is your responsibility. (The Kiro `organize_mapping_files.py` and `generate_docs_index.py`
-scripts are a later porting phase: place files directly per the contract above for now.)
+When the optional enforcement hooks are installed, the `PreToolUse` write-gate enforces the
+temp-path and secret rules mechanically; when they are not, those rules still bind you as
+instructions. File-type placement is your responsibility either way. (No file-organizing script
+is bundled: place files directly per the contract above.)
 
 ## Calling `mapping_workflow` correctly (⛔ read before step 8)
 
@@ -228,7 +229,7 @@ nothing shown and nothing asked.
   with a neutral lead followed by the numbered list.
 
   ⚠️ **The recommendation is welcome — do not strip it.** INV-051 requires the *lead question* to be
-  neutral, not the absence of advice; the plugin recommends inside pinned questions routinely (the
+  neutral, not the absence of advice; the Power recommends inside pinned questions routinely (the
   model-switch question carries "Recommended for best value"). The tool's format is good content in
   a forbidden shape, and over-correcting throws away the useful half. (INV-205, scope extended
   2026-08-12.)
@@ -619,7 +620,7 @@ Its *other* warnings are real; this is one known-bad counter, not a noisy step.
 
 **Do not send `feature_count`, `payload_count` or `ignored_count` — the server derives them.** Step
 3's instructions list all three under DISPOSITION COUNT BALANCE as though the client must supply
-them, so a future reader comparing this module against the tool's prose will read the plugin's
+them, so a future reader comparing this module against the tool's prose will read the Power's
 silence as an omission. It is not, and the 2026-08-14 advance above is the evidence: it was accepted
 without any of the three, and the returned `state` carried the server's own computation —
 `"meridian_crm":{…,"field_count":6,"feature_count":4,"payload_count":1,"ignored_count":1,"extract_count":0}`.
@@ -699,7 +700,7 @@ else does not:
 passes: a source `RegKey: 1001` emitted as `"1001"`, and `98.6` emitted as `"98.6"`, both exit **0**
 (re-run 2026-07-29). Through server 1.32.1 they failed under either emission — reported on all 53,321
 relationship rows of one real run, reported upstream 2026-07-28, and **fixed in 1.32.2**. So do
-**not** record a numeric-value exemption: run the check and read its actual output. The plugin pins
+**not** record a numeric-value exemption: run the check and read its actual output. The Power pins
 no MCP server version, so every bootcamper is on the current server and this is simply the behavior.
 
 **What to do — in this order:**
@@ -965,8 +966,8 @@ contract above). Tell the user: show a sample target JSON record so they see the
 
 After `mapping_workflow` generates output files into the workspace, place them into the correct
 project subdirectories per the file-placement guidance above (`.py` → `src/`, transformed JSONL
-→ `data/senzing-ready/`, mapping docs → `docs/mapping/`, etc.). Regenerating a `docs/README.md`
-docs index is a later porting phase: skip it for now.
+→ `data/senzing-ready/`, mapping docs → `docs/mapping/`, etc.). Do not regenerate a
+`docs/README.md` index; nothing here maintains one.
 
 **Checkpoint:** write step 12.
 
@@ -1046,10 +1047,10 @@ If yes, generate a self-contained HTML page and save it to
 
 ⛔ **Same four rules as the quality-assessment visual in `phase1-quality-assessment.md`** — this is a
 bootcamper-facing visual deliverable too, and the reasons are identical: brand tokens from
-`${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/brand_tokens.py` (INV-081; skill-relative fallback
-`../../../bootcamp-onboarding/scripts/brand_tokens.py`, INV-252); **renders offline**, so no CDN or web font
-— inline the vendored `${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/vendor/d3.v7.min.js` (skill-relative fallback
-`../../../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`, INV-252) if a chart library is needed (INV-081/INV-091);
+`${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/brand_tokens.py` (INV-081; skill-relative fallback
+`../bootcamp-onboarding/scripts/brand_tokens.py`, INV-252); **renders offline**, so no CDN or web font
+— inline the vendored `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/vendor/d3.v7.min.js` (skill-relative fallback
+`../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`, INV-252) if a chart library is needed (INV-081/INV-091);
 every data-sourced string escaped for the context it lands in, including `<`/`>`/`&` as `\uXXXX`
 inside any inline `<script>` payload (INV-106); and verify the rendered page rather than the exit
 status (INV-129). The mapping summary carries **more** bootcamper-authored text than the phase 1
@@ -1109,9 +1110,8 @@ If issues are found, go back to the relevant step. Retest after changes.
 - Sample output in `data/senzing-ready/[name]_sample.jsonl`.
 - **Transformation lineage:** Create `docs/mapping/transformation_lineage_[name].md` for this
   data source, covering source file info, transformation program, output file info, field
-  mappings, format changes, filters, quality improvements, and before/after record counts. (The
-  Kiro `templates/transformation_lineage.md` template is a later porting phase; compose the
-  lineage document directly for now.)
+  mappings, format changes, filters, quality improvements, and before/after record counts. (No
+  lineage template is bundled; compose the document directly.)
 - **Entity specification reference:** The Senzing entity specification reference lives only at
   `docs/reference/senzing_entity_specification.md`: a single canonical copy. Do NOT create a
   copy in the `docs/` root; if one exists there, remove it.

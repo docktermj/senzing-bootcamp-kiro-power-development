@@ -21,8 +21,10 @@ Every status this module reports goes to **stderr**, never stdout: two of its ca
 are hooks whose stdout is a structured channel (``UserPromptSubmit`` returns JSON), so
 a status line on stdout would corrupt the payload.
 
-This is NOT a hook itself. It is imported by the PreCompact, SessionEnd, SessionStart
-and UserPromptSubmit hook scripts, which run in exec form (``python3 <hook>.py``);
+This is NOT a hook itself. In Kiro it is imported by the ``SessionStart`` and
+``UserPromptSubmit`` hook scripts (``session-start.py``, ``checkpoint-tick.py``), and by
+the two scripts that are inert here because Kiro has no trigger for them
+(``precompact-recap.py``, ``session-end.py``). Hooks run in exec form (``python3 <hook>.py``);
 Python puts each hook script's own directory (this ``scripts/`` directory) on
 ``sys.path``, so ``import recap_checkpoint`` resolves here on Linux, macOS, and
 Windows alike.
@@ -134,10 +136,11 @@ def _scaffold_text(module=None):
             "     Actions Taken / End-of-Module Summary-so-far. Write the narrative BETWEEN",
             "     the START and END markers below.",
             "",
-            "     This is what survives a quit, compaction, or new session mid-module: the",
-            "     PreCompact, SessionEnd and SessionStart hooks fold it into",
-            "     docs/bootcamp_recap.md. While it holds only this scaffold there is nothing",
-            "     to fold, and each of those hooks will say so on stderr.",
+            "     This is what survives a quit, compaction, or new session mid-module. Kiro",
+            "     has no pre-compaction and no session-end trigger, so folding it into",
+            "     docs/bootcamp_recap.md is the guide's job -- at module completion, at",
+            "     graduation, and at session close-out. While it holds only this scaffold",
+            "     there is nothing to fold, and the session-start hook will say so on stderr.",
             "",
             "     Finalized and cleared on module completion -- see module-completion.md",
             "     step 2d. -->",

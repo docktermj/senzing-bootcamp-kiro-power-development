@@ -91,9 +91,9 @@ Truth Set DATA.
 
 - **Sanctioned source:** reference it only by its registry identifier `senzing_truthset_demo`,
   declared in `config/fallback_sources.yaml`. Never embed a raw URL. The registry is the single
-  reviewed place this source is defined. (The `config/fallback_sources.yaml` registry and its fetch
-  script are a later porting phase; for now, if the registry file is absent, treat the fallback as
-  unavailable and run the graceful-degradation path in `phase1-visualization.md`, Step 1, 1.1.)
+  reviewed place this source is defined. (No registry file and no fetch script are bundled, so if
+  `config/fallback_sources.yaml` is absent, treat the fallback as unavailable and run the
+  graceful-degradation path in `phase1-visualization.md`, Step 1, 1.1.)
 - **Approval rationale:** the workspace normally allows only `mcp.senzing.com` as an external
   endpoint. This exception exists because the source is the official Senzing-published deterministic
   data with a ground-truth key, needed to preserve a deterministic "wow moment" when the MCP Truth Set
@@ -103,20 +103,19 @@ Truth Set DATA.
 - Full detection, provenance recording, and graceful degradation live in the Step 1 flow in
   `phase1-visualization.md`.
 
-## Reconciliation notes (Kiro Power -> Claude plugin)
+## Operating notes (MCP and tooling)
 
 - Entity operations (query, read by entity ID, search by attributes, why/how, relationship network,
   export) are NOT direct tools on this MCP server. Generate the SDK code for them via
   `get_sdk_reference` + `sdk_guide` and run it. Never generate SQL against `database/G2C.db`.
 - Counts, statistics, and visualization data come from `reporting_guide` and from the visualization
   server's entity-model build (one `get_entity_by_record_id` per record), never from direct SQL.
-- Kiro process control (`controlBashProcess`) maps here to running the web service as a background
-  process and stopping it later at this module's close.
+- Run the web service as a background process (Kiro's process control) and stop it again at this
+  module's close. Never leave it running past Phase 2.
 - **Visualization (Step 2) is built in the Bootcamper's chosen programming language,** modeled on the
   shipped reference `../bootcamp-onboarding/scripts/senzing_viz_server.py` and the `visualization-api-reference.md` contract;
   the Python reference is run directly only when the chosen language is Python. The visualization is
   guaranteed by the snapshot-first build and the completion gate (INV-077), not by a bundled runtime.
-  This supersedes the Kiro `generate_standalone_demo.py` / `write_html.py` / builder-module approach.
 
 ## Phases
 

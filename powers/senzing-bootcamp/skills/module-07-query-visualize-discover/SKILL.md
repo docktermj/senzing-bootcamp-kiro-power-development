@@ -57,9 +57,9 @@ Senzing database (`database/G2C.db`) or its internal tables (`RES_ENT`, `OBS_ENT
 - **Counts, stats, quality, reporting and visualization data** → `reporting_guide` (topics
   `reports`, `quality`, `evaluation`, `dashboard`, `graph`).
 
-Reconciliation note: the Kiro source referred to `search_by_attributes`, `get_entity`,
+⛔ **Do not treat these as MCP tools.** `search_by_attributes`, `get_entity`,
 `why_entities`, `how_entity`, `why_records`, `find_network`, `find_path`, and
-`get_entity_by_record_id` as if they were callable tools. The current Senzing MCP server does
+`get_entity_by_record_id` read like callable tools and are not. The current Senzing MCP server does
 NOT expose direct entity-query tools. These are SDK **methods**: the agent generates SDK code
 that calls them, sourcing flags and signatures from `get_sdk_reference` and code patterns from
 `sdk_guide` / `reporting_guide`. Never fabricate SDK method names; always confirm via MCP.
@@ -71,9 +71,8 @@ When the bootcamper hits an error during this module:
 1. **SENZ error code** (message contains `SENZ` + digits, e.g. `SENZ2027`): call
    `explain_error_code(error_code="<code>", version="current")` and present the explanation and
    recommended fix. If it returns nothing, continue to step 2.
-2. Look up the symptom via `search_docs`, then present the matching fix (the full
-   `common-pitfalls` reference and its Troubleshooting-by-Symptom table are a later porting
-   phase).
+2. Look up the symptom via `search_docs`, then present the matching fix. There is no bundled
+   `common-pitfalls` reference or Troubleshooting-by-Symptom table.
 
 ## Phases
 

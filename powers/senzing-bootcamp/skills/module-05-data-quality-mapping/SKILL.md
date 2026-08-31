@@ -42,8 +42,8 @@ transformation programs tested + output validated with quality >70%.
 - **Quality scoring methodology:** When a bootcamper asks how a score was calculated, what
   each dimension measures, or what a threshold means, explain it directly using the dimension
   definitions in Phase 1 (field completeness, format consistency, duplicate rate). The
-  standalone `QUALITY_SCORING_METHODOLOGY` guide is a later porting phase; for now use
-  `search_docs` for any Senzing-specific quality guidance.
+  dimension definitions in Phase 1 are the authority; there is no standalone methodology guide.
+  Use `search_docs` for any Senzing-specific quality guidance.
   ⛔ Because the completeness helper is authored fresh each run until that guide is ported, use
   the **presence test defined in Phase 1 step 6** rather than writing one from scratch. Two traps
   it exists to close: never use a truthiness test (`if value:`) — `false` and `0` are present
@@ -96,8 +96,8 @@ When the bootcamper hits an error during this module:
 1. **SENZ error code** (message contains `SENZ` + digits, e.g. `SENZ2027`): call
    `explain_error_code(error_code="<code>", version="current")` and present the explanation and
    recommended fix. If it returns nothing, continue to step 2.
-2. Present the matching pitfall/fix for this module (full `common-pitfalls` reference is a
-   later porting phase; for now, use `search_docs` to look up the symptom).
+2. Present the matching pitfall/fix for this module. There is no bundled `common-pitfalls`
+   reference, so use `search_docs` to look up the symptom.
 
 Two `mapping_workflow` failure modes have their own handling in
 `phase2-data-mapping.md`, both under "Availability-aware mapping validation" — do not improvise

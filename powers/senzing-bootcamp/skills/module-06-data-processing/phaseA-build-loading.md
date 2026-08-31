@@ -33,8 +33,8 @@ found during Phase 3 that may affect orchestration.
 
 If the bootcamper is using CORD sample data (downloaded via `get_sample_data`), remind them to
 confirm their data files haven't changed since download. This is advisory only, never block
-loading. If they are using their own data, skip silently. (The Kiro CORD-freshness helper
-`../bootcamp-onboarding/scripts/cord_metadata.py` is a later porting phase; give the reminder inline for now.)
+loading. If they are using their own data, skip silently. (This Power ships no CORD-freshness
+helper; compare against `config/cord_metadata.yaml` and give the reminder inline.)
 
 ### Anti-pattern check
 
@@ -79,8 +79,7 @@ still unparseable, default to `demo` and tell the bootcamper demo/evaluation was
 the default. Persist `production_volume` (`tier` and `raw_value`) to
 `config/bootcamp_preferences.yaml` and checkpoint step 1 to `config/bootcamp_progress.json`.
 
-(The Kiro helpers `answer_binding.py` / `volume_utils.py` encode this parsing and persistence;
-the script port is a later phase, apply the logic inline for now.)
+(No answer-parsing or volume helper is bundled; apply the parsing and persistence logic inline.)
 
 ⛔ **Echo the consequence back before generating any code.** State the tier *and* the architecture
 it selects, and invite a correction — a misread costs nothing to fix here and is expensive to
@@ -127,9 +126,8 @@ Update the source's `load_status` to `loading` in `config/data_sources.yaml` and
 ## 3. Create the production loading program
 
 Help the bootcamper build a complete, production-quality loading program for this source. All
-generated code must follow the coding standards for the chosen language. (Full
-`CODE_QUALITY_STANDARDS` reference is a later porting phase; apply clean-code conventions for
-the language for now.)
+generated code must follow the coding standards for the chosen language. (No coding-standards
+reference is bundled; apply clean-code conventions for the language.)
 
 **Volume-aware scaffold.** Read `production_volume` from `config/bootcamp_preferences.yaml`.
 
@@ -344,9 +342,8 @@ stop-and-confirm heads-up, NOT a mandatory gate, the bootcamper may always proce
      guidance (PostgreSQL migration is a production follow-up; see the graduation migration checklist). Do not restate migration steps here.
 
 *(Internal: when this heads-up fires, end the turn on the pinned question in item 4 and wait.)* Use
-only synthetic/persisted values, never echo credentials or connection strings. (The Kiro
-helpers `volume_utils.py`, `preferences_utils.py`, `load_time_warning.py`, and the migration
-guide are later porting phases; apply the logic inline and refer to the graduation migration checklist for PostgreSQL migration for
-now.)
+only synthetic/persisted values, never echo credentials or connection strings. (No volume,
+preferences, load-time, or migration helper is bundled; apply the logic inline and refer to the
+graduation migration checklist for PostgreSQL migration.)
 
 Proceed to Phase B (`phaseB-load-first-source.md`).

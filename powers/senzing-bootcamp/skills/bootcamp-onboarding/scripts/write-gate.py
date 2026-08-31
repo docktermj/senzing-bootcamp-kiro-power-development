@@ -24,7 +24,7 @@ import sys
 
 data = sys.stdin.read()
 
-# Gate: only enforce when a bootcamp is active, so the plugin never blocks writes in
+# Gate: only enforce when a bootcamp is active, so the Power never blocks writes in
 # unrelated Kiro sessions.
 if not os.path.isfile(os.path.join("config", "bootcamp_progress.json")):
     sys.exit(0)

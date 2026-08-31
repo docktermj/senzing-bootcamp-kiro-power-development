@@ -14,7 +14,7 @@ rename would break every one of those addresses for a cosmetic gain.
 
 Usage — identical to the script it wraps::
 
-    python3 "${PLUGIN_ROOT}/scripts/generate_document_pdf.py" \
+    python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_document_pdf.py" \
         --input docs/business_problem.md \
         --output docs/business_problem.pdf \
         --require-sections "the problem;why it matters;success criteria"

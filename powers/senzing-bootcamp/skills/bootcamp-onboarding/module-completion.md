@@ -11,7 +11,7 @@ transition 👉 question. It does three things, in this fixed order:
 Then the module asks its single transition question. Follow `ground-rules.md`
 throughout: `🛑`/`⛔` are internal, never rendered; one 👉 question ends the turn.
 
-This is the Claude-plugin port of the Kiro `module-completion*` / `module-completion-artifacts` steering. It is deliberately lightweight and non-blocking. If any write fails, name what failed, do not claim the module is complete, and let the bootcamper decide how to proceed.
+This is the module-completion routine every module closes with. It is deliberately lightweight and non-blocking. If any write fails, name what failed, do not claim the module is complete, and let the bootcamper decide how to proceed.
 
 ## Step 1: Update progress state
 
@@ -163,7 +163,7 @@ Only then display the one-line confirmation: `Recap updated: {Name}.`
 ### 2d. Finalize the in-progress checkpoint
 
 During the module you kept an in-progress recap at `docs/progress/recap_checkpoint.md`
-(see `ground-rules.md` → "Progress and state"), and the plugin's durability hooks may
+(see `ground-rules.md` → "Progress and state"), and the Power's durability hooks may
 have folded it into `docs/bootcamp_recap.md` as a `<!-- RECAP-CHECKPOINT:START -->` …
 `<!-- RECAP-CHECKPOINT:END -->` block. Now that the finalized `## {Name}` section is
 appended (2b), that block is superseded. Do two things:
@@ -224,8 +224,8 @@ a short `{name}`):
        --name {name} --tabs graph,stats,matchkeys,features,overlap,probe
    ```
 
-   Resolve `<helper>` as `${PLUGIN_ROOT}/scripts/capture_screenshots.py` (command/hook
-   context) or `../../scripts/capture_screenshots.py` relative to a module skill. It tries several
+   Resolve `<helper>` as `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/capture_screenshots.py` (command/hook
+   context) or `../bootcamp-onboarding/scripts/capture_screenshots.py` relative to a module skill. It tries several
    headless backends (Playwright, Selenium, headless Chrome/Chromium, `wkhtmltoimage`) and never
    fetches a remote URL (offline — INV-091). Pass only tabs the app actually shows for this data —
    the helper reports any tab that produced no image on stderr rather than dropping it silently.

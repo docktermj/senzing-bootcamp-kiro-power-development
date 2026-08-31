@@ -3,9 +3,13 @@
 
 Any container the bootcamp starts is recorded in ``config/bootcamp_progress.json``
 under a ``docker_containers`` list (each entry carrying at least a ``name``, and a
-``runtime`` naming the CLI that started it). This module lets the SessionEnd hook
-stop those recorded containers when the session ends, and the SessionStart hook
-surface them on resume so the guide can restart or regenerate them.
+``runtime`` naming the CLI that started it). This module stops those recorded
+containers and surfaces them on resume, so the guide can restart or regenerate them.
+
+Kiro has no session-end trigger, so nothing stops a recorded container automatically:
+stopping them at close-out is the guide's job, and `senzing-bootcamp-tier1-session-lifecycle.md`
+is where that instruction lives. The `SessionStart` hook (`session-start.py`) does use
+this module to surface recorded containers on resume.
 
 The bootcamp does not always run on Docker. Docker Desktop cannot be installed
 non-interactively (it needs administrator privileges an agent cannot supply), so on
@@ -24,10 +28,11 @@ present: when the CLI is absent, missing, or erroring, every function
 warns-and-continues and never blocks the hook. Pure Python 3 stdlib, no third-party
 dependency (INV-052/INV-001/INV-002).
 
-This is NOT a hook itself. It is imported by the SessionEnd and SessionStart hook
-scripts, which run in exec form (``python3 <hook>.py``); Python puts each hook
-script's own directory (this ``scripts/`` directory) on ``sys.path``, so
-``import docker_lifecycle`` resolves here on Linux, macOS, and Windows alike.
+This is NOT a hook itself. It is imported by ``session-start.py`` (the ``SessionStart``
+hook) and by ``session-end.py`` (inert in Kiro, but runnable by hand at close-out).
+Those run in exec form (``python3 <hook>.py``); Python puts each script's own directory
+(this ``scripts/`` directory) on ``sys.path``, so ``import docker_lifecycle`` resolves
+here on Linux, macOS, and Windows alike.
 """
 import json
 import os
@@ -50,7 +55,7 @@ KNOWN_RUNTIMES = {
 
 # Runtimes whose CLI implements docker's ``ps -a --filter ... --format ...``
 # interface, so a container's state can be read. Apple's ``container`` uses a
-# different list syntax that this plugin has not verified, so its state is reported
+# different list syntax that this Power has not verified, so its state is reported
 # as unknown rather than guessed at with a command that would merely fail.
 STATE_PROBE_RUNTIMES = ("docker", "podman")
 

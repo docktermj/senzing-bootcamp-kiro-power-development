@@ -189,8 +189,8 @@ obtained via the `get_sample_data` MCP tool in Module 4):
    - DATA_SOURCE and RECORD_ID are present or derivable.
 
    If ALL sampled records pass, classify as **structurally loadable**. If ANY sampled record
-   fails, classify as not structurally loadable. (The Kiro `check_cord_readiness.py` helper is a
-   later porting phase; perform the check directly against the sampled records for now.)
+   fails, classify as not structurally loadable. (No readiness helper is bundled; perform the
+   check directly against the sampled records.)
 
    ⛔ **This is the entry condition, not the fast-path condition.** Structurally loadable means the
    engine will accept the record; it does not mean every field in it has been decided about. Step 3
@@ -607,8 +607,7 @@ source, per-field completeness). Pin the offer verbatim:
 > 👉 **Would you like a visual of the quality assessment (coverage bars and per-field completeness)?**
 
 If the bootcamper accepts, generate a self-contained HTML page and save it to
-`docs/visualizations/` (INV-070). (The full Visualization Protocol / `visualization-guide` is a later
-porting phase; offer directly for now.)
+`docs/visualizations/` (INV-070). (No visualization guide is bundled; offer directly.)
 
 ⛔ **This page is a bootcamper-facing visual deliverable, so the four rules below bind it** — it is
 saved, kept, and shareable, exactly like the Truth Set app's snapshot. See
@@ -617,12 +616,12 @@ and `../module-03b-truthset-visualization/visualization-api-reference.md` → "R
 the third; both are the statements of record, so read them rather than reconstructing the rules here.
 
 1. **Brand tokens, not an ad hoc palette** (INV-081): take colors and typography from
-   `${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/brand_tokens.py` (skill-relative fallback
-   `../../../bootcamp-onboarding/scripts/brand_tokens.py`, INV-252), degrading gracefully if the module cannot be
+   `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/brand_tokens.py` (skill-relative fallback
+   `../bootcamp-onboarding/scripts/brand_tokens.py`, INV-252), degrading gracefully if the module cannot be
    imported.
 2. **Renders offline** (INV-081/INV-091): **no CDN, no web font, no remote script.** If you need a
-   charting library, inline the vendored `${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`
-   (skill-relative fallback `../../../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`, INV-252); plain
+   charting library, inline the vendored `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/vendor/d3.v7.min.js`
+   (skill-relative fallback `../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`, INV-252); plain
    HTML/CSS bars need no library at all and are the better default here. A `<script src="https://…">`
    makes the page render blank on an air-gapped workstation — which Senzing evaluations frequently
    are — with no error anywhere.
