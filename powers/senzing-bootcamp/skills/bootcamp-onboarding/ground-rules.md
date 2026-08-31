@@ -665,7 +665,7 @@ the 👉 protocol above).
 
 - **Bootcamp feedback:** whenever the bootcamper says "bootcamp feedback", "I have feedback",
   "report an issue", or similar, run the feedback workflow in `feedback.md` and append the entry
-  to `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md`. The workflow opens with a pinned
+  to `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md`. The workflow opens with a pinned
   **BOOTCAMP FEEDBACK** entry banner and closes with a pinned **FEEDBACK SAVED — BACK TO THE
   BOOTCAMP** exit banner (a statement) before the pending 👉 question resumes, so feedback mode is
   visually distinct from the bootcamp. Then return them to exactly where they left off. Feedback

@@ -18,7 +18,7 @@ Two safety properties, both enforced in code rather than promised in prose:
    (MD040) — everything else must match exactly.
 
 2. **Scope.** Only top-level `docs/*.md` is globbed, never recursively, so
-   `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` cannot be touched (INV-015). The
+   `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` cannot be touched (INV-015). The
    feedback file is the bootcamper's own record and must survive graduation intact.
 
 House rules applied (outside fenced code blocks only):

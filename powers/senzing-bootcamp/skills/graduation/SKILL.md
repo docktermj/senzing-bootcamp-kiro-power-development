@@ -318,7 +318,7 @@ entries first and skip any finding already recorded; add to an entry only if you
 it lacked.
 
 For each finding, append a `## Improvement:` entry to
-`docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` using the **exact template** in
+`docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` using the **exact template** in
 `../bootcamp-onboarding/feedback.md` Step 3 (append only — never rewrite the file), with:
 
 - **`Source:` `self-observed (assistant retrospective)`** — not `bootcamper-reported` (INV-116).
@@ -345,7 +345,7 @@ Constraints:
 - **Non-blocking.** A retrospective that fails, finds nothing, or cannot review the session must
   never hold up graduation. Report and continue.
 - **Not a gate.** Announce it in one line — "📝 Filed N self-observed notes to
-  `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md`." — and continue in the same turn. This is
+  `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md`." — and continue in the same turn. This is
   not a 👉 question, and the bootcamper is never asked to author or approve it.
 - **No feedback-flow banners.** The entry/exit banners in `../bootcamp-onboarding/feedback.md`
   mark the boundary of the *bootcamper-driven* feedback flow (INV-074). This is a graduation step,
@@ -540,7 +540,7 @@ none of these are covered by it:
 Step 1b render — make a single best-effort CommonMark pass over `docs/*.md`, including
 `docs/bootcamp_recap.md`. Scope it to top-level `docs/*.md` only: **never recurse into
 `docs/feedback/`, and never rewrite, empty, or delete the bootcamper's feedback file**
-(`docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` must survive graduation intact — INV-015).
+(`docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` must survive graduation intact — INV-015).
 During the bootcamp these files were written plain (see
 `../bootcamp-onboarding/ground-rules.md` → "Markdown files"); this is where they get prettified.
 **Run the bundled normalizer** rather than reformatting by hand — it enforces the house rules and,
@@ -1031,7 +1031,7 @@ Then present a one-line summary of what the bundle saved and where, and continue
 
 ## Step 7: Feedback reminder
 
-If `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` exists and contains at
+If `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` exists and contains at
 least one real feedback entry, remind the bootcamper it is there and offer to
 help them share it (see `../bootcamp-onboarding/feedback.md`). Do not send email
 or open issues automatically: wait for explicit confirmation. Otherwise, add one

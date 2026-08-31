@@ -17,7 +17,7 @@ Follow the bootcamp feedback workflow in
 [`bootcamp-onboarding/feedback.md`](../bootcamp-onboarding/feedback.md):
 capture context silently, gather the feedback one 👉 question at a time, triage whether the
 issue is in this Power or in the Senzing MCP server, and APPEND (never overwrite) a formatted
-entry to `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md`, creating that file with its
+entry to `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md`, creating that file with its
 header if it does not exist.
 
 Every entry is recorded locally whatever the triage says. When the issue is in the **MCP

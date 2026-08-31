@@ -133,7 +133,7 @@ if FEEDBACK.search(lower):
         "hooks/skills; and why expected did not match actual) -- never ask extra "
         "questions, and record \"Unknown\" when a source is missing. Then gather the "
         "feedback one leading question at a time. APPEND (never overwrite) a "
-        "formatted entry to docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md, "
+        "formatted entry to docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md, "
         "creating that file with its header if it does not exist; then verify the "
         "entry landed (re-read and re-append if missing) before telling the "
         "bootcamper it was saved (INV-067). Triage whether the issue is in this "

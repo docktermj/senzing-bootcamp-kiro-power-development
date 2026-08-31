@@ -2,7 +2,7 @@
 
 The bootcamper can submit feedback at any point in the bootcamp: onboarding, any
 module, or graduation. Feedback is saved locally to
-`docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` and is never sent anywhere
+`docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` and is never sent anywhere
 unless the bootcamper explicitly asks.
 
 This workflow is triggered by the Power's `UserPromptSubmit` hook ("to capture
@@ -35,7 +35,7 @@ source is missing:
 
 ## Step 1: Ensure the feedback file exists
 
-If `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` does not exist, create the
+If `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` does not exist, create the
 `docs/feedback/` directory and write this header once:
 
 ```markdown
@@ -110,7 +110,7 @@ upstream Senzing defect at all. `unclear` is wrong for it too: that verdict mean
 | `unclear` | The symptom is real but the component cannot be identified from the evidence | Wrong entity-resolution results with no way to tell whether the mapping, the SDK, or the guidance caused it |
 
 ⛔ **The verdict never changes whether the entry is recorded locally.** Every submitted entry is
-appended to `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` regardless of verdict (INV-015) —
+appended to `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` regardless of verdict (INV-015) —
 the file is the bootcamper's own durable record and the maintainer's triage input. The verdict
 decides only whether an **additional** upstream submission is *offered* (Step 3c).
 
@@ -169,7 +169,7 @@ friction from the assistant's own stumbles, because the two deserve different we
 
 ## Step 3b: Verify it landed (durability)
 
-Immediately re-read `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` and confirm
+Immediately re-read `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` and confirm
 the `## Improvement:` entry you just appended is present. If it is missing — a lost or
 partial write, or a session/compaction boundary — append it again and re-read to
 confirm. Only continue once the entry is confirmed on disk. This mirrors the recap's
@@ -248,7 +248,7 @@ never automatic.
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ```
 
-  Then, in one line: "Saved to `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md`. You can add more anytime by saying \"bootcamp feedback\"."
+  Then, in one line: "Saved to `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md`. You can add more anytime by saying \"bootcamp feedback\"."
 - Do NOT submit feedback anywhere external on your own initiative. The **only** sanctioned external path is Step 3c: an `mcp-server`/`both` verdict, the local entry already saved, the exact message shown, and the bootcamper answering yes to the pinned question. Everything else — `plugin`, `host` and `unclear` verdicts, and any other destination — stays local.
 - The exit banner and confirmation are statements, not questions. Immediately after them, return the bootcamper to exactly where they left off by **re-presenting the exact pending 👉 bootcamp question** they were on, verbatim (INV-006 ask-once), so that exactly one 👉 ends the turn (INV-251). Do not make them re-navigate, and do not merge the feedback questions with the resumed bootcamp question into one turn.
 

@@ -472,6 +472,32 @@ substitutionSets:
   # and the ported scripts' own docstrings, which is why every rule that can carry one
   # declares this set. Declared AFTER `plugin-root`, so the token is already
   # `${PLUGIN_ROOT}` by the time this runs.
+  # The bootcamper's feedback file is named per ARTIFACT, not per vocabulary (R12 AC2).
+  #
+  # `SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` is **reserved for the Senzing Bootcamp Claude
+  # plugin**; the Kiro Power's file is `SENZING_BOOTCAMP_POWER_FEEDBACK.md`. This is the one
+  # place where an identifier MUST be rewritten even though `power-vocabulary` protects
+  # every other `plugin`-bearing identifier from the general rename, and the reason is that
+  # the two names do not denote the same file. They denote the same *role* in two different
+  # artifacts, developed in two different repositories, and the filename is the only thing
+  # that says which artifact a given feedback file is about. Left unported, a Kiro
+  # Bootcamper's feedback lands under the Claude plugin's name, and the maintainer tooling
+  # that consumes it — `.kiro/skills/feedback-to-specs/`, which refuses the reserved name by
+  # design — never sees it.
+  #
+  # ONE ENTRY, on the STEM rather than on the full filename, so every spelling the corpus
+  # uses is covered by the same rule: the bare name, the
+  # `docs/feedback/…` path, and the prose form followed by `.md.` at the end of a sentence.
+  #
+  # It is declared BEFORE `power-vocabulary` on every rule that takes both, which is what
+  # lets `power-vocabulary` drop its identity entry for the old stem: once this has run
+  # there is no `SENZING_BOOTCAMP_PLUGIN_FEEDBACK` left for the general `plugin`/`Plugin`
+  # rename to reach, and the new stem carries neither word.
+  feedback-filename:
+    - find: "SENZING_BOOTCAMP_PLUGIN_FEEDBACK"
+      replace: "SENZING_BOOTCAMP_POWER_FEEDBACK"
+      literal: true
+
   script-paths-root:
     - find: "${PLUGIN_ROOT}/scripts/"
       replace: "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/"
@@ -1337,7 +1363,6 @@ substitutionSets:
     - { find: "plugin version", replace: "plugin version", literal: true }
     - { find: "plugin manifest", replace: "plugin manifest", literal: true }
     - { find: "Senzing Bootcamp Plugin Feedback", replace: "Senzing Bootcamp Plugin Feedback", literal: true }
-    - { find: "SENZING_BOOTCAMP_PLUGIN_FEEDBACK", replace: "SENZING_BOOTCAMP_PLUGIN_FEEDBACK", literal: true }
     - { find: "Template_Plugin", replace: "Template_Plugin", literal: true }
     - { find: "Plugin-owned", replace: "Plugin-owned", literal: true }
     - { find: "Plugin initialization error", replace: "Plugin initialization error", literal: true }
@@ -1465,6 +1490,7 @@ rules:
         manifest-path,
         client-names,
         model-guidance,
+        feedback-filename,
         script-paths-root,
         script-paths-owning,
         surface-naming,
@@ -1483,6 +1509,7 @@ rules:
         manifest-path,
         client-names,
         model-guidance,
+        feedback-filename,
         script-paths-root,
         script-paths-sibling,
         surface-naming,
@@ -1501,6 +1528,7 @@ rules:
         manifest-path,
         client-names,
         model-guidance,
+        feedback-filename,
         script-paths-root,
         script-paths-sibling,
         surface-naming,
@@ -1519,6 +1547,7 @@ rules:
         manifest-path,
         client-names,
         model-guidance,
+        feedback-filename,
         script-paths-root,
         script-paths-sibling,
         surface-naming,
@@ -1550,6 +1579,7 @@ rules:
         manifest-path,
         client-names,
         tool-names,
+        feedback-filename,
         script-paths-root,
         surface-naming,
         kiro-mechanisms,

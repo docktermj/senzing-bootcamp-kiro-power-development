@@ -15,7 +15,7 @@
       "ruleId": "kiro-hooks",
       "owner": "kiro",
       "sourcePath": null,
-      "sha256": "850bc4cfffc04d2022cc693f9f72bfc6bdc9ffb052f74132ca08b2f6a6d1eaa1"
+      "sha256": "74904d8c78930527ad95ccc006b2e85efeff917a1ef11a44e5257891cabbdd27"
     },
     {
       "path": "dev.kiro/hooks/senzing-bootcamp-checkpoint-tick.json",
@@ -57,7 +57,7 @@
       "ruleId": "kiro-hooks",
       "owner": "kiro",
       "sourcePath": null,
-      "sha256": "50df6cda5b64292b8158b767d9b74745028d062f7f4b634317209297a5e8eaf6"
+      "sha256": "89753d11ff281c5fbb7d12ffbca6bd36f304847fe619d2fd9b385e45beb0e58c"
     },
     {
       "path": "dev.kiro/hooks/tier1-instructions/senzing-bootcamp-tier1-recap-folding.md",
@@ -71,7 +71,7 @@
       "ruleId": "kiro-hooks",
       "owner": "kiro",
       "sourcePath": null,
-      "sha256": "ba0fa6dbbdadda90c1321ef2bf4d3297089be1c80e7cf3b8cbd44196f1fdca93"
+      "sha256": "5ad62b2abeac0f850c731a93bcc8e50ee02d14175a37ea8fc9eb65d299b49d29"
     },
     {
       "path": "docs/examples/bootcamp_recap.example.md",
@@ -225,7 +225,7 @@
       "ruleId": "command-skills",
       "owner": "kiro",
       "sourcePath": null,
-      "sha256": "b77fa62a80cfa71a5316432d49deaee5885f33e25c7790f874e9319683add96f"
+      "sha256": "0ed3de0763bb1ff196d517dd3fac7df8b43f34662d3568afae5a056012337443"
     },
     {
       "path": "skills/bootcamp-onboarding/SKILL.md",
@@ -239,7 +239,7 @@
       "ruleId": "kiro-hooks",
       "owner": "kiro",
       "sourcePath": null,
-      "sha256": "850bc4cfffc04d2022cc693f9f72bfc6bdc9ffb052f74132ca08b2f6a6d1eaa1"
+      "sha256": "74904d8c78930527ad95ccc006b2e85efeff917a1ef11a44e5257891cabbdd27"
     },
     {
       "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-checkpoint-tick.json",
@@ -281,7 +281,7 @@
       "ruleId": "kiro-hooks",
       "owner": "kiro",
       "sourcePath": null,
-      "sha256": "50df6cda5b64292b8158b767d9b74745028d062f7f4b634317209297a5e8eaf6"
+      "sha256": "89753d11ff281c5fbb7d12ffbca6bd36f304847fe619d2fd9b385e45beb0e58c"
     },
     {
       "path": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-recap-folding.md",
@@ -295,21 +295,21 @@
       "ruleId": "kiro-hooks",
       "owner": "kiro",
       "sourcePath": null,
-      "sha256": "ba0fa6dbbdadda90c1321ef2bf4d3297089be1c80e7cf3b8cbd44196f1fdca93"
+      "sha256": "5ad62b2abeac0f850c731a93bcc8e50ee02d14175a37ea8fc9eb65d299b49d29"
     },
     {
       "path": "skills/bootcamp-onboarding/feedback.md",
       "ruleId": "skill-onboarding",
       "owner": "template",
       "sourcePath": "plugins/senzing-bootcamp/skills/bootcamp-onboarding/feedback.md",
-      "sha256": "e3ebe2a8177414b363159c6b4047c120e3c0b40da518502f93ad2e9e94acb7c8"
+      "sha256": "7a842ea1dac4c1b17b3d3c428f8fef8106284a6ac86c98c075764f8650f7d525"
     },
     {
       "path": "skills/bootcamp-onboarding/ground-rules.md",
       "ruleId": "skill-onboarding",
       "owner": "template",
       "sourcePath": "plugins/senzing-bootcamp/skills/bootcamp-onboarding/ground-rules.md",
-      "sha256": "1cc3cb1f3e4eb1a0aa7ef26c3c62581060917897c60311e8f299bbf3726203a5"
+      "sha256": "f31ba64cbf2964b69d5da62f3e961dfee436b06bbad7de84e750663d1b4449eb"
     },
     {
       "path": "skills/bootcamp-onboarding/module-completion.md",
@@ -358,7 +358,7 @@
       "ruleId": "scripts-owned",
       "owner": "template",
       "sourcePath": "plugins/senzing-bootcamp/scripts/feedback-capture.py",
-      "sha256": "b993204d50894510be83ba03f474052b418bb63fabdd9865902772f2ad662bd2"
+      "sha256": "e69f68cea1b688905cd45cec4c6cbd4af98f483adb3715672f59b13874cc66ca"
     },
     {
       "path": "skills/bootcamp-onboarding/scripts/generate_discoveries_pdf.py",
@@ -386,7 +386,7 @@
       "ruleId": "scripts-owned",
       "owner": "template",
       "sourcePath": "plugins/senzing-bootcamp/scripts/normalize_docs_markdown.py",
-      "sha256": "270fe1b5e8ea3743ae2088cfac24f64565fe4ee8197af373eafd1b3135ef0b87"
+      "sha256": "67988f65a4386e650e6b4ef7ad5d041d6cf5d3dd2c293116987dec4308c9bc87"
     },
     {
       "path": "skills/bootcamp-onboarding/scripts/optional_runtime.py",
@@ -477,7 +477,7 @@
       "ruleId": "skill-graduation",
       "owner": "template",
       "sourcePath": "plugins/senzing-bootcamp/skills/graduation/SKILL.md",
-      "sha256": "bbf81efa65268b820e0b28c0b9649f8eb93f1438922b63d7968d3691c09f0b7b"
+      "sha256": "f5e932974e7dcfea0dca8babe55eca882d772f5b8fffae60f868837374a6a147"
     },
     {
       "path": "skills/module-00-entity-resolution-concepts/SKILL.md",
