@@ -75,10 +75,23 @@ context so you do not ask the bootcamper to repeat it):
 2. 👉 **What happened?**
 3. 👉 **Why does it matter to you?**
 4. 👉 **Do you have a suggested fix?**
-5. 👉 **What priority would you give this? Reply with a number:** (1) High, (2) Medium, (3) Low.
+5. 👉 **What priority would you give this? Reply with a number:**
 
-If the bootcamper gives everything in one message, do not re-ask: confirm what you
-captured and proceed.
+   1. **High**
+   2. **Medium**
+   3. **Low**
+
+⛔ **Ask only the questions their message has not already answered (INV-006).** Anything it supplies
+— in whole or in part — is **captured, not re-asked**: confirm what you captured in one line, then
+ask only the gaps, one 👉 per turn. If it answers everything, ask nothing and proceed.
+
+⚠️ **The partial message is the normal shape, not the exception.** A bootcamper who stops to report
+something usually writes one sentence naming the subject, what happened, and often a suggested fix
+— three of the five above — and leaves the rest. Read as an all-or-nothing shortcut, this step
+re-asks the three they just answered, which is the INV-006 violation the whole flow is most exposed
+to: they are already spending goodwill to report a defect. The sibling any-time control states the
+same rule for the same reason (`notes.md` Step 2 → *"If the triggering message already carries the
+note, take it from the message and do not ask."*).
 
 ## Step 2b: Triage — plugin issue, Senzing MCP server issue, or neither?
 
@@ -131,7 +144,7 @@ rewrite the file, so earlier entries are preserved.
 **Priority:** [High/Medium/Low]
 **Source:** bootcamper-reported
 **Routing:** [plugin | mcp-server | both | host | unclear] — [one-line reason, per Step 2b]
-**Upstream:** [not applicable | offered, declined | submitted YYYY-MM-DD | submission failed: reason]
+**Upstream:** [not applicable | offered, declined | submitted YYYY-MM-DD | submission failed: reason | submission blocked: reason]
 
 ### What happened
 
@@ -229,8 +242,17 @@ never automatic.
    bootcamper's only follow-up route.
 
 5. **Record the outcome** in the entry's `**Upstream:**` field: `submitted YYYY-MM-DD`,
-   `offered, declined`, or `submission failed: <reason>`. Update the entry in place for this field
-   only — do not rewrite the prose (append-only elsewhere).
+   `offered, declined`, `submission failed: <reason>`, or `submission blocked: <reason>`. Update
+   the entry in place for this field only — do not rewrite the prose (append-only elsewhere).
+
+   ⛔ **(INV-281) `submission blocked:` is for a *consented* send the runner was forbidden to make — it is
+   not a synonym for the other three.** Use it when the answer was **yes** and the send could not
+   happen because the session operates under a no-send rule (a maintainer `/dry-run`, which
+   forbids calling `submit_feedback` under any category). ⚠️ **Never record that as
+   `offered, declined`.** The bootcamper agreed; writing down that they refused is false, and it
+   is the one value that reads as *"this was considered and rejected"* to anyone deciding later
+   whether the finding is still owed upstream. `submission failed:` is also wrong — nothing
+   failed, and nothing will succeed on a retry.
 
 6. **A failed or unavailable submission never blocks anything.** If the tool errors or the MCP server
    is unreachable, say so in one line, record `submission failed: <reason>`, and continue to Step 4.

@@ -2,7 +2,7 @@
 name: "update-bootcamp-power"
 description: "Move the existing Senzing Bootcamp Kiro Power at powers/senzing-bootcamp/ to a newer Senzing bootcamp Claude plugin release, by re-running the shared transformation engine, reconciling the result against the Power so every Kiro-specific adaptation is preserved, and publishing only after validation passes. Use when the maintainer says 'update the senzing bootcamp power'."
 license: "Apache-2.0"
-compatibility: "Requires this repository — docktermj/senzing-bootcamp-kiro-powers-development — as the open workspace: every command below is a repo-relative path into tools/bootcamp-transform/, and the engine, the Transformation_Contract, the existing Power, and the target all live here. Requires a Power already present at powers/senzing-bootcamp/, with its .build-manifest.json, as the baseline the reconciliation compares against. Needs Python 3.10+ with the dev extra installed (pyyaml, jsonschema, jinja2). Uses `gh` when it is on PATH and the GitHub REST API otherwise; GITHUB_TOKEN or GH_TOKEN is optional. No Senzing MCP server."
+compatibility: "Requires this repository — docktermj/senzing-bootcamp-kiro-power-development — as the open workspace: every command below is a repo-relative path into tools/bootcamp-transform/, and the engine, the Transformation_Contract, the existing Power, and the target all live here. Requires a Power already present at powers/senzing-bootcamp/, with its .build-manifest.json, as the baseline the reconciliation compares against. Needs Python 3.10+ with the dev extra installed (pyyaml, jsonschema, jinja2). Uses `gh` when it is on PATH and the GitHub REST API otherwise; GITHUB_TOKEN or GH_TOKEN is optional. No Senzing MCP server."
 metadata:
   author: "Senzing"
   role: "Update_Skill"
@@ -117,6 +117,34 @@ Three outcomes, and they are not all errors:
 | `E_ALREADY_CURRENT` | **0** | the resolved maximum is not greater than the current version | the Power is current. Report it and stop |
 | `E_NO_RELEASE` | 1 | upstream has no published, non-draft, non-prerelease, semver-tagged release | report upstream's state; nothing to update from |
 | `E_RESOLVE_FAILED` | 1 | no result within 30 s across 3 attempts | report; retry, and check network or GitHub auth |
+
+### Stepping one release at a time, instead of jumping to the newest
+
+`--min-version` resolves the **maximum**, so when upstream has published more than once since
+the last update it skips whatever landed in between. Those Template_Releases can then never
+have a matching Bootcamp_Power, which is the version pairing this repository exists to keep.
+`--tag` resolves one named release instead, and is mutually exclusive with `--min-version`:
+
+```
+python3 tools/bootcamp-transform/resolve_release.py \
+  --tag 0.5.2 \
+  --out /tmp/senzing-bootcamp-build
+```
+
+Use it when step 2 reports a maximum more than one release above the Power's version: work the
+whole sequence below once per release, in ascending order, so each one gets its own changelog
+entry, its own validation report, and its own `Test_Checklist` record. Use it too when
+reproducing a past Power, where the release you want is by definition not the maximum.
+
+Everything else is unchanged, deliberately. The eligibility filter still applies, so a draft, a
+prerelease, or a non-semver tag is refused with `E_TAG_NOT_FOUND` naming the reason; the fetch
+is still `refs/tags/<tag>`; and a named build of a release is byte-identical to what that
+release produced when it *was* the maximum. `--tag` never reports `E_ALREADY_CURRENT` — naming a
+release is a decision already made, including the decision to rebuild one the Power carries.
+
+| JSON `error` | Exit | What it means | What to do |
+|---|---|---|---|
+| `E_TAG_NOT_FOUND` | 1 | the named tag is absent upstream, or present and ineligible | read the reason in the message; it lists the selectable tags, so a typo is obvious |
 
 `E_ALREADY_CURRENT` is informational, which is why it exits zero and carries no `extractedTo`:
 nothing was fetched, because nothing is going to be built. Report the resolved `tag` alongside
@@ -310,7 +338,45 @@ Three outcomes, and only the first continues:
   reference survived the transformation. Stop.
 
 Both non-passing outcomes block tagging *(R13 AC4)*. Report every finding with its code,
-document, and location, then discard staging:
+document, and location.
+
+**`E_INVENTORY_MISMATCH` naming a command is the failure a newer release most often brings, and
+it is the one that does not look like a contract problem.** Release 0.5.3 added two commands and
+failed here:
+
+```
+E_INVENTORY_MISMATCH: the resolved Template_Release declares the command 'bootcamp-note'
+  and no skill in the Power represents it
+```
+
+It surfaces *here*, at validation, rather than at the transform, and that is worth understanding
+before you go looking for the wrong thing. The contract's `commands-superseded` rule matches the
+whole command directory, so a command file the contract has never seen is matched and ignored
+like the others — `E_UNMATCHED_FILE`, the early warning for new upstream content, cannot fire for
+one. The bijection in `skill-inventory` is what catches it *(R9 AC1)*.
+
+The fix is to author the missing skill, and it is not a contract-only change:
+
+1. Read the template's command document in the extracted release tree —
+   `<extractedTo>/plugins/senzing-bootcamp/commands/<command>.md`. It is a thin wrapper naming a
+   workflow document inside a ported skill, and that document is what the ported skill carries.
+2. Author `tools/bootcamp-transform/templates/kiro-owned/skills/<skill-name>/SKILL.md`, modelled
+   on the ones already there. It must declare `metadata.templateCommand: <command>` — that
+   declaration, not the directory name, is what the bijection reads, which is why the template
+   command `graduate` can be represented by the skill `graduate-bootcamp`. Give it exactly one
+   trigger phrase in its `description`, in the `Use when the bootcamper says '…'` form, and check
+   that no other skill's phrase is a substring of it or it of theirs *(R9 AC2, AC3)*.
+3. Add its `dest` to the contract's `command-skills` rule.
+4. Add a row to `docs/test-checklist.md` step 6's activation table, and update step 2's skill
+   count to match — the rows **are** the inventory, and a test asserts the count in step 2 equals
+   the number of rows.
+5. Re-run from step 4 of this sequence.
+
+The reverse case is the same shape: when upstream **removes** a command, the finding is
+`declares-absent-template-command`, and the fix is to remove that `dest`, the authored skill, and
+its checklist row. The list only ever describes the release being built.
+
+Then discard staging:
 
 ```
 python3 -c "
@@ -387,6 +453,29 @@ every step — including the nine per-platform cells for steps 2, 10, and 15 acr
 and Windows — and commit that record. An unrecorded platform is a fail, not a blank. The
 recorded file, together with the passing validation report from step 7 for that exact version,
 is the tagging gate *(R6)*. A previous version's record does not carry over.
+
+## What a newer release may ask you to author
+
+Most of an update is mechanical, and the engine does it. A short list is not, because it needs a
+judgment the contract cannot hold — so it is written down here rather than met one failing gate
+at a time. Each entry names the gate that reports it, so a failure points at its own fix.
+
+| What arrived upstream | Reported by | What you author |
+|---|---|---|
+| A file no rule matches — a new script, doc, or asset | `E_UNMATCHED_FILE` at the transform *(R3 AC6)* | a rule, or an `ignore` entry with its reason, in the contract. Never route it by hand |
+| A new **command** | `E_INVENTORY_MISMATCH` (`template-command-unrepresented`) at validation | a `kiro-owned` skill, a `command-skills` `dest`, and a checklist activation row — see step 7 |
+| A removed command | `E_INVENTORY_MISMATCH` (`declares-absent-template-command`) | remove the `dest`, the authored skill, and the checklist row |
+| A new or renamed **skill directory** | `E_INVENTORY_MISMATCH` (`template-skill-unported`) plus `E_PROGRESSION_MISMATCH` if no phase claims it | usually nothing — `skills-modules` globs module directories and the `modules` progression phase claims them. A skill outside those shapes needs a rule and possibly a new progression phase |
+| A skill whose `description` states no trigger phrase | `E_FRONTMATTER_INVALID` | an entry in the contract's `skillTriggers`, which appends one sentence to that skill's description |
+| A ported document that moved or was renamed | `E_UNRESOLVED_REFERENCE` | nothing in the contract: the link lives in ported prose, so raise it upstream. A `kiro-owned` skill of ours pointing at it is ours to fix |
+| Text of an invariant recorded in the discount register | `flaggedInvariantDiscounts` in the reconciliation report *(R15 AC10)* | a re-read of that discount, and either a revised entry or its removal |
+| A local edit meeting an upstream change | `conflicts` in the reconciliation report *(R5 AC6)* | a decision: promote the adaptation into the contract as a rule, a substitution set, or a `kiro-owned` file, and the conflict stops recurring |
+
+Two rules cover the whole table. **The fix belongs at the single point of change** — the
+contract, the authored `kiro-owned` tree, or `install_hooks.py` — and **never in
+`powers/senzing-bootcamp/`**, which is generated output that the next run overwrites. And a gate
+that fails is telling you what a Bootcamper would otherwise have hit; the answer is never to
+loosen the gate.
 
 ## Scope
 

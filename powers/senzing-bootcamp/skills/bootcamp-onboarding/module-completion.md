@@ -103,12 +103,31 @@ bootcamper's point of view:
 Rules for the four subsections (all four must be present for every module: the
 graduation PDF renders exactly these four labeled sections per module):
 
+- ⛔ **All four are `###` headings, and the heading level is load-bearing.** Write
+  `### Information Shared`, not `**Information Shared**`. The generator recognizes a subsection by
+  its H3 heading, so a bold label produces a `## {Name}` section carrying **no recognized
+  sub-section at all** — and the whole module's content is dropped from the keepsake. ⚠️ **This is
+  the drift a visual read cannot catch:** bold labels and H3 headings look near-identical in every
+  Markdown viewer, so the recap reads correctly at every point during the bootcamp and fails only
+  when the PDF is rendered. One run wrote bold labels at its first module and reproduced them
+  faithfully for all nine, discovering it at graduation as *"0 of 9 '##' sections carry any
+  recognized sub-section"* — a structural rewrite of the entire keepsake, in the turn that was
+  supposed to render it. Step 2c now checks this at every module so the cost cannot compound.
 - **Information Shared** and **Actions Taken** carry real content from this module, never placeholders.
 - **Questions & Responses:** each substantive 👉 question you asked this module, paired with the bootcamper's actual answer, in ask order. If a module asked no substantive questions, write `- {none this module}`.
 - **End-of-Module Summary:** the same What you accomplished / Files produced / Why it matters shown in the bootcamper-facing epilog (Step 3), persisted here as the permanent keepsake record (this subsection replaced the former Journal — INV-103); the **Bootcamper's takeaway** line is optional — include it only when the bootcamper gave a genuine takeaway, otherwise omit the line entirely (never write "N/A").
   - ⛔ **Write all three as labeled blocks — `**What you accomplished:**`, `**Files produced:**`, `**Why it matters:**` — never as one prose paragraph.** The three labels are what the recap PDF renders and what `--check` validates (INV-103); a summary written as flowing prose satisfies the *heading* and loses all three blocks. The renderer now prints any absent block as "(not recorded)" in the keepsake rather than letting it disappear, so an unlabeled summary is visible on the page — but a bootcamper's PDF should never carry that marker. Blocks with no content still get their label: "(no files — conceptual primer)" under **Files produced** is a real answer; silence is not.
   - ⛔ **The shape of each block is required too, not just its label.** (INV-176) `**What you accomplished:**` and `**Files produced:**` are **lists** — label on its own line, then one bullet per accomplishment, and one bullet per file with a short "— what it is" gloss, exactly as the template above shows. `**Why it matters:**` is **prose** and stays inline after its label. The PDF renders bullets as bullets and inline text as one wrapped paragraph, so a list written inline — most often as a comma-joined run of paths — arrives in the keepsake as a paragraph, and nothing downstream can turn it back into a list: `--check` validates the label, not the shape. Write the shape you want the bootcamper to keep.
-- **Visualization screenshots:** when this module produced a visualization, capture is best-effort (see "Capturing visualization screenshots" below) — but **when a capture succeeds, embedding every screenshot it produced is required**, not optional, and no count cap applies (INV-146): add them all to this module's **Actions Taken** as Markdown images — `![caption](visualizations/<name>-<tab-slug>.png)` — in the same turn the capture ran, in the app's tab order. ⛔ **Each image goes on a line of its own, with nothing before it — not as a `- ` bullet, even though Actions Taken is otherwise a bulleted list.** (INV-242) Write it like this, directly beneath the bullets:
+- **Visualization screenshots:** when this module produced a visualization, capture is best-effort (see "Capturing visualization screenshots" below) — but **when a capture succeeds, embedding every screenshot it produced is required**, not optional, and no count cap applies (INV-146): add them all to this module's **Actions Taken** as Markdown images — `![caption](visualizations/<name>-<tab-slug>.png)` — in the app's tab order. ⛔ **Each image goes on a line of its own, with nothing before it — not as a `- ` bullet, even though Actions Taken is otherwise a bulleted list.** (INV-242) Write it like this, directly beneath the bullets:
+
+  ⛔ **(INV-146) Two moments, not one: record the capture at the step checkpoint in the same turn it ran** —
+  the file paths and the tab each one shows — **and embed every one of them when this module's
+  Actions Taken is written, at module close.** Both capturing modules put deliberate 👉 gates
+  between those points (the guided tour, then the irreversible-teardown consent), so at capture
+  time this module's recap section does not exist yet and there is no Actions Taken to write into.
+  **The checkpoint is what carries the capture across those turn boundaries**; a capture recorded
+  nowhere is one graduation has to backfill, which is exactly what happened before this rule
+  existed.
 
   ```markdown
   ### Actions Taken
@@ -154,6 +173,33 @@ cheapest place to catch it:
 the module's own work is still in context, whereas graduation has to reconstruct it from artifacts
 weeks of session-time later. Never invent a file that was not produced; write
 "(no files — {reason})" when there genuinely were none.
+
+**Then run the structural check — every module, after the append:**
+
+```bash
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_pdf.py" --check
+# or, if PLUGIN_ROOT is unset: python3 <this-skill-dir>/scripts/generate_recap_pdf.py --check
+```
+
+It reads `docs/bootcamp_recap.md` and writes no PDF. This is the same validator graduation runs,
+moved to where a finding still costs one correction instead of eleven.
+
+- **On a finding:** rewrite the just-appended section to the Step 2b template's shape — H3
+  subsection headings, the three labeled summary blocks — and re-run until it is clean. The
+  module's own work is still in context, which is the whole reason this runs here.
+- ⛔ **Non-blocking and Bootcamper-invisible (INV-012/INV-048).** A finding is a correction you make
+  to the recap you just wrote, not a gate and not output. The Bootcamper sees the same
+  `Recap updated: {Name}.` line either way, and the module completes whether or not the check can
+  run. If the script is missing or fails to execute, continue silently.
+- ⚠️ **Findings about *other* modules' sections are not this step's business** — fix only the
+  section just appended, and leave the rest for graduation, which reconciles the whole file.
+
+⚠️ **The general shape, worth recognizing again.** A validator whose only invocation is at the end
+of an eleven-module run cannot bound the cost of anything it detects: every finding is already N
+repetitions old when it fires. The three labeled summary blocks were pulled forward into this step
+for exactly this reason, and the enclosing heading — the thing that actually broke — was left
+behind because it had not been the failure observed at the time. When a graduation-time check next
+proves useful, consider moving it here rather than adding it there.
 
 Only then display the one-line confirmation: `Recap updated: {Name}.`
 
@@ -229,20 +275,36 @@ a short `{name}`):
    headless backends (Playwright, Selenium, headless Chrome/Chromium, `wkhtmltoimage`) and never
    fetches a remote URL (offline — INV-091). Pass only tabs the app actually shows for this data —
    the helper reports any tab that produced no image on stderr rather than dropping it silently.
-2. **If it exits non-zero** (exit 2 = nothing was captured): skip screenshots, keep the
-   visualization's HTML link in the recap, and continue. Honor verbosity (say nothing at the
-   `minimal` preset). **Read which of the three reasons it gave** — they are not interchangeable and
-   only one is about a missing install: no requested tab exists in this app; **no browser was found**
-   (the message names every location searched); or **a browser was found but every capture failed**
-   (the message names it). In the last two cases do **not** install a browser or suggest installing
-   one — capture is dependency-optional by contract (INV-122), and a Windows machine that carried
-   both Edge and Chrome was once told no capability was available, which sent the reader to install
-   software they already had.
+2. ⛔ **(INV-122) Two non-zero exits, and they need OPPOSITE responses — read the code, not just
+   "it failed".** Exit **1** is a caller error and exit **2** is a capability or content limit.
+   Treating 1 as 2 skips screenshots on a run where every tab was capturable.
+
+   - **exit 1 — an unrecognized tab id.** The `--tabs` value above names an id outside the
+     helper's own vocabulary, so it rejected the request **before capturing anything** and the
+     message names every valid id. Nothing is wrong with the machine and nothing was
+     uncapturable: **correct the tab list and run it again.** Do **not** take the skip path — that
+     would drop **every** screenshot from the recap while all of them were available, which is the
+     loss INV-146 exists to prevent, reached through a typo instead of a cap.
+   - **exit 2 — nothing was captured**: skip screenshots, keep the visualization's HTML link in
+     the recap, and continue. Honor verbosity (say nothing at the `minimal` preset). **Read which
+     of the three reasons it gave** — they are not interchangeable and only one is about a missing
+     install: no requested tab exists in this app; **no browser was found** (the message names
+     every location searched); or **a browser was found but every capture failed** (the message
+     names it). In the last two cases do **not** install a browser or suggest installing one —
+     capture is dependency-optional by contract (INV-122), and a Windows machine that carried both
+     Edge and Chrome was once told no capability was available, which sent the reader to install
+     software they already had.
+
+   ⚠️ **Why exit 1 is reachable from here and not from the other two capture sites.** Module 3b and
+   Module 7 pass `--tabs all`, a keyword the helper resolves itself; this step names the six ids
+   literally, so this is the one call that can disagree with the helper's vocabulary — after a tab
+   rename, a retired id, or an edit to the list above.
 3. **If it succeeds** it prints one `<png path>⇥<tab label>` line per capture, and each file is
    named `{name}-<tab-slug>.png`. ⚠️ **Open the Entity Graph image and check the nodes are spread,
    not bunched in one corner.** A graph tab whose force simulation was restarted or captured too
-   early produces a valid PNG of an empty-looking graph at exit 0 — the helper gives animated tabs a
-   longer settle budget and the app's `activate()` no longer redraws an already-active tab, but this
+   early produces a valid PNG of an empty-looking graph at exit 0 — the helper requests a **capture-oriented
+   render** that settles the layout synchronously and fits it, rather than trusting a time budget
+   (INV-298/INV-299), and the app's `activate()` no longer redraws an already-active tab, but this
    is the one image where "it rendered" and "it is right" come apart, and INV-123 requires the
    caption to come from the opened image anyway. A graph PNG far smaller than its siblings is the
    tell. **Keep every captured tab** — and, **as a required step, in the
@@ -259,13 +321,13 @@ a short `{name}`):
    unique content. Delete only a true duplicate: two images of the *same* tab, which per-tab capture
    should not produce. Judging which shots are worth keeping is what previously dropped Merge
    Statistics, Match Keys and Feature Scores from a six-tab app — the three *analytical* tabs, since
-   any such judgement pulls toward the most visually striking. The recap then showed the same three
+   any such judgment pulls toward the most visually striking. The recap then showed the same three
    tabs in both visualization sections and the app looked narrower than it was.
 
    ⛔ **Embed in the app's tab order, never in capture or append order.** The order is the row order
    of the tab table in
    `../module-03b-truthset-visualization/visualization-api-reference.md` → "Tab identifiers and
-   deep-linking" — read it there rather than restating the list, so a tab change updates one file.
+   deep-linking" — read it there rather than restating the list (INV-300), so a tab change updates one file.
    A tab that produced no image is simply skipped; the rest keep their relative order. The recap is
    a walkthrough of the app, so a reader must be able to line the images up against the interface
    left to right.
@@ -339,6 +401,21 @@ next module: {next module name}?" (fill {next module name} with the next module 
 summary content above into multiple questions: the summary is statements, the transition is the one
 👉 question.
 
+⛔ **(INV-272) On an affirmative reply, acknowledge it in one short visible line naming the module being
+started — then invoke that module's skill.** This is the ground rules' acknowledge clause at the one
+place where "before proceeding" spans a multi-call, zero-output interval: the next module's step list
+does not exist until its skill is invoked and its phase files are read, so an acknowledgment composed
+alongside the start banner arrives *after* all of it. One line, and it must not duplicate the banner,
+the journey map, the before/after framing or the step overview — those are the next step, and this is
+only the receipt for the answer. It carries no 👉 and ends nothing.
+
+**Why this is a gate concern and not a style one (INV-012, INV-006).** From the bootcamper's point
+of view an unacknowledged interval is indistinguishable from an answer that never registered
+(INV-012 — output is relative to *their* point of view), and the cost lands on the one rule that
+cannot absorb it: on 2026-08-25 a bootcamper answered this question, saw nothing across a skill
+invocation and two file reads, interrupted, and answered again — so the question was effectively
+asked twice, which INV-006 forbids, without the guide ever re-asking it.
+
 ## Reaching graduation (after the last content module)
 
 When the module just completed is the **last content module before Bootcamp graduation in
@@ -348,7 +425,11 @@ transition, offer graduation (the mandatory terminal module):
 
 👉 **Would you like to graduate now and generate your production project and recap?**
 
-On an affirmative reply, invoke the `graduation` skill. If the bootcamper wants to
+On an affirmative reply, **(INV-272) acknowledge it in one short visible line naming graduation before
+invoking the `graduation` skill** — the same ordering as a module transition and for the same reason:
+the invocation and its file reads emit nothing the bootcamper can see, and this is the last gate of
+the bootcamp, so an answer that appears to change nothing is the worst possible note to end on. Then
+invoke the `graduation` skill. If the bootcamper wants to
 keep exploring first, stay available and offer graduation again whenever they are
 ready. Bootcamp graduation is the required close-out module; its production project and
 migration checklist deliver the production-hardening guidance (performance,

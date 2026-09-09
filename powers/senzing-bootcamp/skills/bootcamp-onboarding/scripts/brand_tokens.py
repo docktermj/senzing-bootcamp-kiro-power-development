@@ -19,7 +19,7 @@ Style-guide key rules encoded here:
   tone), never a flat unrelated orange/red.
 - Signal green is reserved for live/resolved states — never decorative. It is NOT
   used for categorical data-source node colors.
-- Light sections are warm off-white, never cold grey.
+- Light sections are warm off-white, never cold gray.
 - Body text is softer than headline ink; headlines are strongest.
 """
 import warnings
@@ -41,7 +41,7 @@ SIGNAL_GREEN = "#1D9E75"
 
 # --- Light palette (body sections) ----------------------------------------- #
 WHITE = "#FFFFFF"            # light section background
-WARM_OFF_WHITE = "#FAF8F3"   # warm off-white (never cold grey)
+WARM_OFF_WHITE = "#FAF8F3"   # warm off-white (never cold gray)
 DARK_INK = "#18160F"         # headlines on light
 BODY_INK = "#4A4640"         # body text on light (softer than headline ink)
 WARM_LINE = "#E5DFD3"        # derived: warm border/divider on light sections
@@ -96,7 +96,7 @@ SOURCE_STROKE_WIDTHS = [1.5, 3.0]
 #: for a model small enough not to need it.
 SOURCE_FILL_SHADES = [0.0, 0.30, -0.30, 0.55, -0.55]
 
-#: Distinct rendered stroke states per fill: bare, plus every (stroke colour, width) pair.
+#: Distinct rendered stroke states per fill: bare, plus every (stroke color, width) pair.
 SOURCE_STROKE_STATES = 1 + len(SOURCE_STROKES) * len(SOURCE_STROKE_WIDTHS)
 #: How many sources can be encoded distinctly. Stated so it can be asserted and reported
 #: rather than discovered as a collision.
@@ -130,7 +130,7 @@ def color_for_sources(sources):
     reserved for live/resolved states and is explicitly not a categorical color.
 
     Past the first cycle the encoding widens along three further channels, in order:
-    stroke colour, stroke width, then a lightness perturbation of the fill itself. That
+    stroke color, stroke width, then a lightness perturbation of the fill itself. That
     gives `SOURCE_ENCODING_CAPACITY` distinct **rendered** appearances — the key the
     browser actually draws being ``(fill, stroke when a width is set, width)``. Up to 24
     sources the rendered result is identical to the pre-widening behavior, which was
@@ -177,7 +177,7 @@ def color_for_sources(sources):
             nth += 1
         slot = cycle % SOURCE_STROKE_STATES
         if slot == 0:
-            # No stroke drawn. The colour is still reported, so the returned shape is
+            # No stroke drawn. The color is still reported, so the returned shape is
             # unchanged for the common case, but `stroke_width` is None and that is what
             # decides whether anything appears.
             stroke, width = SOURCE_STROKES[0], None

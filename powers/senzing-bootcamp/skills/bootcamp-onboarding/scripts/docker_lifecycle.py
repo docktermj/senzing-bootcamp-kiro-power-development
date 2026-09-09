@@ -28,9 +28,8 @@ present: when the CLI is absent, missing, or erroring, every function
 warns-and-continues and never blocks the hook. Pure Python 3 stdlib, no third-party
 dependency (INV-052/INV-001/INV-002).
 
-This is NOT a hook itself. It is imported by ``session-start.py`` (the ``SessionStart``
-hook) and by ``session-end.py`` (inert in Kiro, but runnable by hand at close-out).
-Those run in exec form (``python3 <hook>.py``); Python puts each script's own directory
+This is NOT a hook itself. It is imported by the SessionEnd and SessionStart hook
+scripts, which run as ``python3 "<hook>.py"``; Python puts each script's own directory
 (this ``scripts/`` directory) on ``sys.path``, so ``import docker_lifecycle`` resolves
 here on Linux, macOS, and Windows alike.
 """

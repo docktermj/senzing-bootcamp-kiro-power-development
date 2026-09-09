@@ -58,7 +58,7 @@ jobs:
     timeout-minutes: 10
     # Scheduled workflows stay enabled in forks; only the source repository
     # should be filing issues about upstream releases.
-    if: github.repository == 'docktermj/senzing-bootcamp-kiro-powers-development'
+    if: github.repository == 'docktermj/senzing-bootcamp-kiro-power-development'
 
     steps:
       - name: Check out the repository

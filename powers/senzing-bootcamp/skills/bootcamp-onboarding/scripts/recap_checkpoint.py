@@ -24,7 +24,7 @@ a status line on stdout would corrupt the payload.
 This is NOT a hook itself. In Kiro it is imported by the ``SessionStart`` and
 ``UserPromptSubmit`` hook scripts (``session-start.py``, ``checkpoint-tick.py``), and by
 the two scripts that are inert here because Kiro has no trigger for them
-(``precompact-recap.py``, ``session-end.py``). Hooks run in exec form (``python3 <hook>.py``);
+(``precompact-recap.py``, ``session-end.py``). Hooks run as ``python3 "<hook>.py"``;
 Python puts each hook script's own directory (this ``scripts/`` directory) on
 ``sys.path``, so ``import recap_checkpoint`` resolves here on Linux, macOS, and
 Windows alike.
@@ -98,12 +98,37 @@ def current_module():
     return value if isinstance(value, str) and value.strip() else None
 
 
+#: Returned by ``_read`` for a file that EXISTS but is not decodable as UTF-8.
+#:
+#: ⛔ This sentinel exists so callers cannot confuse "absent" with "unreadable", and
+#: widening ``_read``'s ``except`` to fold the two back together is a data-loss bug, not
+#: a simplification. ``fold()`` reads the recap and then rewrites it in ``"w"`` mode; if an
+#: undecodable recap came back as ``None`` it would be treated as empty and **overwritten
+#: with the current checkpoint block alone**, silently destroying every completed module's
+#: narrative — and reporting a successful fold while doing it. Measured before this guard
+#: existed: a 279-byte recap holding two completed sections became 98 bytes holding none.
+#: Absent means "safe to create"; UNREADABLE means "never write here".
+UNREADABLE = object()
+
+
 def _read(path):
+    """File text, ``None`` if it does not exist, ``UNREADABLE`` if it cannot be decoded.
+
+    Never raises. ``UnicodeDecodeError`` derives from ``ValueError``, not ``OSError``, so
+    it escaped the original handler and crashed every hook that folds the recap — the
+    PreCompact durability hook among them, which fails precisely when the recap is about
+    to be needed. ``current_module()`` above already catches ``(OSError, ValueError)`` for
+    this reason (INV-048); this function is the other half of that rule.
+    """
     try:
         with open(path, encoding="utf-8") as fh:
             return fh.read()
+    except FileNotFoundError:
+        return None
     except OSError:
         return None
+    except UnicodeDecodeError:
+        return UNREADABLE
 
 
 def _strip_block(text):
@@ -161,6 +186,8 @@ def checkpoint_state():
     text = _read(CHECKPOINT)
     if text is None:
         return "missing"
+    if text is UNREADABLE:
+        return "unreadable"
     body = _GUIDANCE.sub("", text)
     for marker in (SCAFFOLD, START, END):
         body = body.replace(marker, "")
@@ -214,6 +241,11 @@ def fold_checkpoint():
         _report("nothing to fold: %s holds only the empty scaffold, so no "
                 "in-progress narrative was written this module" % CHECKPOINT)
         return False
+    if state == "unreadable":
+        _report("REFUSING to fold: %s is not valid UTF-8, so its narrative cannot be "
+                "read. Both files are left untouched; re-save it as UTF-8 (an editor "
+                "that writes cp1252/ANSI is the usual cause)." % CHECKPOINT)
+        return False
 
     checkpoint = _GUIDANCE.sub("", _read(CHECKPOINT) or "").replace(SCAFFOLD, "")
     block = checkpoint.strip()
@@ -223,8 +255,19 @@ def fold_checkpoint():
     if END not in block:
         block = block + "\n" + END
 
-    recap = _read(RECAP) or ""
-    recap = _strip_block(recap)
+    recap = _read(RECAP)
+    # ⛔ An undecodable recap must NEVER reach the "w" open below: treating it as empty
+    # rewrites the file with this module's block alone and destroys every completed
+    # section. Absent (None) is the safe case — there is nothing to lose and the fold
+    # creates it.
+    if recap is UNREADABLE:
+        _report("REFUSING to fold: %s exists but is not valid UTF-8, so its completed "
+                "sections cannot be read and rewriting it would destroy them. Both files "
+                "are left untouched and the narrative is still in %s; re-save the recap as "
+                "UTF-8 (an editor that writes cp1252/ANSI is the usual cause)."
+                % (RECAP, CHECKPOINT))
+        return False
+    recap = _strip_block(recap or "")
 
     if recap.strip():
         merged = recap.rstrip() + "\n\n" + block + "\n"

@@ -25,7 +25,9 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
+import subprocess
 import sys
+import tomllib
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterator, Sequence
@@ -1858,10 +1860,11 @@ def _fixed_ported_skill_names() -> list[str]:
 def _kiro_owned_skill_names() -> list[str]:
     """The skill directories the contract creates with no template source.
 
-    The three command-derived skills *(R9 AC1)* and the client-adaptation skill
-    that realizes the `Hook_Installer` *(R7 AC6)*: the four skills the
-    Bootcamp_Power carries beyond the ported inventory. Derived from the
-    contract's `kiro-owned` dests, which is where they are declared.
+    The command-derived skills *(R9 AC1)* and the client-adaptation skill that
+    realizes the `Hook_Installer` *(R7 AC6)*: the skills the Bootcamp_Power carries
+    beyond the ported inventory. Derived from the contract's `kiro-owned` dests,
+    which is where they are declared — so a release that adds a command extends
+    this set through the contract rather than through an edit here.
     """
     names: set[str] = set()
     for rule in _contract_rules():
@@ -2116,7 +2119,7 @@ def test_the_successful_tool_call_step_follows_the_connectivity_step():
 
 
 def test_the_activation_step_carries_one_row_per_skill_in_the_inventory():
-    """The activation table is the 16-skill inventory, row for row (R6 AC5, R9 AC4).
+    """The activation table is the whole skill inventory, row for row (R6 AC5, R9 AC4).
 
     R6 AC5 is per-skill: a skill in the built Power with no row is a trigger
     phrase nobody stated, and the step would pass while that skill was never
@@ -3629,4 +3632,191 @@ def test_the_contract_flag_alone_decides_where_hook_scripts_resolve(
     survivors = sorted(path.name for path in hooks_directory.iterdir())
     assert survivors == [foreign.name], (
         f"removal must leave only files this Power never wrote; found {survivors}"
+    )
+
+
+# ===========================================================================
+# This repository's own identity — the watch guard, and the five places
+# that name it
+# ===========================================================================
+#
+# THE WATCH WORKFLOW HAD NEVER RUN. Its job-level guard read
+# `github.repository == 'docktermj/senzing-bootcamp-kiro-powers-development'` —
+# *powers*, plural — while the repository is `senzing-bootcamp-kiro-power-development`,
+# singular. The condition was therefore false on every scheduled run, silently and
+# successfully, and two upstream Template_Releases came and went without an issue
+# being filed. A guard exists to stop forks from filing issues about upstream; one
+# naming a repository that does not exist stops everything.
+#
+# Nothing caught it, and the reason is worth stating because it shapes what this
+# section asserts. All six declaring locations agreed *with each other* — the
+# plural was copied consistently — so an internal-consistency check would have
+# passed. What was missing was an anchor to reality. So there are two assertions
+# here, and the second is the one that matters:
+#
+#   1. every place that names this repository names the same one;
+#   2. that name is the repository this checkout actually is, read from git.
+#
+# The second degrades to a skip rather than a failure when git metadata is
+# unavailable — a source tarball, an export, a vendored copy — because in that
+# situation the test genuinely cannot know the answer, and a test that fails when
+# it cannot know teaches people to ignore it. Wherever git *is* present, which is
+# every developer checkout and every CI run, the anchor holds.
+
+#: The workflow's job-level fork guard, and the slug inside it.
+_REPOSITORY_GUARD = re.compile(
+    r"github\.repository\s*==\s*'(?P<slug>[^']+)'"
+)
+
+#: A GitHub repository URL, as `homepage` and `repository` spell it.
+_REPOSITORY_URL = re.compile(
+    r"https://github\.com/(?P<slug>[\w.-]+/[\w.-]+?)(?:\.git)?/?$"
+)
+
+#: An `owner/name` slug appearing in prose, as the skills' `compatibility` field
+#: spells it. Anchored on this repository's owner so the pattern cannot pick up
+#: the *template* repository, which the same documents also name.
+_THIS_OWNER = "docktermj"
+_PROSE_SLUG = re.compile(rf"\b{_THIS_OWNER}/[\w.-]+")
+
+
+def _git_repository_slug() -> str | None:
+    """This checkout's `owner/name` per git, or `None` when git cannot say.
+
+    `origin` covers both shapes a remote takes — `git@github.com:owner/name.git`
+    and `https://github.com/owner/name` — because the SSH form is what a developer
+    clones and the HTTPS form is what `actions/checkout` configures.
+    """
+    try:
+        completed = subprocess.run(  # noqa: S603 - fixed argv, no shell
+            ["git", "-C", str(REPO_ROOT), "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if completed.returncode != 0:
+        return None
+    url = completed.stdout.strip()
+    if not url:
+        return None
+    if url.startswith("git@"):
+        _, _, path = url.partition(":")
+    else:
+        match = _REPOSITORY_URL.match(url)
+        path = match.group("slug") if match else ""
+    slug = path.removesuffix(".git").strip("/")
+    return slug or None
+
+
+def _declared_repository_slugs() -> dict[str, str]:
+    """Every place this repository names itself, keyed by where it says it."""
+    declared: dict[str, str] = {}
+
+    guard = _REPOSITORY_GUARD.search(_watch_workflow_text())
+    assert guard is not None, (
+        f"{WATCH_WORKFLOW_PATH} declares no `github.repository ==` guard, so a "
+        "fork would file issues about upstream releases in its own tracker"
+    )
+    declared[f"{WATCH_WORKFLOW_PATH} job guard"] = guard.group("slug")
+
+    manifest = _maintainer_plugin_manifest()
+    for field in ("homepage", "repository"):
+        value = str(manifest.get(field) or "")
+        match = _REPOSITORY_URL.match(value)
+        assert match is not None, (
+            f"{MAINTAINER_PLUGIN_PATH} {field} is not a GitHub repository URL: "
+            f"{value!r}"
+        )
+        declared[f"{MAINTAINER_PLUGIN_PATH} {field}"] = match.group("slug")
+
+    namespace = (manifest.get("extensions") or {}).get(EXTENSION_NAMESPACE) or {}
+    workspace = str(namespace.get("requiresWorkspace") or "")
+    assert workspace, (
+        f"{MAINTAINER_PLUGIN_PATH} must record the workspace its skills require "
+        f'under extensions["{EXTENSION_NAMESPACE}"].requiresWorkspace'
+    )
+    declared[f"{MAINTAINER_PLUGIN_PATH} requiresWorkspace"] = workspace
+
+    for skill in sorted(MAINTAINER_TRIGGER_PHRASES):
+        path = f"{MAINTAINER_SKILLS_DIR}/{skill}/{SKILL_ENTRY_POINT}"
+        compatibility = str(
+            _maintainer_skill_frontmatter(skill).get("compatibility") or ""
+        )
+        found = _PROSE_SLUG.search(compatibility)
+        assert found is not None, (
+            f"{path} compatibility must name the workspace repository its commands "
+            f"are relative to; it reads {compatibility!r}"
+        )
+        declared[f"{path} compatibility"] = found.group(0)
+
+    return declared
+
+
+def test_every_place_that_names_this_repository_names_the_same_one():
+    """One repository, one spelling, across the guard, the manifest and the skills.
+
+    The maintainer skills state the workspace their repo-relative commands require,
+    the manifest states where the Power lives and what workspace it needs, and the
+    workflow states which repository may file issues. All five are the same fact,
+    so a rename that reaches four of them leaves the fifth pointing somewhere that
+    does not exist.
+    """
+    declared = _declared_repository_slugs()
+    distinct = sorted(set(declared.values()))
+    assert len(distinct) == 1, (
+        "this repository is named inconsistently: "
+        + "; ".join(f"{where} says {slug!r}" for where, slug in sorted(declared.items()))
+    )
+
+
+def test_the_watch_guard_names_the_repository_this_checkout_actually_is():
+    """The anchor to reality, and the assertion that was missing.
+
+    Every internal copy agreeing is not enough — they all agreed on `…-powers-…`
+    while the repository was `…-power-…`, and the guard was false on every
+    scheduled run. Comparing against git is what makes a wrong name observable
+    without waiting for an upstream release to go unreported.
+    """
+    actual = _git_repository_slug()
+    if actual is None:
+        pytest.skip(
+            "no git remote is discoverable, so this checkout's own identity "
+            "cannot be established here"
+        )
+
+    declared = _declared_repository_slugs()
+    wrong = {
+        where: slug for where, slug in declared.items() if slug != actual
+    }
+    assert not wrong, (
+        f"git says this repository is {actual!r}, but "
+        + "; ".join(f"{where} says {slug!r}" for where, slug in sorted(wrong.items()))
+        + ". The watch workflow's guard is compared against `github.repository` at "
+        "run time, so a wrong name there means the job is skipped on every "
+        "scheduled run and no upstream release is ever reported"
+    )
+
+
+def test_the_distribution_name_matches_the_repository_name():
+    """`pyproject.toml` names the distribution after the repository it lives in.
+
+    Included because it carried the same plural, and because it is the one place
+    the name appears without an `owner/` in front of it — so a fix that swept the
+    slugs could leave this behind. A PEP 508 name cannot hold a `/`, so only the
+    repository half is compared.
+    """
+    actual = _git_repository_slug()
+    if actual is None:
+        pytest.skip("no git remote is discoverable")
+
+    pyproject = tomllib.loads(
+        (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    name = str((pyproject.get("project") or {}).get("name") or "")
+    assert name == actual.split("/", 1)[-1], (
+        f"pyproject.toml names the distribution {name!r}; this repository is "
+        f"{actual!r}"
     )

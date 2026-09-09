@@ -2,7 +2,7 @@
 name: "create-bootcamp-power"
 description: "Build the Senzing Bootcamp Kiro Power at powers/senzing-bootcamp/ from the latest Senzing bootcamp Claude plugin release, by running the shared transformation engine and publishing its output only after validation passes. Use when the maintainer says 'create the senzing bootcamp power'."
 license: "Apache-2.0"
-compatibility: "Requires this repository — docktermj/senzing-bootcamp-kiro-powers-development — as the open workspace: every command below is a repo-relative path into tools/bootcamp-transform/, and the engine, the Transformation_Contract, and the target all live here. Needs Python 3.10+ with the dev extra installed (pyyaml, jsonschema, jinja2). Uses `gh` when it is on PATH and the GitHub REST API otherwise; GITHUB_TOKEN or GH_TOKEN is optional. No Senzing MCP server."
+compatibility: "Requires this repository — docktermj/senzing-bootcamp-kiro-power-development — as the open workspace: every command below is a repo-relative path into tools/bootcamp-transform/, and the engine, the Transformation_Contract, and the target all live here. Needs Python 3.10+ with the dev extra installed (pyyaml, jsonschema, jinja2). Uses `gh` when it is on PATH and the GitHub REST API otherwise; GITHUB_TOKEN or GH_TOKEN is optional. No Senzing MCP server."
 metadata:
   author: "Senzing"
   role: "Create_Skill"

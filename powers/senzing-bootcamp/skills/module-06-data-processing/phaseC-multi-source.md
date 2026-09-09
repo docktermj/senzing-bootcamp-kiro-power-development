@@ -15,6 +15,14 @@ source. Enumerate every data source. For each: source name / DATA_SOURCE identif
 count, quality score, mapping status, loaded status. Present a summary table so the bootcamper
 can review and confirm the list is complete.
 
+⛔ **A source whose `validation_checks.load_count_matches_source` is `expected_delta` is a
+RECONCILED result, not a failure and not a plain pass.** Show both figures and the reason — "3,727
+loaded from 3,488 input records; 239 embedded masters, per the source's mapping specification" — and
+never render it as `failed`. It is the visible consequence of a mapping decision the bootcamper made
+in the previous module, so it is worth showing rather than flattening: a record-multiplying
+disposition like `embedded_master` makes the loaded count exceed the input count **by design** (see
+`phaseB-load-first-source.md`'s three-way reconciliation rule).
+
 ⛔ **The `record_count` shown here is a figure presented to the bootcamper, so it carries the
 reconciliation requirement with it.** (INV-243) Phase B reconciles each count against that
 source's own input before writing it; a source whose count was never reconciled — one loaded
@@ -35,18 +43,39 @@ entities as records arrive, load the higher-quality source first.
 (step 12's inventory) in `config/data_sources.yaml` — the same field Module 5's fast-path uses. If
 **every** such source is agent-generated (`provenance: cord` or `synthesized`), or
 `docs/business_problem.md` carries the bootcamp-generated marker `> 🤖 Bootcamp-generated business
-case`, the agent selected these sources itself and already knows there are no real load-order
-dependencies between them. State that briefly (INV-012) and confirm rather than asking an open
-question — pin the question verbatim (INV-056) and end the turn on it:
+case`, the agent selected these sources itself and already knows both that there are no real
+load-order dependencies between them and which loading strategy suits them. State that briefly
+(INV-012) and confirm rather than asking an open question — pin the question verbatim (INV-056) and
+end the turn on it:
 
-👉 **The generated sources have no load-order dependencies — shall I proceed with none?** (respond yes or no)
+👉 **The generated sources have no load-order dependencies, and I recommend the Sequential loading strategy for this dataset — shall I proceed on both?** (respond yes or no)
 
-*(Internal: end the turn on this question and wait.)* On **yes**, record that there are none; on
-**no**, ask the bootcamper to describe the dependencies they see and capture the dependency map.
+*(Internal: end the turn on this question and wait.)*
 
-Otherwise (some source being loaded is bootcamper-supplied — `provenance: own`/`free_data`/`unknown` —
-and no generated marker is present), ask a single pinned 👉 question (INV-056) exactly as today and end the turn
-on it:
+- **Yes:** record that there are no dependencies **and** that the strategy is Sequential. Step 15
+  reads both from here and asks nothing further.
+- **No:** the bootcamper is overriding, so give them both decisions in full — first ask them to
+  describe the dependencies they see and capture the dependency map, then present step 15's
+  numbered strategy menu so they choose (INV-007/INV-051). Neither override is skipped or
+  abbreviated because the two were asked together.
+
+⛔ **This one question deliberately covers two decisions, and it must not be split back into two.**
+Both facts follow from the same provenance check, established before either was asked, and the
+bootcamper was given nothing between them on which to answer differently — so as two gates they are
+consecutive rubber stamps, which is what INV-012 and `ground-rules.md`'s warning against
+answer-is-always-yes gates forbid. ⚠️ **Proceeding without asking at all is NOT the alternative**:
+INV-007 says the Power cannot answer its own questions or assume answers, so the decision stays the
+bootcamper's. One question, both decisions, still theirs.
+
+⚠️ **The shape to watch when adding the next one.** Each provenance-aware confirm in this phase was
+written to a per-step budget of one question, and nothing counted questions **across** steps — so a
+path can accumulate rubber stamps one defensible step at a time. Step 14 asks nothing, so 13 and 15
+were adjacent in the bootcamper's experience while being two steps apart in this file. Weigh any new
+confirm added to Phase C against the ones already on the same path, not only against itself.
+
+**Only when some source being loaded is bootcamper-supplied** — `provenance: own`/`free_data`/`unknown`
+in `config/data_sources.yaml`, and no generated marker in `docs/business_problem.md` — ask a single
+pinned 👉 question (INV-056) exactly as today and end the turn on it:
 
 👉 **Are there load-order dependencies between your data sources?**
 
@@ -71,20 +100,24 @@ the bootcamper to review.
 
 **First, check the data's provenance** (as in step 13). If **every** source being loaded is
 agent-generated (`provenance: cord`/`synthesized` in `config/data_sources.yaml`, or the
-`> 🤖 Bootcamp-generated business case` marker is present in `docs/business_problem.md`), the agent
-selected these sources and can recommend a strategy from what it knows: for the generated (typically
-small) dataset, **Sequential** — safer, easy to debug, with no real gain from parallelism at this
-scale. State that briefly (INV-012) and confirm rather than posing the open menu — pin the question
-verbatim (INV-056) and end the turn on it:
+`> 🤖 Bootcamp-generated business case` marker is present in `docs/business_problem.md`), then
+⛔ **the strategy was already decided at step 13 and this step asks NOTHING.**
 
-👉 **I recommend the Sequential loading strategy for this generated dataset — shall I use it?** (respond yes or no)
+Step 13's merged question covers both the dependency decision and the strategy for this path: on
+**yes** it recorded **Sequential** — safer, easy to debug, with no real gain from parallelism at
+this dataset's scale — and on **no** the bootcamper has already chosen from the numbered menu
+below. Read the recorded answer, state the strategy in one line, and continue to step 16.
 
-*(Internal: end the turn on this question and wait.)* On **yes**, record Sequential; on **no**,
-present the numbered menu below so the bootcamper chooses (INV-007).
+⛔ **Do not re-ask it here, in any form.** Re-confirming a decision the bootcamper made two steps
+ago is the pair of back-to-back rubber stamps this branch was merged to remove — and it is worse
+the second time, because nothing has happened in between that could change the answer. This step is
+not a turn ending on this path: continue in the same turn to the next step that actually asks
+(`ground-rules.md` → "A results presentation is not a turn ending", INV-225).
 
-Otherwise (some source being loaded is bootcamper-supplied — `provenance: own`/`free_data`/`unknown` —
-and no generated marker is present), present the strategy choices as a neutral lead + numbered list (INV-051),
-pinned verbatim (INV-056), and end the turn on the 👉 question:
+**Only when some source being loaded is bootcamper-supplied** — `provenance: own`/`free_data`/`unknown`
+in `config/data_sources.yaml`, and no generated marker in `docs/business_problem.md` — present the
+strategy choices as a neutral lead + numbered list (INV-051), pinned verbatim (INV-056), and end the
+turn on the 👉 question:
 
 👉 **Which loading strategy would you like? Reply with a number:**
 
@@ -192,7 +225,7 @@ Drain the redo queue, critical after multi-source loading for cross-source match
 Use `generate_scaffold(language='<chosen_language>', workflow='redo', version='current')` and
 override paths to `database/G2C.db`.
 
-⛔ **Same batch-drain requirement as Phase B, step 9** (INV-151) — read it there rather than
+⛔ **Same batch-drain requirement as Phase B, step 9** (INV-151, INV-300) — read it there rather than
 re-deriving it.
 In short: the MCP redo templates target streaming ingest and the observed one never terminates on an
 empty queue, so check the returned snippet and, if it loops, replace the sleep-and-continue with a

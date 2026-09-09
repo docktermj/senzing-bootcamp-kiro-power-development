@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.1
-  templateRelease: 0.5.1
+  version: 0.5.3
+  templateRelease: 0.5.3
   templateSkill: module-07-query-visualize-discover
 ---
 

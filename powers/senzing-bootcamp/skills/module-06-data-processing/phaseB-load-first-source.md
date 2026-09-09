@@ -21,7 +21,7 @@ Phase A's pre-load check reads this field to decide whether a test load is owed,
 is not recorded is a run that Phase A will ask for again on a resumed session.
 
 ⛔ **This is the earliest point the test load can run, which is why it lives here and not in
-Phase A's pre-load checks.** It needs two things Phase A produces: the loading program itself,
+Phase A's pre-load checks (INV-089).** It needs two things Phase A produces: the loading program itself,
 built at step 3 from the volume tier captured at step 1, and the registered `DATA_SOURCE` codes
 from step 4a — without which the load fails with `SENZ2207` (*"Data source code [{0}] does not
 exist"*, `explain_error_code('SENZ2207')`, server 1.32.9, 2026-08-14), the exact error step 4a
@@ -41,6 +41,30 @@ As records load, Senzing resolves entities automatically:
 - See how new records match or create entities
 - This gives immediate feedback on data quality and matching behavior
 
+⛔ **(INV-297) The engine writes its own diagnostics to that console, and they are NOT per-record failures —
+say which is which before the Bootcamper reads one.** This step and step 7 both point them at the
+output, so they will see engine-level lines prefixed `ERR:` (they carry an `[szstatic:…]` thread
+tag) sitting beside a loader summary that says **0 failed**, with nothing telling them the two are
+different things. **The loader's own `failed` count and its error log are the authority on record
+failures**; a line the engine wrote about its internal state is not one, and neither confirms nor
+denies the other.
+
+What to say when one appears: name it as engine output rather than a failed record, and point at
+the reconciliation that settles it — records attempted equals records loaded, the redo queue
+reached empty, and the error log is absent or empty. If those three hold, nothing was lost.
+
+⚠️ **Do not explain what a specific engine message means unless a route serves it.**
+`search_docs(query='resolved entity is out of sync expected got concurrent loading SQLite lock')`
+returns **no document naming that message** — owner-checked: `search_docs` is the corpus route for a
+documented engine message, and the nearest material it serves is the *"Enabling the Per-Entity
+Feature Store & Advisory Locking in Senzing 4.4.0"* article, which states that on SQLite the engine
+*"falls back to `LEASE` automatically"* with no advisory locks; so the message is uncovered by the
+corpus rather than missed by the query (absence negative) — server **1.36.0**, 2026-09-02. An
+`out of sync` line seen during a concurrent SQLite load is therefore reported as **an environment
+observation**, with the SDK version and date, or not characterized at all (INV-080/INV-149) — never
+as a Senzing fact and never as reassurance the Power cannot source.
+<!-- MCP-NEGATIVE: search_docs(query='resolved entity is out of sync expected got concurrent loading SQLite lock') — no indexed document names the "Resolved entity … is out of sync" engine message — owner: search_docs IS the corpus route for a documented engine message and the nearest material it serves is the 4.4.0 advisory-locking article stating SQLite falls back to LEASE with no advisory locks, so the message is uncovered by the corpus rather than missed by the query (absence negative) — server 1.36.0, 2026-09-02 -->
+
 **Checkpoint:** write step 6.
 
 ## 7. Load the full dataset
@@ -58,14 +82,64 @@ evaluation limit (a licensing error at the cap), read `license_record_limit` fro
 license is configured) and drive the decision from that effective limit, never a remembered or
 hardcoded figure:
 
+⛔ **(INV-295) Read `license_record_limit_measured_at` alongside it, and treat a reading marked provisional —
+or carrying no marker — as the absent case below.** SDK setup's Step 5a takes its reading before
+Step 8 writes `CONFIGPATH`, so it cannot see a license installed at the system config path. A
+provisional figure is a genuine measurement of an incomplete view, which is the one shape the
+absent-versus-present split above cannot see on its own.
+
 - **`0` (no cap), or ≥ the dataset size**, the active license permits the full load: omit the
   evaluation-capacity warning and proceed.
 - **Positive and below the dataset size**, the dataset genuinely exceeds the cap: the single
   License Key gate (Module 4, Step 8a) already offered to expand capacity — restate that a larger
   license lets the full load proceed, as a choice, not a wall; do not force downsizing.
-- **Absent or null** — ⛔ **"never asked", not "no custom license": measure before warning.** (INV-244) This
-  is the same branch, and the same trap, as Phase A's — `license_record_limit` is written only by
-  Module 4's volume-gated Step 8a, so its absence says nothing about the installed license. Measure
+
+  ⛔ **Read `license_key_requested` from `config/bootcamp_progress.json` first, and say the license may
+  already be here.** When it records a sent request, state plainly that the license is delivered **by
+  email**, that it may already have arrived, and that it can be applied now — including in a later
+  session. ⚠️ **Only when a request is outstanding.** `license: evaluation` is written both after a
+  request was sent *and* when the Bootcamper **declined** to send one, so keying this reminder to it
+  would tell someone who declined to go hunting for a license they never asked for. Absent
+  `license_key_requested` → no reminder; say nothing about email.
+
+  **The apply procedure already exists — point at it, do not restate it (INV-300).** Module 4 Step 8a
+  **sub-step 5** decodes a Base64 key or copies a `.lic` to `licenses/g2.lic`, adds `LICENSEFILE` to
+  the engine-config PIPELINE section, and records `license: custom`. ⛔ **Do not write a second copy
+  of it here, and do not substitute a different mechanism.** A platform-specific procedure duplicated
+  is a procedure that drifts, and the MCP server describes a *different* route
+  (`SENZING_LICENSE_FILE`, or a license file in `etc/`) which is real but is **not** the one wired
+  into this bootcamp's file layout — using it here would leave the engine config pointing at nothing.
+
+  **Then re-measure and re-enter these branches.** After applying, re-read the license via
+  `SzProduct.get_license()`, parse `recordLimit`, confirm it actually moved, and route again on the
+  new value — a license reporting `0` lands on the first branch and the whole cap discussion
+  dissolves. ⚠️ Do **not** state the evaluation license's size or duration from this file: those
+  figures change between releases, so take them from a runtime lookup at the moment of use or say
+  they are unavailable.
+
+  End the turn on this single pinned question (INV-056), which replaces the improvised one — it is
+  **one** 👉 (INV-251) and it is **not** a second License Key gate (INV-093: that decision was asked
+  once, in Module 4, and is settled — this offers a *procedure* and a *status readout*, not the
+  question again):
+
+  > 👉 **Your dataset is larger than this license allows. How would you like to proceed? Reply with a number:**
+  >
+  > 1. **Load an overlap-preserving subset now** — keeps cross-source matches visible at this capacity.
+  > 2. **Apply a license I have** — I'll walk you through it, then load everything.
+  > 3. **Load the first records as they come** — simplest, but cross-source overlap may be lost.
+
+  *(Internal: end the turn on this question and wait.)* On **2**, follow Step 8a sub-step 5, then
+  re-measure and re-enter these branches. ⛔ **Option 2 stays on the list even when
+  `license_key_requested` is absent** — a Bootcamper may hold a license the bootcamp never asked about,
+  and it is the option this branch previously omitted entirely; what the `license_key_requested`
+  marker gates is only the *"check your email, it may have arrived"* line above.
+- **Absent or null** — ⛔ **"never measured", not "no custom license": measure before warning.** (INV-244) This
+  is the same branch, and the same trap, as Phase A's — **every step that writes
+  `license_record_limit` writes only a MEASURED value**, so its absence says nothing about the
+  installed license: SDK setup's Step 5a measures as soon as the SDK is verified and deliberately
+  writes nothing when it cannot, and Module 4's **volume-gated** Step 8a fires only when the
+  collected volume approaches the limit.
+  ⚠️ **Do not reason from a count of writers**; that number has been stated wrongly twice. Measure
   it exactly as Phase A's absent branch instructs (Module 4 Step 8a's procedure:
   `SzProduct.get_license()`, confirm the shape, parse `recordLimit`), persist it, and re-enter
   these three branches with the measured value — a license reporting `recordLimit: 0` then lands on
@@ -76,9 +150,11 @@ hardcoded figure:
     behavior from the Senzing MCP server at request time. If no figure is returned, say it is
     currently unavailable rather than restating a remembered one.
 
-**Data source registry.** On success, update `load_status` to `loaded` and `record_count` to the
-actual loaded count in `config/data_sources.yaml`. On failure, set `load_status` to `failed` and
-add an `issues` entry describing the error. Update `updated_at` either way.
+**Data source registry.** On success, update `load_status` to `loaded` in
+`config/data_sources.yaml`. On failure, set `load_status` to `failed` and add an `issues` entry
+describing the error. Update `updated_at` either way. ⛔ **Do not write the loaded count over
+`record_count` — reconcile first, per the rule below, which decides both what `load_status` becomes
+and where the loaded figure is recorded.**
 
 ⛔ **Reconcile the loaded count against this source's own input *before* writing it — the value you
 are about to overwrite is the baseline.** (INV-243) `record_count` already holds the count Data
@@ -90,15 +166,45 @@ already uses for `record_count_matches_expected`, so the comparison lives in the
 than only in the turn that ran it.
 
 ⛔ **If the two disagree, write the discrepancy rather than the count** (INV-245): leave the
-existing `record_count` in place, set `load_status` to `failed`, record **both** figures in the
-`issues` entry, and do not present the loaded count as a result. Overwriting on a mismatch is the
-worst outcome available — it destroys the input baseline and files a partial load as a complete
-one, after which nothing downstream can tell the difference. This is the point where the figure
-enters durable state: `phaseC` step 12 reads it straight back out and presents it to the
-bootcamper, and Phase D writes it into `docs/loading_strategy.md`, so a number that was never
-checked here is never checked at all — it simply acquires the authority of having been written
-down. Reporting the aggregate alone does not discharge this: the failure mode this exists for
-produces figures that are plausible and sum correctly.
+existing `record_count` in place, record **both** figures, and do not present the loaded count as a
+bare result. Overwriting on a mismatch is the worst outcome available — it destroys the input
+baseline and files a partial load as a complete one, after which nothing downstream can tell the
+difference. This is the point where the figure enters durable state: `phaseC` step 12 reads it
+straight back out and presents it to the bootcamper, and Phase D writes it into
+`docs/loading_strategy.md`, so a number that was never checked here is never checked at all — it
+simply acquires the authority of having been written down. Reporting the aggregate alone does not
+discharge this: the failure mode this exists for produces figures that are plausible and sum
+correctly.
+
+⛔ **A disagreement has THREE outcomes, not two. Do not collapse them.** INV-245 forbids presenting
+a value that **failed its own verification check**; a delta the mapping specification *predicts* has
+not failed verification — it is verified and reconciled, which is a different state from unverified.
+Route on which of these it is:
+
+| Outcome | `load_status` | What else to record |
+|---|---|---|
+| **Equal** | `loaded` | `validation_checks.load_count_matches_source: pass` |
+| **Explained delta** — a named mapping artifact predicts it | `loaded` | both figures; `validation_checks.load_count_matches_source: expected_delta`; a `load_reconciliation` note naming the disposition **and the document that predicts it** |
+| **Unexplained delta** | `failed` | both figures in the `issues` entry, exactly as above |
+
+⛔ **The explained branch is reachable ONLY with a citation, never with an assertion.** The note must
+name the mapping artifact that predicts the delta — the source's own mapping specification, or the
+recorded disposition in `config/data_sources.yaml`. *"The mapping probably explains it"* is precisely
+the failure INV-245 exists to prevent, and without the citation requirement this branch becomes a
+universal escape hatch wearing the rule as a disguise. No citation → **unexplained** → `failed`.
+
+⚠️ **This is not a hypothetical branch: the bootcamp teaches the mapping that reaches it.**
+`embedded_master` is a disposition Module 5 teaches under its own heading, defined as *"the value
+becomes its own Senzing record, and the parent points at it"* — a disposition whose definition is
+"emit an additional record" **necessarily** makes the loaded count exceed the input count. One source
+loaded **3,727** records against a measured `record_count` of **3,488**: 239 distinct lenders emitted
+as embedded masters, exactly as that source's mapping specification prescribes, every input record
+loaded, zero errors. Under a two-way rule the only compliant action was to file a completely
+successful load as `failed`, and to write that into the Bootcamper's own loading strategy.
+
+**The baseline stays immutable in all three branches** (INV-243) — the existing `record_count` is
+never overwritten and the loaded figure is recorded beside it. That half of the rule is correct and
+is not what changed.
 
 **⚠️ SQLite performance note — only when the volume question is still open.** On SQLite with
 single-threaded loading, entity resolution gets progressively slower as the database grows.

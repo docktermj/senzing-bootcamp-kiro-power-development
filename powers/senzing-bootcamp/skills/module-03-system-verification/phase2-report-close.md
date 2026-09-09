@@ -181,6 +181,9 @@ visualization is a separate, standalone module that records itself at its own cl
 3. **Present the completion line + end-of-module summary** (INV-032): `✅ Module complete: System
    verification` and its four-part summary, per `module-completion.md` Step 3.
 4. **Transition to the next module:** ask the single transition question; on an affirmative reply,
+   **(INV-272) acknowledge it in one short visible line naming that module before invoking its skill** (the
+   ground rules' acknowledge clause and `../bootcamp-onboarding/module-completion.md` Step 4 own the
+   ordering — a skill invocation and its file reads emit nothing the bootcamper can see), then
    produce the next module's start banner, journey map, before/after framing, and step overview per
    the ground rules. (When the Truth Set visualization is selected, the next module is it; otherwise
    it is Data collection.)

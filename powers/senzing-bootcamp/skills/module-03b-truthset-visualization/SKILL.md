@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.1
-  templateRelease: 0.5.1
+  version: 0.5.3
+  templateRelease: 0.5.3
   templateSkill: module-03b-truthset-visualization
 ---
 
@@ -110,6 +110,9 @@ Truth Set DATA.
   `get_sdk_reference` + `sdk_guide` and run it. Never generate SQL against `database/G2C.db`.
 - Counts, statistics, and visualization data come from `reporting_guide` and from the visualization
   server's entity-model build (one `get_entity_by_record_id` per record), never from direct SQL.
+  ⚠️ **(INV-289) That per-record build is scoped to the Truth Set** — it does not carry to the
+  Bootcamper's own datastore, which needs the export stream. The reason is stated where the build
+  happens, at `phase1-visualization.md` Step 2; do not restate it here (INV-183, INV-300).
 - Run the web service as a background process (Kiro's process control) and stop it again at this
   module's close. Never leave it running past Phase 2.
 - **Visualization (Step 2) is built in the Bootcamper's chosen programming language,** modeled on the

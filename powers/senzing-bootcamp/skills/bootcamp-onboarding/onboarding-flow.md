@@ -158,11 +158,11 @@ so there is no bullet whose behavior under a preset is left to guesswork:
 |---|---|
 | `minimal` | the **module list** plus the **how-long-it-takes** bullet, and nothing else — orientation only |
 | `concise` | all bullets except *guided discovery* and *unfamiliar terms*, each trimmed to one line |
-| `standard` / `detailed` | all ten, as written |
+| `standard` / `detailed` | every bullet below, as written |
 
 The split is orientation versus encouragement: the module list and the resume-and-time facts are
 what a bootcamper needs to navigate, and the rest is framing an expert moving fast does not. On a
-**fresh** bootcamp no preset exists yet, so all ten are shown and that is correct rather than an
+**fresh** bootcamp no preset exists yet, so every bullet is shown and that is correct rather than an
 oversight (INV-075/INV-133) — the reduced forms are reachable only on a resumed run or a pre-seeded
 file.
 
@@ -197,6 +197,18 @@ file.
   notice it:** start a message with **"bootcamp feedback:"** and I will capture it. You do not lose
   your place — the note is saved under `docs/feedback/`, then the bootcamp question you were on
   comes straight back and we carry on. No need to save it for the end.
+- **Had an idea of your own? Say "make a note" and I'll write it down for you.** Ideas, questions,
+  reminders and to-dos about *your* work — "remind me to check these counts", "note to self: try
+  `dba_name` as a second name". They are saved in your own words to `docs/bootcamp_notes.md`, they
+  go into the recap you keep at the end, and they are never sent anywhere. You keep your place here
+  too.
+
+**The note bullet is verbosity-aware on the same terms as the feedback bullet** (INV-011/INV-012):
+suppress it under `minimal`; one line under `concise` ("Say \"make a note\" any time — it is saved
+in your words and goes into your recap."); otherwise the full bullet. ⛔ **State it; never pose it
+as a 👉 question**, and do not repeat it at every module start — it is an always-available
+control (INV-254), and once, here, is the point. An any-time control nobody is told about is an
+any-time control nobody uses.
 
 **The feedback-trigger bullet above is required here** (INV-196: the trigger phrase is named in
 bootcamper-facing text before the first content module, as a statement and never a 👉 question,

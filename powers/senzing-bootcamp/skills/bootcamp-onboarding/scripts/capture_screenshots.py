@@ -65,6 +65,7 @@ Exit codes: 0 = wrote at least one PNG; 2 = no headless capability available
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -140,6 +141,56 @@ SINGLE_PAGE_LABEL = "Full page"
 # for. (Observed 2026-08-14: a three-source quality page ~2100px tall captured at 900px, two
 # of three sources absent, exit 0, real 84 KB PNG, manifest entry, label "Full page".)
 SINGLE_PAGE_LABEL_VIEWPORT = "Top of page (viewport only)"
+#: (INV-298) Whether the captured page reported its animated layout as SETTLED.
+#: `settled` the signal was present, `unsettled` an animated tab was captured without it,
+#: `unknown` the backend cannot read the DOM (wkhtmltoimage), `n/a` the tab does not animate.
+#: ⛔ **`unsettled` and `unknown` are different findings and must not be merged.** Reporting a
+#: backend limitation as an unsettled layout blames the artifact for the instrument, which is
+#: the reverse of what INV-129 asks for.
+SETTLED_YES = "settled"
+SETTLED_NO = "unsettled"
+SETTLED_UNKNOWN = "unknown"
+SETTLED_NA = "n/a"
+_SETTLED_ATTR = "data-graph-settled"
+_SETTLED_RE = re.compile(r'data-graph-settled="1"')
+_SETTLED_STATE = SETTLED_NA
+#: Per-tab settle outcomes for the run, filled by `capture()` and read by `main()`.
+#: ⚠️ A module global rather than an extra return value, for the same reason `_CURRENT_TAB`
+#: and `_FULL_PAGE_OUTCOME` are globals: `capture()` returns the written list and every
+#: caller and test unpacks exactly that, so widening its return type to carry this would
+#: break them for a reporting field. Reset at the top of `capture()`.
+_SETTLE_BY_TAB: "dict[str, str]" = {}
+
+
+def _record_settled(state: str) -> None:
+    """Record the settle outcome of the capture just taken (INV-298).
+
+    A global for the same reason `_FULL_PAGE_OUTCOME` is one: `_BACKENDS` is called
+    uniformly and tests substitute two-argument callables, so there is nowhere to thread a
+    return value through. Capture is serial — see the note on `_CURRENT_TAB`.
+    """
+    global _SETTLED_STATE
+    _SETTLED_STATE = state
+
+
+def _settle_expected(tab: str) -> bool:
+    """Does this tab animate to its final layout, so a settled signal is owed (INV-298)?
+
+    ⚠️ **The single-page id answers False by DECISION, not by omission**, which is what this
+    docstring exists to record. `--single` is scoped to static deliverables — the Data Quality,
+    Mapping and Transformation pages — which have no layout to settle, so demanding a signal
+    there would report `unsettled` on every one of them and train the reader to ignore the
+    warning that matters. The path still *requests* the capture render (`_with_capture`), so an
+    animated view captured that way is settled regardless; what it does not do is claim to have
+    checked.
+
+    ⛔ **Do not add the single-page id to `_ANIMATED_TABS` to change this answer.** That set also
+    sizes the virtual-time budget and feeds the tab-label lookup, so widening it to settle a
+    signal question would change two unrelated behaviors. Ask this question here.
+    """
+    return tab in _ANIMATED_TABS
+
+
 FULL_PAGE_FULL = "full"
 FULL_PAGE_CLAMPED = "clamped"
 FULL_PAGE_VIEWPORT = "viewport"
@@ -189,6 +240,71 @@ def _has_tab_controls(source: str) -> bool:
         re.search(r'id\s*=\s*["\']navbtn-', source)
         or re.search(r'id\s*=\s*["\']tab-', source)
     )
+
+
+# Evidence that the page's own code reads the query string, which is what `?tab=`
+# activation depends on. Any of these appearing anywhere in the served source is enough:
+# the check is for the MECHANISM being present, not for a particular spelling of it.
+_DEEP_LINK_MARKERS = (
+    r"URLSearchParams",
+    r"location\s*\.\s*search",
+    r"\.searchParams",
+    r"window\s*\.\s*location\s*\.\s*href",
+)
+
+
+def _supports_deep_linking(source: str) -> bool:
+    """Can this page act on ``?tab=`` at all?
+
+    ⛔ **This is the pre-flight that keeps a live-server capture honest, and it exists
+    because nothing else on the ``--url`` path can.** Tab activation has two mechanisms
+    and only one runs per path: the snapshot path injects ``activate()`` with a
+    ``#navbtn-`` click fallback (``_ACTIVATE_JS``), while a live server is driven ONLY by
+    the ``?tab=`` deep link (``_tab_url``). A server that implements the tab set, the
+    section ids and the nav ids but omits deep-linking therefore serves its DEFAULT tab
+    for every request — and every earlier check still passes, because the ids it looks
+    for are all present. The run then writes one correctly-named PNG per tab, all of the
+    same tab, reports success for each, and the images reach the recap captioned as tabs
+    they do not show. Measured on 2026-08-28 against a Java server built to the contract:
+    six files, five distinct images, two byte-identical, exit 0.
+
+    ⚠️ **A source-level check, deliberately, and its limit is stated rather than hidden.**
+    It proves the page reads the query string; it cannot prove the page honors ``tab``
+    correctly. Verifying the RENDERED result would need a backend that can evaluate script
+    against a live URL — Playwright or Selenium — and neither is a bootcamp requirement,
+    while the headless-Chrome CLI that does the capturing cannot evaluate an expression for
+    us (see ``_measure_chrome_cli``, which has to patch a local file to read one number).
+    So this catches the failure that actually occurs — no deep-linking at all — and cannot
+    produce a false FAILURE on a conforming server, which must read the query string to
+    honor the contract at `visualization-api-reference.md`'s "Tab identifiers and
+    deep-linking (required)".
+
+    An unreadable page returns True: never let a page this script could not fetch block a
+    capture (INV-122, and the same best-effort rule ``_tabs_present`` follows).
+    """
+    if not source:
+        return True
+    return any(re.search(marker, source) for marker in _DEEP_LINK_MARKERS)
+
+
+def _identical_groups(paths) -> list:
+    """Groups of captured files whose bytes are identical — never a legitimate outcome.
+
+    Two tabs cannot render the same image: they are different views of different data.
+    Byte-identity means activation did not take between them, so both files are named for
+    something at most one of them shows. Defense in depth behind
+    ``_supports_deep_linking``: it catches a page that reads the query string but ignores
+    the value, which the source-level check cannot see.
+    """
+    by_digest = {}
+    for path in paths:
+        try:
+            digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+        except OSError:
+            continue
+        by_digest.setdefault(digest, []).append(Path(path))
+    return [group for group in by_digest.values() if len(group) > 1]
+
 
 # Chrome needs a virtual-time budget or the frame is captured before the D3 layout
 # and the /api/* fetches settle — the difference between a graph and a blank panel.
@@ -273,9 +389,29 @@ def _out_path(out_dir: Path, name: str, tab: str) -> Path:
     return out_dir / f"{name}-{slug}.png"
 
 
+def _with_capture(url: str) -> str:
+    """Append the capture-render request to any URL (INV-298/INV-299).
+
+    ⛔ **Every capture path goes through this, including the single-page one.** The render was
+    first wired into the two per-tab branches only, leaving `--single` three lines above them
+    in the same `if/elif/else` — a rule applied where the defect was measured rather than
+    everywhere it binds (INV-246). On a static deliverable (the Data Quality, Mapping and
+    Transformation pages `--single` is scoped to) the parameter is simply ignored: those pages
+    have no force layout to settle. On the tabbed app, which `--single` is not meant to target
+    but can, it upgrades an unsettled capture to a settled one.
+    """
+    return "%s%scapture=1" % (url, "&" if urlparse(url).query else "?")
+
+
 def _tab_url(url: str, tab: str, query: str = "") -> str:
-    """Append ?tab=/&q= deep-link parameters to a live-server URL."""
-    params = {"tab": tab}
+    """Append ?tab=/&q= deep-link parameters to a live-server URL.
+
+    Also requests the capture-oriented render (INV-298/INV-299): the page settles its layout
+    synchronously, fits it to the viewport and drops labels above its capture ceiling. A
+    still image can neither zoom nor wait, so it needs a different render from the
+    interactive one — and the animation path never finishes under headless virtual time.
+    """
+    params = {"tab": tab, "capture": "1"}   # see `_with_capture` for why every path asks
     if query and tab == "probe":
         params["q"] = query
     joiner = "&" if urlparse(url).query else "?"
@@ -448,7 +584,22 @@ def _capture_playwright(url: str, out: Path) -> bool:
             # "networkidle" can hang or fire inconsistently; wait for "load"
             # and give the D3 force layout a bounded moment to settle.
             page.goto(url, wait_until="load")
-            page.wait_for_timeout(2500)
+            # (INV-298) Wait for the layout's own signal rather than a flat guess. The 2500ms
+            # below stays as the fallback for a page that never reports one — a static tab, or
+            # an implementation that does not yet emit it.
+            settled = False
+            if _settle_expected(_CURRENT_TAB):
+                try:
+                    page.wait_for_function(
+                        "document.documentElement.getAttribute('%s') === '1'" % _SETTLED_ATTR,
+                        timeout=_virtual_time_ms(_CURRENT_TAB),
+                    )
+                    settled = True
+                except Exception:
+                    settled = False
+                _record_settled(SETTLED_YES if settled else SETTLED_NO)
+            if not settled:
+                page.wait_for_timeout(2500)
             if _single_page_mode():
                 height = None
                 try:
@@ -497,7 +648,26 @@ def _capture_selenium(url: str, out: Path) -> bool:
         driver.get(url)
         import time
 
-        time.sleep(2.5)
+        # (INV-298) Poll the layout's own signal instead of trusting elapsed time. The
+        # 2.5s sleep stays as the fallback for a page that reports none — a static tab, or
+        # an implementation that does not emit it yet.
+        settled = False
+        if _settle_expected(_CURRENT_TAB):
+            deadline = time.time() + (_virtual_time_ms(_CURRENT_TAB) / 1000.0)
+            while time.time() < deadline:
+                try:
+                    settled = bool(driver.execute_script(
+                        "return document.documentElement.getAttribute("
+                        "'%s') === '1';" % _SETTLED_ATTR
+                    ))
+                except Exception:
+                    settled = False
+                if settled:
+                    break
+                time.sleep(0.1)
+            _record_settled(SETTLED_YES if settled else SETTLED_NO)
+        if not settled:
+            time.sleep(2.5)
         if _single_page_mode():
             # Selenium has no full-page screenshot, so grow the window to the content and
             # re-shoot.
@@ -738,7 +908,10 @@ def _capture_chrome_cli(url: str, out: Path) -> bool:
         else:
             _record_full_page(FULL_PAGE_VIEWPORT, None, _WINDOW[1])
     try:
-        subprocess.run(
+        # ⚠️ `--dump-dom` rides along with `--screenshot` in the SAME invocation — verified
+        # 2026-09-03, both outputs are produced — so reading the settled signal (INV-298)
+        # costs no extra browser run and cannot disagree with the image it describes.
+        done = subprocess.run(
             [
                 exe,
                 "--headless=new",
@@ -748,6 +921,7 @@ def _capture_chrome_cli(url: str, out: Path) -> bool:
                 f"--window-size={_WINDOW[0]},{height}",
                 f"--virtual-time-budget={_virtual_time_ms(_CURRENT_TAB)}",
                 f"--screenshot={out}",
+                "--dump-dom",
                 url,
             ],
             check=False,
@@ -756,6 +930,17 @@ def _capture_chrome_cli(url: str, out: Path) -> bool:
         )
     except Exception:
         return False
+    if _settle_expected(_CURRENT_TAB):
+        # ⚠️ Read defensively, and leave the state UNKNOWN when stdout is not readable —
+        # never NO. "We could not look" is not "the layout was unfinished" (INV-298), and a
+        # crash here would fail a capture that had already succeeded, against the
+        # best-effort contract (INV-122). Found by `test_snapshot_and_capture_fidelity`,
+        # which mocks `subprocess.run`: `.stdout` was a MagicMock and the regex raised.
+        raw = getattr(done, "stdout", None)
+        if isinstance(raw, (bytes, bytearray)):
+            raw = raw.decode("utf-8", "replace")
+        if isinstance(raw, str):
+            _record_settled(SETTLED_YES if _SETTLED_RE.search(raw) else SETTLED_NO)
     return out.is_file() and out.stat().st_size > 0
 
 
@@ -838,7 +1023,7 @@ def _record_full_page(outcome: str, page_height=None, captured_height=None) -> N
     if outcome == FULL_PAGE_CLAMPED:
         sys.stderr.write(
             "capture_screenshots: page is %spx tall, above the %dpx clamp — captured the "
-            "top %dpx and labelled it as clamped, not as the full page.\n"
+            "top %dpx and labeled it as clamped, not as the full page.\n"
             % (page_height, _MAX_FULL_PAGE_PX, _MAX_FULL_PAGE_PX)
         )
         return
@@ -892,6 +1077,11 @@ def _capture_one(url: str, out: Path, backend=None, tab: str = ""):
     _FULL_PAGE_OUTCOME, _FULL_PAGE_HEIGHT, _FULL_PAGE_CAPTURED = (
         FULL_PAGE_VIEWPORT, None, None,
     )
+    # (INV-298) Same reasoning for the settle record: one animated tab's `unsettled` must
+    # never label the static tab captured after it. An animated tab starts at `unknown`,
+    # not at `unsettled` — a backend that cannot read the DOM must not be reported as
+    # having found an unsettled layout, which would blame the artifact for the instrument.
+    _record_settled(SETTLED_UNKNOWN if _settle_expected(tab) else SETTLED_NA)
     if _CAPTURE_IN_FLIGHT:
         # Warn, never raise: a capture step must not block the module (INV-052/INV-048).
         sys.stderr.write(
@@ -929,6 +1119,15 @@ def resolve_tabs(spec: str) -> list:
         else:
             unknown.append(raw)
     if unknown:
+        # ⛔ (INV-122) An UNRECOGNIZED id is a caller error and fails the whole run BEFORE any
+        # capture, exit 1, even when the other requested ids are valid and present. That is
+        # deliberately NOT the skip rule two paragraphs of this contract also state: a
+        # *recognized* tab this page does not render is skipped, reported, and the run exits 0.
+        # The two answer different questions -- this one is about the REQUEST, the skip is about
+        # THIS PAGE's content -- and the difference matters because a typo caught before work is
+        # cheaper than a silently short set a caller who never read stderr takes for complete.
+        # INV-122 was silent on this until 2026-09-02, which made a defensible abort read as a
+        # violation of its skip clause; the clause was scoped rather than the behavior changed.
         raise ValueError(
             f"unknown tab id(s): {', '.join(unknown)}. Tab ids: {', '.join(DEFAULT_TABS)}"
         )
@@ -949,8 +1148,74 @@ def manifest_path(out_dir: Path, name: str) -> Path:
     return Path(out_dir) / f"{name}-tabs.json"
 
 
+def _merge_manifest(prior: dict, payload: dict) -> dict:
+    """Fold this run's `payload` into the `prior` manifest, per tab.
+
+    ⛔ **A targeted re-capture must not erase the tabs it did not touch.** This run's
+    entries replace the prior ones for **every tab it touched** — in whichever list they
+    now belong, so a tab moving between ``captured``, ``failed`` and ``not_applicable``
+    between runs leaves exactly one entry — and every entry for an untouched tab is kept.
+
+    The failure this prevents: capture six tabs, then re-capture one because its query
+    returned nothing, and the manifest describes **one**. Graduation's coverage check then
+    reports full coverage on a 1-of-1 denominator, and would report it just as cheerfully
+    if five of the six images had been lost. The manifest is the only number in the system
+    that does not come from the recap Markdown (INV-122), so there is no second denominator
+    on the consumer side to catch it — a partial write and a complete write are
+    indistinguishable in the format.
+    """
+    touched = set(payload["requested"])
+    merged = dict(payload)
+    prior_requested = [t for t in prior.get("requested", []) if isinstance(t, str)]
+    merged["requested"] = prior_requested + [
+        t for t in payload["requested"] if t not in prior_requested
+    ]
+    for key in ("captured", "not_present", "not_applicable", "failed"):
+        kept = [
+            entry for entry in prior.get(key, [])
+            if isinstance(entry, dict) and entry.get("tab") not in touched
+        ]
+        merged[key] = kept + list(payload[key])
+    merged["captured_count"] = len(merged["captured"])
+    merged["requested_count"] = len(merged["requested"])
+    return merged
+
+
+def _prior_manifest(target: Path) -> "dict | None":
+    """The manifest already at `target`, or None when there is nothing safe to merge.
+
+    ⚠️ Merging into a corrupt or foreign file is never attempted: an absent, unreadable,
+    unparseable or schema-mismatched manifest is reported and then overwritten, exactly as
+    before this merge existed. A merge that could fail the run would be worse than the
+    defect it fixes — the PNGs are the deliverable (INV-122).
+    """
+    try:
+        with open(target, encoding="utf-8") as handle:
+            prior = json.load(handle)
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError) as exc:
+        print(
+            f"the existing tab manifest {target} could not be read ({exc}); "
+            "writing this run's tabs only, so it no longer describes earlier captures.",
+            file=sys.stderr,
+        )
+        return None
+    if not isinstance(prior, dict) or prior.get("schema") != MANIFEST_SCHEMA:
+        print(
+            f"the existing tab manifest {target} has schema "
+            f"{prior.get('schema') if isinstance(prior, dict) else 'unknown'!r}, not "
+            f"{MANIFEST_SCHEMA!r}; writing this run's tabs only, so it no longer "
+            "describes earlier captures.",
+            file=sys.stderr,
+        )
+        return None
+    return prior
+
+
 def write_manifest(
-    out_dir: Path, name: str, requested, absent, written, missed, suppressed=()
+    out_dir: Path, name: str, requested, absent, written, missed, suppressed=(),
+    failed_reason: str = "no image written by any backend", settled=None,
 ) -> bool:
     """Record what capture did, beside the PNGs. Returns True if written.
 
@@ -958,6 +1223,10 @@ def write_manifest(
     reported on stderr and never fails the run — the PNGs are the deliverable. But it
     is reported, because a silently absent manifest downgrades the coverage check to
     "skipped" much later, in graduation, where the cause is no longer visible.
+
+    ⚠️ **Merges with any existing manifest rather than replacing it** (see
+    `_merge_manifest`), so re-capturing a single tab does not discard the record of the
+    other five.
     """
     suppressed = list(suppressed)
     slug_of = {
@@ -980,6 +1249,12 @@ def write_manifest(
                 "slug": slug_of.get(tab, tab),
                 "file": _out_path(Path(out_dir), name, tab).name,
                 "label": _tab_label(tab),
+                # (INV-298) Whether the layout reported itself finished when this image was
+                # taken. `n/a` for a tab that does not animate; `unknown` when the backend
+                # cannot read the DOM. Graduation's coverage check reads this file, so a
+                # reader chasing a clumped-looking graph can tell an unsettled capture from
+                # a genuine result without re-running anything.
+                "settled": (settled or {}).get(tab, SETTLED_NA),
             }
             for tab in captured_tabs
         ],
@@ -994,12 +1269,15 @@ def write_manifest(
              "reason": "the app suppresses this tab because its data does not exist"}
             for tab in suppressed
         ],
-        "failed": [{"tab": tab, "reason": "no image written by any backend"}
+        "failed": [{"tab": tab, "reason": failed_reason}
                    for tab in missed],
     }
     payload["captured_count"] = len(payload["captured"])
     payload["requested_count"] = len(payload["requested"])
     target = manifest_path(Path(out_dir), name)
+    prior = _prior_manifest(target)
+    if prior is not None:
+        payload = _merge_manifest(prior, payload)
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         with open(target, "w", encoding="utf-8") as fh:
@@ -1032,6 +1310,10 @@ def capture(
         raise ValueError(f"no such HTML file: {target}")
 
     written = []
+    # (INV-298) Reset per run, so a previous call's outcomes cannot be reported as this
+    # one's. Tests run the CLI in a subprocess and would never see the leak.
+    global _SETTLE_BY_TAB
+    _SETTLE_BY_TAB = {}
     working_backend = None
     for tab in tabs:
         out = _out_path(out_dir, name, tab)
@@ -1041,16 +1323,23 @@ def capture(
                 # The page as it loads: no ?tab= deep link, and no activation copy —
                 # there is nothing to activate, and injecting one would only add a
                 # script that finds no tab and exhausts its retries.
-                url = target if is_url else _to_url(str(html))
+                url = _with_capture(target if is_url else _to_url(str(html)))
             elif is_url:
                 url = _tab_url(target, tab, query)
             else:
                 temp = _snapshot_copy(html, tab)
-                url = _to_url(str(temp))
+                # (INV-298/INV-299) `?capture=1` on a file: URL too — Chrome exposes it via
+                # `location.search` for file URLs, and it is what makes the page settle
+                # rather than animate. Without it the capture gets ~5 of ~300 layout ticks.
+                url = _with_capture(_to_url(str(temp)))
             winner = _capture_one(url, out, working_backend, tab=tab)
             if winner is not None:
                 working_backend = winner
                 written.append((out, _tab_label(tab)))
+                # (INV-298) Read the record BEFORE the next capture resets it: the global
+                # holds one tab's outcome, so collecting it here is what makes the manifest
+                # per-tab rather than a report about whichever tab happened to be last.
+                _SETTLE_BY_TAB[tab] = _SETTLED_STATE
             elif working_backend is None:
                 # Nothing worked for the first tab: no headless capability at all,
                 # so stop rather than failing identically for every remaining tab.
@@ -1203,6 +1492,35 @@ def main(argv=None) -> int:
         write_manifest(Path(args.out_dir), args.name, [], absent, [], [], suppressed)
         return 2
 
+    # ⛔ Never write a tab-named PNG a live server cannot actually produce. Placed BELOW
+    # the single-page safety net on purpose, and the position is the whole correctness of
+    # it: run above the net, this check sees `tabs == []` for a page that simply has no
+    # tabs, reads `[] != [SINGLE_PAGE_ID]` as true, and refuses a single-page deliverable
+    # that was never going to select a tab — exit 1, no image, which is precisely the
+    # behavior the net below was added to stop. Measured 2026-08-31: rc 0 with an image
+    # before, rc 1 with none after. Here, `tabs` is non-empty and is `[SINGLE_PAGE_ID]`
+    # exactly when the page has no tab bar, so the guard sees only genuinely tabbed pages.
+    # Still BEFORE any capture, because the failure it catches is invisible afterwards:
+    # the files are correctly named, non-empty and all the same tab.
+    if is_url and tabs != [SINGLE_PAGE_ID] and not _supports_deep_linking(source):
+        print(
+            "This server does not implement `?tab=` deep-linking, which is the ONLY way a "
+            "live page's tab can be selected for capture (a saved snapshot is driven by an "
+            "injected activate() instead). Every screenshot would therefore show the "
+            "default tab under a different tab's name. Nothing was captured.\n"
+            "Fix the server, not the capture: apply the `?tab=` / `?q=` parameters at the "
+            "end of init(), after the data load and buildNav() have settled — see \"Tab "
+            "identifiers and deep-linking (required)\" in visualization-api-reference.md — "
+            "then re-run this command.",
+            file=sys.stderr,
+        )
+        write_manifest(
+            Path(args.out_dir), args.name, [], absent, [], tabs, suppressed,
+            failed_reason="the server does not implement ?tab= deep-linking, so the tab "
+                          "could not be selected",
+        )
+        return 1
+
     try:
         written = capture(
             target, Path(args.out_dir), args.name, tabs, query=args.query, is_url=is_url
@@ -1210,6 +1528,37 @@ def main(argv=None) -> int:
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
+
+    # ⛔ Defense in depth behind the deep-linking pre-flight: two tabs cannot render the
+    # same bytes. Identity means activation did not take between them, so at most one of
+    # the two files shows the tab it is named for and NOTHING here can say which — both
+    # are deleted rather than shipped, because a mislabeled image reaching the recap is
+    # the defect this whole path exists to prevent, and it is unfalsifiable once there.
+    duplicates = _identical_groups([path for path, _ in written])
+    if duplicates:
+        dropped = set()
+        for group in duplicates:
+            for path in group:
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
+                dropped.add(path)
+        written = [(path, label) for path, label in written if path not in dropped]
+        for group in duplicates:
+            print(
+                "identical captures: %s are byte-identical, so the tab did not change "
+                "between them. Deleted rather than kept — at most one can be showing the "
+                "tab it is named for, and which one is not knowable from here."
+                % ", ".join(sorted(path.name for path in group)),
+                file=sys.stderr,
+            )
+        print(
+            "This usually means the page ignored `?tab=` (see the deep-linking "
+            "requirement in visualization-api-reference.md) or that activate() did not "
+            "switch the section. Fix the app and re-run.",
+            file=sys.stderr,
+        )
 
     # Written before the no-capture branches below, because a run that captured
     # nothing is exactly the case the recap's coverage check must be able to see.
@@ -1219,8 +1568,35 @@ def main(argv=None) -> int:
         if _out_path(Path(args.out_dir), args.name, t) not in {p for p, _ in written}
     ]
     write_manifest(
-        Path(args.out_dir), args.name, tabs, absent, written, _missed, suppressed
+        Path(args.out_dir), args.name, tabs, absent, written, _missed, suppressed,
+        settled=_SETTLE_BY_TAB,
     )
+
+    # ⛔ (INV-298) An animated view captured without its settled signal is REPORTED, not
+    # passed off as a result. The image is kept — it is still the best available view, and
+    # capture is best-effort by contract (INV-122) — but a reader chasing a clumped-looking
+    # graph must not have to guess whether the layout finished.
+    unsettled = sorted(t for t, s in _SETTLE_BY_TAB.items() if s == SETTLED_NO)
+    if unsettled:
+        sys.stderr.write(
+            "capture_screenshots: captured %s BEFORE the layout reported itself settled "
+            "(INV-298) — the image shows an unfinished layout, which looks like nodes "
+            "clumped rather than spread. The `settled` field in the tab manifest records "
+            "this per tab. Do NOT re-run expecting a different result: measured 2026-09-03, "
+            "the layout advances ~5 of the ~300 ticks it needs regardless of the "
+            "virtual-time budget, because the simulation is driven by requestAnimationFrame "
+            "and headless virtual time does not advance it "
+            "(specs/graph-capture-budget-does-not-converge-at-truth-set-density.md).\n"
+            % ", ".join(unsettled)
+        )
+    unknown = sorted(t for t, s in _SETTLE_BY_TAB.items() if s == SETTLED_UNKNOWN)
+    if unknown:
+        sys.stderr.write(
+            "capture_screenshots: could not read the settled signal for %s — this backend "
+            "cannot inspect the DOM, so whether the layout finished is UNKNOWN rather than "
+            "known-bad (INV-298). Recorded as `unknown` in the manifest.\n"
+            % ", ".join(unknown)
+        )
 
     if not written:
         # Two different failures used to share one message, and the shared wording named
@@ -1260,6 +1636,11 @@ def main(argv=None) -> int:
 
     for path, label in written:
         print(f"{os.path.relpath(path)}\t{label}")
+    if duplicates:
+        # Exit non-zero even though other tabs captured: the run produced a keepsake with
+        # holes in it, and a zero exit is what let the original defect through the
+        # module's completion gate.
+        return 1
     return 0
 
 

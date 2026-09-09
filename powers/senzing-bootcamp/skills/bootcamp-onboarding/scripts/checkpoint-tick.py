@@ -23,8 +23,8 @@ Non-blocking and silent apart from that one reminder: the checkpoint's own statu
 to stderr (see recap_checkpoint.py), never to stdout, which for this event carries a
 structured JSON payload.
 
-Cross-platform: invoked in exec form (``python3 <path>``) so no shell is required on
-any platform (INV-052).
+Cross-platform: invoked as a ``type: command`` hook whose ``command`` names the
+interpreter and this script, quoted (``python3 "<path>"``), per INV-052.
 """
 import json
 import os

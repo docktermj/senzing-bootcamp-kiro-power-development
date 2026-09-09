@@ -43,9 +43,12 @@ connections between entities using `find_network` and `find_path`.
    (re-verified on MCP server 1.32.2, docs indexed 2026-07-29 11:11 UTC, 2026-07-31).
    **The two documents differ in exactly one key — the array you index by.** `find_path`
    returns its edges under **`ENTITY_PATH_LINKS[]`**; `find_network` returns them under
-   **`ENTITY_NETWORK_LINKS[]`**. Everything else matches: both carry `ENTITIES[]` and
-   `ENTITY_PATHS[]` with the same sub-fields, and **both link elements carry the same seven
-   fields**, which is what makes the array name the one difference a shared parser misses.
+   **`ENTITY_NETWORK_LINKS[]`**. Everything else matches **across the two documents**: both carry
+   `ENTITIES[]` and `ENTITY_PATHS[]` with the same sub-fields (`START_ENTITY_ID`, `END_ENTITY_ID`,
+   `ENTITIES[]`), and **both link elements carry the same seven fields**, which is what makes the
+   array name the one difference a shared parser misses. ⛔ **That is a claim about the two
+   DOCUMENTS and nothing more — it does not mean the endpoint convention is uniform.** See the
+   within-response trap below, which this sentence would otherwise talk you out of noticing.
    `find_network` returning `ENTITY_PATHS[]` is the sharpest edge of it — seeing "PATH" in a
    network response is not evidence that `ENTITY_PATH_LINKS[]` is there.
    **The matching-info flags are paired, not shared:** `SZ_FIND_PATH_INCLUDE_MATCHING_INFO`
@@ -67,6 +70,28 @@ connections between entities using `find_network` and `find_path`.
    unverified caution. **Run the lookup and dump anyway** — its coverage grows, this entry is proof of
    that, and the dumped element remains the authority for what your installation returns (INV-080).
    An empty or shallow result is still coverage, not a failed call — do not retry it (INV-149).
+
+   ⛔ **The second wrong endpoint guess, and the worse one: ONE `find_network` response uses two
+   different endpoint conventions.**
+
+   | Array in that one response | Endpoint keys |
+   |---|---|
+   | `ENTITY_PATHS[]` | `START_ENTITY_ID` / `END_ENTITY_ID` — **directed** |
+   | `ENTITY_NETWORK_LINKS[]` | `MIN_ENTITY_ID` / `MAX_ENTITY_ID` — **undirected**, normalized low-to-high |
+
+   (Re-verified on MCP server 1.32.9, 2026-08-17, via `get_sdk_reference(topic='response_schemas',
+   filter='find_network', language='java')`.)
+
+   ⚠️ **`START_`/`END_` is the natural wrong guess precisely BECAUSE the sibling array in the same
+   response uses it** — unlike the `ENTITY_ID`/`RELATED_ENTITY_ID` guess above, which comes from a
+   different call's shape. The reason for the split is what makes it stick: **a link is an unordered
+   pair, a path is directed**, so a link normalizes its endpoints and a path preserves its
+   direction. Read the endpoint names off a link element, never off a path.
+
+   Observed cost: all **38 edges** of a corporate hierarchy printed `null -> null`, with no error —
+   and a silently empty edge list is indistinguishable from *"this data has no relationships"*, which
+   is the wrong conclusion to hand an analyst in the capability the fraud-detection pattern leans on
+   hardest.
 
    ⛔ **Per-record source values do not come from `JSON_DATA` on an entity call.** The get_entity
    schema lists `RECORDS[].JSON_DATA.*` paths, but the flag that produces them

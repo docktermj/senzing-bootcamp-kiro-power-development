@@ -20,7 +20,15 @@ Continues from Phase 1 (`phase1-visualization.md`). Follow `../bootcamp-onboardi
 >
 > - **The snapshot agrees with the app the bootcamper saw:** its tab set matches the running
 >   server's current tab set. Both are generated from the same source, so this is a cheap textual
->   comparison — count and compare the tab identifiers in the saved HTML against the server's. A
+>   comparison — count and compare the tab identifiers in the saved HTML against the server's.
+>   ⛔ **Match on `id="tab-<name>"` — that is the marker the identifiers are written with**, and the
+>   set is the six of INV-155 (`tab-graph`, `tab-stats`, `tab-matchkeys`, `tab-features`,
+>   `tab-overlap`, `tab-probe`). ⛔ **A comparison that finds ZERO identifiers on both sides has not
+>   passed — it has not run (INV-265).** On a dry run the first attempt matched `data-tab="…"`, found none in
+>   either file, and reported "tab sets match: True"; `data-tab` appears **nowhere** in the
+>   generated app. So assert a non-zero count on both sides before comparing them, and treat an
+>   empty match as a broken check rather than agreement — a check that passes by comparing nothing
+>   certifies exactly what it never looked at. A genuine
 >   divergence means the visualization changed after the snapshot was built (Phase 1, 2.4b) and the
 >   snapshot was never rebuilt.
 >
@@ -95,10 +103,21 @@ permanent. Work through 1–4 in order; do not hoist the purge.
    lifetime" → "Identifying the server process":
    - Send a termination signal to the **pid recorded in Phase 1 (2.3)**, in
      `truthset_visualization.checks.web_service.pid`.
-   - If no pid was recorded (a session resumed across older progress state), find the listener by
-     the recorded port instead: `lsof -ti:<port>` on Linux/macOS,
+   - **Fall back to the port whenever the pid does not stop the server — a missing pid is only
+     one of the two cases.** The other is a pid that *is* recorded, whose kill **exits 0**, and
+     whose port stays bound: the recorded value was a subshell rather than the server (see
+     `phase1-visualization.md` 2.3). Treat "the recorded pid is gone but the port still answers"
+     exactly like "no pid was recorded" — the same port lookup resolves both, and this is the case
+     that actually occurred on a dry run. Find the listener by
+     the recorded port: `lsof -ti:<port>` on Linux/macOS,
      `Get-NetTCPConnection -LocalPort <port> | Select-Object -ExpandProperty OwningProcess` in
      PowerShell.
+   - ⛔ **On the `docker` path both of those are host-shell routes and the container has neither
+     tool (INV-223 still governs: terminate by pid, confirm the port)** — no `procps`, no `lsof`. Signal through the shell builtin
+     (`docker exec <container> sh -c 'kill <pid>'`) using the pid INV-223 required the launch to
+     record, and probe the port with `python3`, never with `lsof`. **The kill's exit status is not evidence the server stopped; the port is.** Full rule
+     and the reason, stated once (INV-300):
+     `visualization-api-reference.md` → "Server lifetime" → "Identifying the server process".
    - ⛔ **Never `pkill -f <script name>`** (or any other command-line pattern match). The pattern
      appears in the matching command's own command line, so it signals the invoking shell: on a dry
      run this killed the shell mid-teardown with exit code 144, leaving the records loaded, the
@@ -150,8 +169,11 @@ graduation's reconcile backfill (INV-085/INV-086/INV-087):
    Step 3. (This module's module-start banner/journey/before-after/step-overview were already shown at
    its module start in Phase 1, so only its close is presented here.)
 4. **Transition to the next module:** ask the single transition question (once), then on an
-   affirmative reply produce the next module's start banner, journey map, before/after framing, and
-   step overview per the ground rules.
+   affirmative reply **(INV-272) acknowledge it in one short visible line naming that module before invoking
+   its skill** (the ground rules' acknowledge clause and
+   `../bootcamp-onboarding/module-completion.md` Step 4 own the ordering — a skill invocation and its
+   file reads emit nothing the bootcamper can see), then produce the next module's start banner,
+   journey map, before/after framing, and step overview per the ground rules.
 
 👉 **Are you ready to move on to the next module: {next module name}?**
 

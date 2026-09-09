@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "senzing-bootcamp",
-  "version": "0.5.1",
+  "version": "0.5.3",
   "description": "Guided Senzing entity resolution bootcamp. Use when learning Senzing, working through the bootcamp modules, or onboarding to entity resolution.",
   "author": { "name": "Senzing", "url": "https://senzing.com" },
   "license": "Apache-2.0",
@@ -11,7 +11,7 @@
   "extensions": {
     "com.senzing.bootcamp": {
       "templateRepository": "https://github.com/Senzing/senzing-bootcamp-claude-plugin",
-      "templateRelease": "0.5.1",
+      "templateRelease": "0.5.3",
       "contractVersion": 1
     }
   }

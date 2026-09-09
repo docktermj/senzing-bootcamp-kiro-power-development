@@ -20,8 +20,8 @@ resume — see docker_lifecycle.py, INV-101). Silent and non-blocking: it emits 
 output, and every container step is optional and warns-and-continues when that
 runtime's CLI is absent or errors.
 
-Cross-platform: invoked in exec form (``python3 <path>``) so no shell is required on
-any platform (INV-052). Python is already a hard bootcamp dependency.
+Cross-platform: invoked as a ``type: command`` hook whose ``command`` names the
+interpreter and this script, quoted (``python3 "<path>"``), per INV-052. Python is already a hard bootcamp dependency.
 """
 import sys
 

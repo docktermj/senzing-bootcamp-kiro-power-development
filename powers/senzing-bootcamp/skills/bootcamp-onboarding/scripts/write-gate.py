@@ -14,7 +14,8 @@ Two independent checks, governed by two different invariants:
   license blobs are blocked whatever the path. Runs independently of the location logic
   and fails closed.
 
-Cross-platform: invoked in exec form (``python3 <path>``) so no shell is required.
+Cross-platform: invoked as a ``type: command`` hook whose ``command`` names the
+interpreter and this script, quoted (``python3 "<path>"``), per INV-052.
 Native JSON parsing replaces the previous grep/sed field extraction.
 """
 import json

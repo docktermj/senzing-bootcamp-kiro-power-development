@@ -170,11 +170,11 @@ The Power maintains **behavioral parity** with the template: the same skills, tr
 
 ### Requirement 9: Represent template commands as trigger-phrase skills
 
-**User Story:** As a Bootcamper, I want to start, graduate, and give feedback through natural trigger phrases, so that I can use the bootcamp without plugin-level slash commands that Kiro does not support.
+**User Story:** As a Bootcamper, I want to reach every capability the Template_Release exposes as a command — starting, graduating, giving feedback, taking a note, packaging the bootcamp — through natural trigger phrases, so that I can use the bootcamp without plugin-level slash commands that Kiro does not support.
 
 #### Acceptance Criteria
 
-1. THE Bootcamp_Power SHALL represent each of the three Template_Release commands, start-bootcamp, graduate, and bootcamp-feedback, as exactly one corresponding skill, producing three command-derived skills in total.
+1. THE Bootcamp_Power SHALL represent each command declared by the resolved Template_Release as exactly one corresponding command-derived skill, and SHALL NOT provide a command-derived skill representing a command the resolved Template_Release does not declare. *(A count is deliberately not stated: the command set is derived from the resolved Template_Release, the same way Requirement 7's skill inventory is, for the reason recorded as design defect D1. Release `0.5.1` declared three commands — `start-bootcamp`, `graduate`, `bootcamp-feedback`; release `0.5.3` declares five, adding `bootcamp-note` and `package-bootcamp`. A command's name and its skill's name need not match: `graduate` is represented by the skill `graduate-bootcamp`, so the correspondence is carried by a declaration in the skill's frontmatter rather than by its directory name.)*
 2. THE Bootcamp_Power SHALL include exactly one trigger phrase in the description of each command-derived skill.
 3. THE Bootcamp_Power SHALL ensure each command-derived skill's trigger phrase is distinct from the trigger phrases of the other command-derived skills, so that no single Bootcamper statement matches more than one command-derived skill.
 4. WHEN a Bootcamper states the trigger phrase for a command-derived skill, THE Bootcamp_Power SHALL activate the corresponding skill.

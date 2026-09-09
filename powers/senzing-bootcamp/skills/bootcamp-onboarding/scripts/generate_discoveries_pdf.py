@@ -890,7 +890,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not source_path.exists():
         sys.stderr.write(f"Input not found: {source_path}\n")
         return 1
-    source = source_path.read_text(encoding="utf-8")
+    try:
+        source = source_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        # Exists but is not UTF-8 — an editor that saves cp1252/ANSI is the usual cause.
+        # Refuse with a message the guide can relay rather than a traceback, and write no
+        # PDF (INV-110). Do NOT re-read with errors="replace": the document is the
+        # bootcamper's, and silently mangling their text is not ours to do.
+        sys.stderr.write(
+            f"Input is not valid UTF-8: {source_path} ({exc}). No PDF written. "
+            f"Re-save it as UTF-8 and run this again.\n"
+        )
+        return 1
 
     doc = parse_discoveries(source)
     if args.subtitle is not None:

@@ -119,6 +119,13 @@ The Senzing MCP server is the primary and preferred source; it always takes prec
       **raw.githubusercontent.com**, while a per-source call returns `citation.download_url` pointing
       at **mcp.senzing.com**. Read the URL you actually intend to use rather than the field name
       (same server and date).
+      - ⛔ **(INV-292) A 403 on that fallback is a REFUSAL, not a throttle — do not retry it.**
+        `source_download_url` carries a third-party host, and a backoff changes nothing: switch
+        back to `citation.download_url` and continue from there. This step runs **before**
+        Module 4, so its download contract (`../module-04-data-collection/SKILL.md`) does not
+        reach the Bootcamper first; the remedy is stated here rather than assumed.
+      - ⛔ **(INV-292) Never set a misleading User-Agent to get around it** — beyond being the
+        wrong habit to teach, it was measured not to work.
    2. ⛔ **Name the egress host from the URL you chose, per dataset.** `mcp.senzing.com` for the
       MCP-hosted download; for `source_download_url`, whatever host it carries — for the Truth Set
       that is **`raw.githubusercontent.com`**, *not* `senzing.com`. The MCP server's own instructions
@@ -150,6 +157,13 @@ The Senzing MCP server is the primary and preferred source; it always takes prec
 4. **Both unavailable:** report both failures with remediation (verify MCP connectivity; verify
    the fallback is reachable; say "retry"). Then offer a clearly labeled **non-deterministic**
    CORD collection that exercises the visualization but has no ground-truth key:
+
+   ⛔ **(INV-293) Precede the question with the real-data disclosure** — one line, in the same turn, before
+   the 👉: CORD is real public and commercial records, historical snapshots for evaluation rather
+   than operational use. The sample-data tool's contract requires this of every caller, and this
+   path reaches CORD without passing through Module 4's wording. The canonical sentences are in
+   `../module-04-data-collection/SKILL.md` (Step 2's CORD block). It is a statement, not a gate the bootcamp
+   specifies (INV-247), and it does not count against INV-251.
 
    👉 **The Truth Set is unavailable. Would you like to visualize a non-deterministic CORD collection (Las Vegas, London, Moscow) instead?**
 
@@ -192,8 +206,17 @@ Whatever the language, the server MUST reproduce the reference's behavior:
 
 - Build the entity model from the loaded records — one `get_entity_by_record_id` call per record,
   requesting the default entity flags (which include all relations) so it never queries the
-  database directly. Get the exact SDK method, flag, and attribute names from the Senzing MCP tools
-  (`sdk_guide` / `get_sdk_reference` / `generate_scaffold`), never from training data (INV-080).
+  database directly. Get the exact SDK method, flag, and attribute names from the Senzing MCP
+  tools (`sdk_guide` / `get_sdk_reference` / `generate_scaffold`), never from training data
+  (INV-080).
+  - ⚠️ **(INV-289) One call per record is correct HERE, and is scoped to the Truth Set.** Its
+    record file is the authority on what was loaded, and 84 entities is 84 round trips. It does
+    **not** carry to the Bootcamper's own datastore:
+    `../module-07-query-visualize-discover/phase1-query-visualize.md` requires the **export
+    stream** there, because a records-file build costs one round trip per record and can only see
+    entities that have a record in the file it was handed — an embedded-master record the mapper
+    emitted into no input file is invisible to it. Say this when handing the server forward, so
+    the strategy does not travel by resemblance.
 - Serve the JSON APIs — `/api/stats`, `/api/graph`, `/api/merges`, `/api/records`, `/api/search`,
   `/api/why`, `/api/how`, `/api/overlap`, `/api/matchkeys`, `/api/features` — with the exact
   response shapes in `visualization-api-reference.md`. That contract is the authority on the
@@ -203,6 +226,18 @@ Whatever the language, the server MUST reproduce the reference's behavior:
   entity surface must offer.
 - Serve the live D3 v7 page as a **single consolidated, tabbed app** (all tabs in 2.4), and write a
   self-contained standalone HTML snapshot.
+- ⛔ **(INV-122) Implement `?tab=<id>` and `?q=<text>` deep-linking, applied at the end of `init()`** — after
+  the async data load and `buildNav()` have settled. It is specified under *"Tab identifiers and
+  deep-linking (required)"* in `visualization-api-reference.md`, and it is **not decoration: it is
+  the only way a tab of the LIVE app can be selected for a screenshot.** `capture_screenshots.py
+  --url` drives a live server solely by appending `?tab=`; the injected `activate()` with its
+  `#navbtn-` click fallback runs against a saved **snapshot** only. ⚠️ **A server with every tab,
+  section id and nav id correct but no deep-linking is indistinguishable from a correct one until
+  you open the images** — it serves its default tab for every request, so the capture writes one
+  correctly-named PNG per tab, all showing the same tab, and they reach the recap captioned as
+  tabs they do not show (observed 2026-08-28: six files, five distinct images, two byte-identical,
+  exit 0). The capture step now refuses to run against such a server instead of writing them, so
+  this is a prerequisite for completing the module, not a nicety.
 - **Render offline (INV-091):** inline the vendored D3 at
   `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/vendor/d3.v7.min.js` (skill-relative fallback:
   `../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`, INV-252) into both
@@ -282,6 +317,26 @@ proceed to the live server: fix the underlying cause (regenerate faulty code fro
 re-run SDK initialization from Module 2 / System Verification; check `config/engine_config.json`)
 and retry until the snapshot is written — the module does not complete without it.
 
+⛔ **Run the encoding self-check against the running server BEFORE capturing — and stop on a
+mismatch (INV-270, INV-259, INV-265).** Fetch the graph endpoint and compare the number of distinct color keys the legend names
+against `encoding_check.distinct_source_set_keys` (the contract's "The encoding self-check" defines
+both). They MUST be equal; fewer legend keys means nodes are colored by one member of their source
+set rather than the whole set (INV-259), which renders every cross-source entity as single-source
+under a legend saying otherwise. **On a mismatch, fix the encoding and re-render before capture** —
+the screenshots persist into the recap and the production project, so capturing first ships the wrong
+picture.
+
+⚠️ **Report `not exercised`, not `passed`, when `encoding_check.status` is `not_exercised`** — fewer
+than two distinct source-set keys means the comparison could not have failed (INV-265). Say which of
+the two happened; do not report silence as agreement.
+
+⛔ **On the Truth Set, expect a real verdict — `not_exercised` here is a signal, not the norm (INV-270).** The
+Truth Set registers **three** data sources (CUSTOMERS, REFERENCE, WATCHLIST — 159 records;
+`get_sample_data(dataset='truthset', source='list')`, server 1.33.0, 2026-08-28) and resolves
+entities across them, so the check has teeth in **this** module, not only in Module 7 step 3c
+against the bootcamper's data. If it reports `not_exercised` here, fewer sources loaded than the
+Truth Set carries — investigate that before moving on.
+
 **Capture screenshots for the recap (optional, non-blocking).** Defer this until the live server is
 running (2.3) and capture from **`--url http://localhost:<port>`** — substituting the port the
 server was **actually started on** in 2.3, which is `8080` only when that port was free (INV-172).
@@ -291,6 +346,36 @@ Search / Probe tab shows real results — the standalone snapshot has no engine,
 inert. `{name}` = `truthset_verification`. Follow
 `../bootcamp-onboarding/module-completion.md` → "Capturing visualization screenshots", including its
 rule that every caption is derived from the opened image and its tab label, never from the plan.
+
+⛔ **The capture tool is bundled — run it, do not assess whether automation exists.**
+`${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/capture_screenshots.py` (INV-185; skill-relative fallback
+`../bootcamp-onboarding/scripts/capture_screenshots.py`, INV-252). It tries several headless backends itself and
+writes both the PNGs and a `<name>-tabs.json` coverage manifest that graduation reads:
+
+```bash
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/capture_screenshots.py" \
+  --url "http://localhost:<the port 2.3 actually bound>" \
+  --name truthset_verification --tabs all --query "<a name present in the Truth Set>"
+```
+
+⛔ **"No headless capability" is a conclusion the helper reaches and reports, never one you reach
+first.** Enter the silent-skip path on its **exit code**, never on an assumption that browser
+automation is unavailable — and here that assumption is **unrecoverable**: this module purges its
+records at close, so a live capture missed now cannot be re-taken by anyone, ever. Module 7's
+equivalent was recovered at graduation only because its server could be restarted; this one was
+permanently lost on the run that found this defect.
+
+⛔ **The reported reason is INV-122's requirement, not a courtesy.** The helper MUST distinguish
+"no headless capability" from "no requested tab exists" — which is why its exit code is the
+authority here and your own assessment is not.
+
+⛔ **Embed in the app's own tab order — never in capture or append order, and never in
+filename-discovery order.** The ordering authority is the tab table in
+`visualization-api-reference.md`, whose row order *is* the
+order the app presents its tabs; cite it rather than restating the list, or the two orders fork (INV-300).
+⛔ **A caption must never imply a result set the image does not show.** Where Search / Probe was
+captured empty or inactive, say so in the caption — an undisclosed empty panel reads as the data
+having nothing in it (INV-123).
 
 If the server could not be started, fall back to `--html docs/visualizations/truthset_verification.html`
 and either omit the Search / Probe tab or caption it as the inactive state. If no headless capability
@@ -305,9 +390,16 @@ server is gone and the Truth Set data cannot be re-served, so a missed capture i
 ### 2.3 Start the live web app
 
 Start the server as a background process you can stop later in Step 4 (Cleanup), serving the loaded
-records on port 8080. For Python:
+records on port 8080. ⛔ **(INV-001, INV-002) The launch below backgrounds with a plain `&` from the shell that sourced
+the env script, and that is deliberate — on macOS, wrapping it in `nohup`, `env` or a nested
+`bash -c` strips `DYLD_*` and the server cannot find the native library.** The contract's
+"Server lifetime" section states the rule and the symptom; do not "improve" this line into a
+`nohup`. For Python:
 
 ```bash
+# Source the project env in the CURRENT shell, as its own statement (see the hazard below).
+. src/scripts/senzing-env.sh
+
 python3 <viz-server-path> \
   --records src/system_verification/truthset_data.jsonl \
   --title "Senzing Truth Set" \
@@ -315,6 +407,22 @@ python3 <viz-server-path> \
   --port 8080 &
 VIZ_PID=$!
 ```
+
+⛔ **Source the env on its own line. If the launch is written `A && B &`, `$!` is the subshell, not
+the server.** `&` binds to the whole `&&` list, so the shell backgrounds a subshell and the server
+becomes its child with a different pid — and Step 2 requires the env sourced before anything that
+touches the Senzing library, which makes `. src/scripts/senzing-env.sh && python3 <server> … &` the
+obvious way to write it. Measured on bash: composed that way the recorded pid and the server's pid
+differ by two, `kill <recorded pid>` **exits 0**, the subshell disappears, and the port stays bound
+by the still-running server. Written as above, `$!` and the server's pid are the same number.
+
+⛔ **Record the pid only from a line whose sole backgrounded command IS the server.** A silently
+wrong pid is worse here than a missing one: `phase2-close.md`'s port-based fallback triggers on
+**absence**, and this failure presents as **presence** — a handle that looks recorded, kills
+something, and reports success.
+
+The PowerShell counterpart does not have this hazard: `Start-Process … -PassThru` returns the
+process object itself, so `$proc.Id` is the server whatever preceded it on the line.
 
 For any other language, start your server's equivalent. It should report a URL like
 `http://localhost:8080`. If port 8080 is in use, use a different port and tell the Bootcamper the

@@ -22,9 +22,31 @@ Suggested queries:
 
 - "Senzing principle-based entity resolution approach"
 - "entity resolution relationships disclosed discovered"
-- "entity resolution ambiguous match possible match"
+- "ambiguous matches invisible false positives"
 - "Senzing differentiators real-time explainability attribution"
-- "entity resolution pipeline standardization blocking scoring clustering"
+- "How does entity resolution work steps process"
+- "entity resolution false positives false negatives accuracy"
+
+⚠️ **All six were MEASURED, one at a time, not composed.** Each was run against the live index and
+kept only because it returns the material it is for — **MCP server 1.35.3, docs index 2026-09-01
+11:58 UTC**. `search_docs` is BM25, so a plausible-sounding phrase is not evidence of anything, and
+**two of these six were wrong when they were checked**:
+
+- *"entity resolution ambiguous match possible match"* returned **three Entity-Centric-Learning
+  chunks and no ambiguous-match material at all** — the composed phrase loses to chunks with a
+  denser concentration of `entity`/`resolution`/`match`. Replaced with wording from the
+  documentation's own section heading; it now returns *"What Are Ambiguous Matches and Invisible
+  False Positives?"* at **rank 1** (94.7), with two further ambiguous-match sections behind it.
+- *"entity resolution pipeline standardization blocking scoring clustering"* named five real
+  pipeline stages and reached **none of them** — rank 1 was a customer case study, rank 2 the MCP
+  server's own page. Replaced; the query now returns the *"How Does Entity Resolution Work?"*
+  section at **rank 1** (108.7), which is the numbered pipeline itself.
+
+⛔ **(INV-291) Both were found by running them, and neither was findable by reading them** — they are
+well-formed, on-topic and use the right technical vocabulary. So if you change an entry here, **run
+it first**, and if the index date above has moved, re-run all six rather than trusting this note.
+The false-positives entry is the standing example of a *good* result that still needs reading: its
+rank 1 is a case study and the material it is for is at rank 2.
 
 ⛔ **Prefer these queries, and when a query returns nothing relevant, RE-QUERY with the
 documentation's own phrasing before concluding the material is not covered.** (INV-212 — the
@@ -56,12 +78,36 @@ claim cannot be corroborated, say so and present only what the MCP server suppor
 MCP-only — never fall back to training data. Scope this to substantive claims, not conversational
 replies.
 
-## What to teach (generic concept, plain language)
+## What to teach (not Senzing-proprietary, plain language — still MCP-sourced)
+
+⛔ **"Not Senzing-proprietary" describes where the IDEA comes from. It is never an exemption from
+the pre-response checklist (INV-080).** Everything below is an entity-resolution technical detail,
+so `ground-rules.md`'s MCP-first rule applies to it exactly as it applies to the Senzing-specific
+subsection beneath: a reply covering blocking, scoring, classification or clustering requires an
+MCP call **on that turn**. The two labels sit on different axes — *attribution* (is this
+proprietary to Senzing?) versus *sourcing* (is this a claim about how entity resolution works?) —
+and only the second decides whether a call is needed. The heading used to read "generic concept",
+which licensed this material as prose while the checklist required it be sourced; a guide taking
+that at face value presents the pipeline from training data, and it will usually be roughly
+right, which is exactly why nobody notices when it is not.
+
+**Nothing is lost by requiring the call:** the material is fully retrievable, and the two queries
+that reach it are in the suggested list above — the requirement travels with its route, per
+INV-212 (verified on server 1.33.0, docs index 2026-08-20 17:33 UTC, 2026-08-23). One caveat on reading those results: for both queries the on-topic section
+is **not** the top hit — a Verisk case study and other marketing pages outrank it — so read down
+the list for *"What Is Entity Resolution? How It Works & Why It Matters."* rather than presenting
+the first row.
 
 - **What entity resolution is:** deciding whether different records refer to the *same
   real-world entity* (person or organization), then matching, relating, and deduplicating them.
 - **Two failure modes:** false negatives (same entity split apart) and false positives
-  (different entities merged).
+  (different entities merged). The documentation carries a sharper framing of the second worth
+  using — an **ambiguous match** (a record that could legitimately belong to more than one
+  entity) which most systems assign arbitrarily, producing an **invisible false positive** that
+  "looks correct on inspection" and is undetectable until more information arrives; the
+  well-designed behavior is to hold it as a *possible match* until a distinguishing attribute
+  breaks the tie. Reached by the false-positives query above (`search_docs` →
+  *"What Are Ambiguous Matches and Invisible False Positives?"*).
 - **The conceptual pipeline:** ingestion/standardization -> candidate selection (blocking) ->
   comparison/scoring -> classification (match / no-match / possible-match) -> entity clustering.
 - **Disclosed vs. discovered relationships.**
@@ -73,6 +119,24 @@ replies.
 Cover, using `search_docs` results: principle-based matching (frequency, exclusivity,
 stability); pre-configured for people and organizations; differentiators (real-time, no model
 training required, explainability, scalability).
+
+⛔ **Use `"Senzing principle-based entity resolution approach"` for this, and do NOT compose a query
+from the words "frequency exclusivity stability" (INV-212 — the retrieval strategy belongs at the
+step, and a step that names an outcome without a route leaves the guide to invent one).** The suggested query returns *"What is Principle
+Based Entity Resolution?"* → *"Benefits of the Senzing Principle Based Approach"*, which is primer
+altitude and carries the idea plainly — principles are "based on the expected behaviors of entity
+attributes", with the worked contrast that SSNs "typically point to only one person" while dates of
+birth "are shared by many people".
+
+⚠️ **The obvious self-composed query lands at the wrong altitude.**
+`search_docs('Senzing principles frequency exclusivity stability attribute behavior')` returns the
+**A1ES behavior-code** material as its top hits (verified server 1.33.0, docs index 2026-08-20
+17:33 UTC, 2026-08-23): an FAQ on composite behavior codes, then ~8 KB of `addFeature`,
+`sz_configtool`, `FTYPE_FREQ`/`FTYPE_EXCL`/`FTYPE_STAB` and stewardship guidance aimed at someone
+customizing an engine configuration. It is not wrong — it does name all three dimensions — but it is
+**configuration guidance, not primer material**, and presenting it here buries a simple idea under
+`MDM_ID` and `A1ES`. This is the self-composed-query hazard the hard rule above describes, with a
+measured instance: use the three words to *explain* the concept, never as the query.
 
 ## Invite questions/discussion (before the knowledge check)
 
@@ -162,7 +226,7 @@ On **accept** ("yes", "sure", "let's try"), run the knowledge check under these 
   choices never joined with "or". Do **not** pose open-ended items ("explain why principle-based
   matching beats hand-written rules") — however good the question, it fits neither INV-051's
   numbered shape nor INV-008's single-meaning-answer requirement, and it makes "was that correct?"
-  a judgement call instead of a fact. Keep the *thinking* conceptual and the *answer format*
+  a judgment call instead of a fact. Keep the *thinking* conceptual and the *answer format*
   closed.
 - ⛔ **When the answer is wrong, say so — and re-teach.** This is the highest-value moment in the
   knowledge check, and it is the one a guide optimizing for encouragement gets wrong. Do all three:

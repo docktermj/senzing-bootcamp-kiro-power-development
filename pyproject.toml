@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "senzing-bootcamp-kiro-powers-development"
+name = "senzing-bootcamp-kiro-power-development"
 version = "0.0.0"
 description = "Deterministic transformation pipeline and maintainer Power that generate the Senzing Bootcamp Kiro Power from a Senzing Bootcamp Claude plugin release."
 readme = "README.md"

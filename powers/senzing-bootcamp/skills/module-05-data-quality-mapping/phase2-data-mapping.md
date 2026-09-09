@@ -87,7 +87,8 @@ ground-rules file-placement contract:
   `.md` → `docs/`; config JSON → `config/`; data → `data/`.
 - **Transient run artifacts stay in the workspace while the run is in progress:** the workflow
   reads and writes them for its own use. Do NOT relocate, delete, or redirect these mid-run:
-  `profile_report.md`, `schema_hints.md`, `JOURNAL.md`, and generated JSONL output.
+  `profile_report.md` (or the `profile_report_<stem>.md` files a multi-file start writes),
+  `schema_hints.md`, `JOURNAL.md`, and generated JSONL output.
 - **After the run for a source completes (after the iterate/finalize step), relocate the
   transient artifacts to their durable homes — and source-qualify the three mapping-phase
   Markdown filenames as you do:** `profile_report.md` → `docs/mapping/{source_name}_profile_report.md`,
@@ -95,7 +96,17 @@ ground-rules file-placement contract:
   `docs/mapping/{source_name}_JOURNAL.md`. Mapping working data (`*_mapping_spec.json`, the
   per-source `{source}_sample.jsonl`, intermediate analyzer JSONL) → `data/mapping/`. Final
   transformed, load-ready JSONL stays in `data/senzing-ready/`.
-  - ⛔ **The source qualifier is required, not tidiness.** Every source's `mapping_workflow` run
+  - ⛔ **The profile report has TWO possible filenames, and BOTH must be relocated.** A single-file
+    start writes `profile_report.md`; a multi-file start writes one
+    `profile_report_<stem>.md` **per input** (server 1.33.0, verified 2026-08-23 — see "the
+    profile-report filename depends on how many files you pass"). Relocate whichever the workspace
+    actually received: `profile_report.md` → `docs/mapping/{source_name}_profile_report.md`, and
+    each `profile_report_<stem>.md` → `docs/mapping/{source_name}_profile_report_<stem>.md`.
+    ⛔ **The rule is that NO profile report is left in the shared workspace, whatever the server
+    named it** — list the workspace and relocate every `profile_report*` file rather than matching
+    one literal name. A suffixed report left behind is the exact overwrite INV-177 exists to
+    prevent, arriving through a filename the invariant's original text did not cover.
+  - ⛔ **The source qualifier is required, not tidiness (INV-177).** Every source's `mapping_workflow` run
     uses the **same** `workspace_dir` (`data/mapping`, per step 8), and the workflow writes those
     three files there under **fixed** names — verified against the live tool: step 1's instructions
     name `<workspace_dir>/profile_report.md`, `<workspace_dir>/schema_hints.md` and
@@ -115,9 +126,10 @@ is bundled: place files directly per the contract above.)
 
 ## Calling `mapping_workflow` correctly (⛔ read before step 8)
 
-Verified against the live tool schema on 2026-07-26. Three details the workflow **cannot run
-without** — each one was wrong or missing here before, and each fails at the first call rather than
-degrading.
+Verified against the live tool schema on 2026-07-26; rule 4 added and re-verified on server
+1.33.0, 2026-08-23. Rules 1-3 are details the workflow **cannot run without** — each one was wrong
+or missing here before, and each fails at the first call rather than degrading. Rule 4 is what a
+mistake **costs**.
 
 1. ⛔ **`start` requires BOTH `file_paths` and `data.workspace_dir`.** The tool's own contract:
    "The call WILL FAIL without both", and "do NOT assume `/tmp` exists". Pass the project-local
@@ -144,6 +156,35 @@ degrading.
    opaque `state` object; pass it back exactly, never reconstructed from memory or from this
    bootcamp's own checkpoint file. (The checkpoint above is for *bootcamper-facing resume*, not a
    substitute for the server's state.) If the state is lost, restart with `action='start'`.
+
+4. ⛔ **A malformed advance costs one of five, and five ends the run.** A payload the published
+   advance schema forbids is rejected with an `ENFORCEMENT NOTICE` that names a machine-readable
+   reason code — `step2_missing_plan_key`, `step3_missing_schema_mappings` — and states the budget
+   in the server's own words: *"This is grammar-impossible advance N of 5 before this workflow
+   terminates."* The count comes back as `grammar_violation_count` in the returned `state`.
+
+   **A successful advance clears it.** Verified on server **1.33.0, 2026-08-23** by reproducing the
+   whole sequence: a bad payload at step 2 returned *"advance 1 of 5"* and
+   `grammar_violation_count: 1`; the next **valid** advance returned a `state` with the field
+   **absent**; a second bad payload, at step 3, reported *"advance 1 of 5"* again — not 2. So from
+   the caller's side it counts **consecutive** failures, not failures per run. (Whether the server
+   resets a counter or simply rebuilds `state` per step is not observable from here, and the effect
+   is the same either way, because rule 3 requires echoing the returned `state` verbatim.)
+
+   ⛔ **On a rejection, re-read the response's `advance_schema` and match it field for field —
+   do not retry a variant.** The rejection carries the exact schema for the step you are advancing
+   *from*; a second guess spends a second violation, and five in a row ends the workflow. This
+   module runs one workflow **per source**, so the budget is per source rather than per module — but
+   because the count resets, losing a run needs five consecutive misses, not five across the
+   session.
+
+   ⚠️ **A rejection is evidence about that payload, never a general map of what the tool
+   tolerates.** Not every payload the published schema fails to describe is refused — some are
+   accepted with `status: ok` and no notice at all (observed on the same server and date). So do
+   not infer from one enforcement notice which other shapes are safe, and do not infer from a
+   silent acceptance that the schema sanctions what you sent. ⛔ **Follow each step's stated shape
+   regardless** — at step 1 that means the **array** form of `profile_summary`, per the step-1
+   caution later in this file.
 
 **If a step's guidance arrives truncated mid-sentence, suspect the client read cap before the
 server.** The tool embeds each step's advance schema verbatim in `instructions` and keeps any single
@@ -202,11 +243,11 @@ nothing shown and nothing asked.
   guided mode, present the plan and end the turn on the pinned question at **step 10** before
   advancing. In the faster mode, present it and advance the same turn, which is what the tool wanted
   anyway. **Step 10 owns that question's wording** — it is pinned there and is not restated here, so
-  the two cannot drift apart (INV-183). INV-233 is why this cross-reference is safe: an instruction to
+  the two cannot drift apart (INV-183, INV-300). INV-233 is why this cross-reference is safe: an instruction to
   end the turn on a question must resolve to a pinned question that actually exists at the step it
   names.
 - **Do not weaken the mapping-verbosity offer to match the tool.** The bootcamper was promised they
-  would see each decision; honour it.
+  would see each decision; honor it.
 - ⛔ **This carve-out is about *conversation only*.** Everything else the tool says remains
   authoritative and must be followed exactly (INV-080): payload shape and the per-step advance
   schema, the opaque `state` echo, which resources to download and where, and every Senzing fact in
@@ -316,7 +357,7 @@ legacy shape with five keys — `schema_name`, `disposition`, `data_source`, `re
 `'embedded_master' requires 'record_id_source'` / `'embedded_master' requires 'embedded_in'`. Because
 no response text names it, **`embedded_in` is discoverable only by sending a payload without it and
 reading the error** — so send it from the start.
-<!-- MCP-NEGATIVE: mapping_workflow(action='advance', from step 2) — step-2 instructions never name the required embedded_in key — owner: the step-2 validator's rejection names it ('embedded_master' requires 'embedded_in'), so the error is the only route — server 1.32.9, 2026-08-13 -->
+<!-- MCP-NEGATIVE: mapping_workflow(action='advance', from step 2) — step-2 instructions never name the required embedded_in key — owner: the step-2 validator's rejection names it ('embedded_master' requires 'embedded_in'), so the error is the only route — server 1.33.0, 2026-08-21 -->
 
 **`record_id_source` is `RECORD_HASH` for the embedded entity**, because a name embedded in someone
 else's row has no per-record natural key of its own. That sentinel is not a placeholder — step 4
@@ -324,6 +365,12 @@ defines its behavior: *"If it is the sentinel `RECORD_HASH` … generate `RECORD
 deterministic hash over that entity's stable IDENTITY fields only — never the whole record (a
 whole-record hash re-keys on any change, creating duplicate/stale entities)"*. It is the same hash the
 EMBEDDED MASTER RULES below require, reached from the plan side.
+
+⚠️ **Choosing the sentinel here decides a step-4 outcome: it widens the verbatim check's REL_*
+rejection to include `REL_ANCHOR_KEY` and `REL_POINTER_KEY`.** A hashed RECORD_ID appears nowhere in
+the source, so the keys mirroring it are unharvestable too. That is expected, not a mapping defect —
+limitation 2 under "Four further limitations" has the condition and the offender-count check that
+distinguishes it from one.
 
 On success the server **moves the field count**: the embedded entry's `field_count` is subtracted from
 the parent's, so a 19-field source declaring 1 embedded field returns `parent: 18, embedded: 1`. Seeing
@@ -348,7 +395,7 @@ embedded: {'disposition': 'derived', 'derived_as': 'REL_ANCHOR',  'domain': '<DS
 ⛔ **Never silently downgrade a bootcamper's choice to `payload`.** Offer the decision **at step 3**,
 where the values are in front of them, and state the trade-off both ways — a resolvable entity and
 more records, against a string that never matches. If the bootcamper asks for the entity, carry it
-out. If it will not be modelled — they declined, or going back is not possible — **say so and record
+out. If it will not be modeled — they declined, or going back is not possible — **say so and record
 it** in `config/data_sources.yaml`, so the outcome is visible rather than inferred from its absence.
 Mapping it to `payload` while they asked for an entity is assuming an answer they gave differently,
 which **INV-007** forbids.
@@ -390,7 +437,7 @@ Its prose (`ADVANCE FORMAT:` at the top, and again under `ADVANCING TO STEP 2`) 
 `profile_summary` as an **object keyed by schema name**:
 
 ```text
-{"profile_summary": {"<schema_name>": {"record_count": N, "field_count": N}}}   ← prose, does NOT work
+{"profile_summary": {"<schema_name>": {"record_count": N, "field_count": N}}}   ← the prose form; NOT what the schema declares
 ```
 
 while the inline JSON Schema and the `advance_schema` field — introduced as *"the EXACT contract for
@@ -398,40 +445,63 @@ the payload you send to advance FROM step 1. Match it exactly"* — define it as
 objects each requiring `schema_name`, with `additionalProperties: false` and `minItems: 1`:
 
 ```text
-{"profile_summary": [{"schema_name": "<name>", "record_count": N, "field_count": N}]}   ← works
+{"profile_summary": [{"schema_name": "<name>", "record_count": N, "field_count": N}]}   ← the array the schema declares — send this
 ```
 
-Both cannot be satisfied: the prose form carries no `schema_name` key, which the schema requires and
-`additionalProperties: false` forbids substituting. **Resolved empirically, not by preference** — the
-array form advanced successfully to step 2. Verified on **MCP server 1.32.9**, first on 2026-08-12
-and re-confirmed the same day before this note was written. Step 2's own prose and schema **do**
-agree, so this is specific to step 1. Reported upstream; re-check whether it still applies rather
-than assuming, and if the prose is corrected, retire this note rather than inverting it.
+The two cannot both be what the contract says: the prose form carries no `schema_name` key, which the
+schema requires and `additionalProperties: false` forbids substituting. **Send the array because the
+schema declares the array** — that is the durable reason, and it is also what the typed `payload`
+branch (`for_step 1`) constrains decoding to. Step 2's own prose and schema **do** agree, so this is
+specific to step 1. Reported upstream; re-check whether it still applies rather than assuming, and if
+the prose is corrected, retire this note rather than inverting it.
 
-⛔ **Two profiler limitations to expect, both of which produce a wrong profile rather than an
+⚠️ **Do not reason from what the server happens to accept — that half has already changed once.**
+Until 2026-08-23 this note said the prose form *"does NOT work"*, verified on **server 1.32.9,
+2026-08-12** where the array form advanced. Re-measured on **server 1.33.0, 2026-08-23**: the
+object-keyed prose payload **also advances**, returning `status: "ok"` at step 2 with no
+`ENFORCEMENT NOTICE` and no `grammar_violation_count`. So the server now accepts both shapes.
+⛔ **This changes nothing about which to send (INV-136 — the guide calls a tool as its live schema
+states, not as the server happens to tolerate).** Acceptance is not a contract and can be withdrawn;
+the declared schema is the contract, and it still says array. What the change does show is that a
+caution phrased as *"that one fails"* expires while a caution phrased as *"the schema declares this"*
+does not — which is why the labels above name the contract rather than the outcome.
+
+**The profile-report filename depends on how many files you pass, and the server handles the
+multi-file case itself.** Verified on server **1.33.0, 2026-08-23** by calling
+`mapping_workflow(action='start')` twice and reading the emitted `commands` both times:
+
+- **one** `file_paths` entry → a single invocation writing `-o <workspace_dir>/profile_report.md`;
+- **more than one** → one invocation per input, each writing
+  `-o <workspace_dir>/profile_report_<stem>.md` (`profile_report_crm.md`,
+  `profile_report_orders.md`).
+
+Run the commands as issued. ⛔ **Do not concatenate the per-file reports into one
+`profile_report.md`** — that recreates the single-schema file whose silent wrongness this entry
+used to warn about, and the relocation contract above already covers both filenames.
+
+⚠️ **Server-side inconsistency, observation-only (INV-080).** At 1.33.0 step 1's *prose* still
+hardcodes the unsuffixed name in both places it names a report — *"the profiler writes a detailed
+markdown report to `<workspace_dir>/profile_report.md`"* and *"Read
+`<workspace_dir>/profile_report.md`"* — while the emitted `commands` for a multi-file start write
+the suffixed names. For a multi-file source the prose therefore points at a file that is never
+created. **Read the `commands` array, not the prose.** The Power cannot fix this; it can only stop
+depending on the prose.
+
+⛔ **One profiler limitation to expect, and it produces a wrong profile rather than an
 error.** Observed 2026-07-27 on SDK 4.3.3.26191; **reported upstream 2026-07-31** and **not re-run
-since**, so check whether they still apply rather than assuming — the numeric-value entry later in
-this file is the precedent for retiring one once the server fixes it.
+since**, so check whether it still applies rather than assuming.
 
-1. **For a multi-file source, the emitted commands write to the same output path.** A
-   `mapping_workflow(action='start', file_paths=[…, …])` returned two `sz_schema_generator.py`
-   invocations both using `-o <workspace_dir>/profile_report.md`. Run as issued, **only the second
-   file's profile survives** — and step 3 then tells you to consult `profile_report.md` for how
-   *each* source file is structured. The failure is silent: the file exists, is well-formed, and
-   describes one schema. **Profile each input to its own path** (`profile_report_<stem>.md`) and
-   concatenate, or pass all inputs to one invocation if it accepts them. Multi-file sources are
-   exactly where the profile matters most — join keys and per-schema field sets.
-2. **A headerless CSV is profiled by consuming its first data row as column names.** The profiler
+1. **A headerless CSV is profiled by consuming its first data row as column names.** The profiler
    assumes a header row. On a documented headerless source (the free-data catalog ships one, with 12
    positional columns in its README) that means **one record disappears** and every column is
-   mislabelled with a value from that row. Nothing fails — you get a confident, wrong profile, and
+   mislabeled with a value from that row. Nothing fails — you get a confident, wrong profile, and
    every step-3 mapping decision rests on it. **Write a headered copy for profiling only**, using
    the documented column order, and let the mapper keep reading the raw file positionally.
 
 ⚠️ **A column's population percentage is not a quality signal when a sentinel token is in use.** A
 null sentinel is a *value*, so the profiler counts it as present: a source using `-0-` for "no data"
 reported **100% population on all 12 columns** when 8 carried no information. Treat population as
-"has a value", never as "has information", and do not let it feed a completeness judgement —
+"has a value", never as "has information", and do not let it feed a completeness judgment —
 that distinction is INV-128's, one layer upstream of where it usually bites.
 
 ⛔ **Work around these; do not ship a patched profiler.** `sz_schema_generator.py` is
@@ -484,13 +554,64 @@ step 2 with `action='advance'`, carrying `master_schemas` (at least one, each wi
 relationships, children) in `data`. Tell the user: explain the entity type decision, which fields
 map vs. skip and why.
 
+⛔ **On a mixed-type source, send an enum-valid `record_type` and declare the mixture at step 3 —
+the step-2 prose asks for a value its own schema rejects.** Both halves are in the **same response**
+(re-read live, server **1.33.0, 2026-08-21**): the instructions say *"If a schema has mixed entity
+types discriminated by a field (e.g., type=person/company), set record_type to `"MIXED"` and note the
+discriminator field"*, while that response's `advance_schema` declares
+`record_type` as `enum: ["PERSON", "ORGANIZATION", "VESSEL", "AIRCRAFT"]` — and the typed `payload`
+branch for `for_step 2` carries the same enum, so a client using constrained decoding **cannot emit**
+the documented value at all.
+
+Sending `MIXED` is accepted and warns: `status: "ok"` plus, in `warnings[]`,
+`schema_plan[0] (<your schema>): record_type 'MIXED' is non-standard — expected one of: PERSON,
+ORGANIZATION, VESSEL, AIRCRAFT` (reproduced on the same server and date). So send the source's
+predominant type and let step 3's `type_discriminator` do the typing — which is
+what the tool's own prose says happens anyway (*"The type_discriminator details will be defined in
+Step 3 mapping"*), so nothing is lost.
+
+⛔ **(INV-136, INV-125) Step 3 rejects a source that declares BOTH organization and person name
+fields — even when no record carries both — and its message describes the wrong problem.** A source whose name fields are
+disjoint *by record type* is rejected with:
+
+```text
+NAME_ORG cannot co-exist with person name attributes NAME_FIRST, NAME_FULL, NAME_LAST — a
+record is either a person or an organization.
+```
+
+**The fix is to declare the names through `type_discriminator.field_overrides`** — including where
+the override is **identity in both branches**, declared purely to satisfy the validator. Observed on
+two sources on server **1.33.0**, 2026-08-25, and again on 2026-08-27; both had verified-disjoint
+fields (one populated per record, selected by `RECORD_TYPE`; zero rows carrying both).
+
+- ⚠️ **Read the message as "declare it differently", not "your data is wrong".** It states a
+  **record-level** rule, and the mapping already satisfied it — the rejection is about the *field
+  declarations*. A run that reads it literally spends its first attempt re-checking data that is
+  correct. The rule's authoritative scope is narrower still: the Entity Specification's `Feature:
+  NAME` section says *"do not mix `NAME_ORG` with parsed person fields **in the same object**"*
+  (`search_docs(query='entity specification attribute names feature tables NAME_ORG ADDR_LINE1
+  PHONE_NUMBER', category='data_mapping')`, server **1.33.0**, 2026-08-28) — one NAME object, not one record, and
+  certainly not one declaration.
+- ⚠️ **Expect the coverage count to drop after you apply it.** Fields moved into `field_overrides`
+  are counted by nothing, so the mapping reports fewer covered fields than it dispositions. That is
+  the known field-count warning described below — **not** unmapped data. Do not chase it.
+- ⛔ **(INV-136) Do not pre-emptively emit a `type_discriminator` on every source.** It is the fix for this
+  rejection, not a default: adding an identity override to a mapping that does not need one buys the
+  same coverage-count surprise for nothing.
+
+⚠️ **If a warning like that reaches you, it is not your error and not a mapping defect** — record it
+as expected and proceed (INV-048/INV-173). This is **one** known-bad interaction, and it does not
+license ignoring step-2 warnings generally: the others are real. And note the prose's *"must be PERSON or
+ORGANIZATION"* is wrong against its own enum — `VESSEL` and `AIRCRAFT` are valid, which a watchlist
+source can genuinely need. **Retire this note once step 2's prose and its `advance_schema` agree.**
+
 ⛔ **Before you advance, check the profile for a second entity hiding in a column.** This is the
 one structural thing step 2 commits to that step 3 cannot add later, and the profile report you read
 at step 9 already holds the evidence: scan its `Unique`, `Unique %` and frequency-annotated `Sample`
 columns for a populated text field carrying many repeating real-world names. If there is one, declare
 it as an `embedded_master` in this step's payload. See **"A second entity hiding in a column:
 `embedded_master`, and when to go `back`"** above for the three signals, the payload it requires, and
-the recovery route if this check is missed — do not restate them here (INV-183: the rule is named and
+the recovery route if this check is missed — do not restate them here (INV-183, INV-300: the rule is named and
 linked at the step that needs it, never forked into a second copy).
 
 > **Presentation (conditional on `mapping_verbosity`):**
@@ -551,6 +672,29 @@ are in this module's `SKILL.md` → "Multi-language data" (INV-212); do not re-d
 Tell the user: show
 the mapping table with reasoning for each decision and a confidence score.
 
+⛔ **A single name field maps to `NAME_FULL` — it is not split.** This is the authority Module 1 and
+Data collection route here for, so state it before mapping any name column. The specification
+documents `NAME_FULL` as the *"Single-field name when type (person vs org) is unknown or only a full
+name is provided"*, and its `NAME` rule reads *"Prefer parsed person names
+(`NAME_FIRST`/`NAME_LAST`/…) when available; use `NAME_ORG` for organizations; use `NAME_FULL` only
+when the type is unknown or only a single field exists"*
+(`search_docs(query='NAME_FULL NAME_ORG parsed person name single field', category='data_mapping')` →
+*Name > Feature: NAME*, top hit; server 1.32.9, 2026-08-17, query re-verified on 1.33.0,
+2026-08-23). "When available" means **the source provides
+separate fields** — so one `full_name` column is a direct mapping to `NAME_FULL`, and a
+`"Last, First"` column is too, however parseable it looks.
+
+⚠️ **Two further rules from the same section, because getting them wrong is silent.** Do not mix
+`NAME_FULL` with parsed name fields in one `NAME` object, do not mix `NAME_ORG` with parsed person
+fields, and do not split one name across two `NAME` objects — the specification marks all three ❌
+with worked examples. An organization name belongs in `NAME_ORG`, not `NAME_FULL`.
+
+⚠️ **This is the reversal these routes exist to prevent:** one run recorded, a module earlier, that a
+`full_name` and a `"Last, First"` `member_name` each "needed splitting" — in both
+`config/data_sources.yaml` and `docs/data_source_locations.md`, where it read as settled fact.
+Splitting them would have produced a mapping that loads and validates cleanly while degrading
+resolution quality silently, which is exactly the class a quality score cannot detect.
+
 ⚠️ **This advance is unconditional in both modes — there is no general guided-mode gate here, and
 that is deliberate.** Unlike step 10, the questions this step needs are *conditional*, and each is
 already pinned or specified where it triggers: a field the tool returns below 0.80 confidence gets
@@ -559,11 +703,54 @@ aimed at one feature family gets the shared-feature collision question below, an
 rejects twice without saying why gets its own. Present the mapping table and advance. Stated here so
 a later reader does not read the absence as the same omission step 10 once had.
 
+⛔ **Before accepting the plan: a root-level `payload` key MUST NOT be a registered feature
+attribute name.** Check every `disposition: payload` field's emitted key against the attribute
+catalog you already consult for `feature` mappings — the same lookup, asked of the other
+disposition. This runs **here**, where the routing decision is made, not after the output is
+analyzed.
+
+⚠️ **This mechanism is OBSERVATION-ONLY** — one run, one SDK build, 2026-08-17, with the bundled
+analyzer's own SCHEMA warning as the corroborating instrument (it fired on the collision and cleared
+on the rename). Observed: a field routed to `payload` but emitted under its own name at the record
+root, where that name is a registered feature attribute, was extracted by Senzing as a **feature**
+anyway — so the Bootcamper's explicit routing answer was honored in form and not in effect. Treat it
+as a strong local observation, not as a documented rule, and re-confirm before relying on it
+elsewhere (INV-080/INV-149).
+
+MCP-NEGATIVE: search_docs(query='payload attribute versus registered feature attribute record root extracted as feature precedence', category='data_mapping') — no indexed section states what happens when a payload-intended key at the record root carries a registered feature attribute's name — owner: search_docs over the Entity Specification IS the route that would carry such a precedence rule, and its *Attribute reference* section states the rule for the inside-a-feature-object case -- "Only the attributes listed here may appear inside a feature object. Anything else is treated as payload" -- while no returned section states any precedence for a record-root key whose name belongs to a registered feature, which is the case asked about (absence negative) — server 1.36.0, 2026-09-02
+
+**On a collision, do NOT silently re-route or override the answer (INV-006).** Their intent — *do
+not match on this* — is achievable; only the key **name** is wrong. Say what will actually happen
+and offer the fix, ending the turn on one pinned 👉 question:
+
+> 👉 **`{field}` is routed to payload, but `{KEY}` is a registered Senzing feature attribute — at the record root Senzing will resolve on it anyway. Shall I store it as `{KEY}_PAYLOAD` instead, so it rides along without matching?** (respond yes or no)
+
+On **yes**, emit the renamed key and record the rename in the mapping table's reasoning column. On
+**no**, record that the Bootcamper accepts the field being matched on, so the decision is theirs and
+is visible later — never leave the collision unrecorded either way.
+
+⚠️ **A list-valued field routed to `payload` is joined into ONE literal value.** A multi-valued
+column becomes a single meaningless string: the observed signature was `"XXX; VGB; GBR"` in
+**13,803 of 19,050 records** (72%). Say so before accepting a payload route on a repeating field —
+the Bootcamper usually wants either the first value, a chosen one, or the field split, none of which
+a join produces.
+
+**Surface the analyzer's SCHEMA warnings here, not only in the output analysis.** The analyzer is
+the instrument that already detects this class, and it currently reports one step too late to
+prevent it: read its SCHEMA warnings at this gate and resolve them before the plan is accepted.
+
+⛔ **The general shape, and the reason every existing gate missed this.** The analyzer, the verbatim
+check and the routing report all confirm the **output matches the plan** and the **plan is faithful
+to the source**. None of them confirms the plan does what the Bootcamper **asked for** — so an
+answer that selects a *behavior* rather than a *value* is unverified by construction, and passes
+every gate while being silently unhonored. Wherever a question's answer chooses a behavior,
+something must check the behavior was actually obtained.
+
 > ⛔ **Heads-up before you map anything with `disposition: extract` — read this now, not after the
 > gate fails.** `extract` is for pulling a value out of a prose field, and **every correct
 > multi-word extraction is rejected by step 4's verbatim gate**, by construction: the gate compares
 > whole values, `|`/`;` segments and single whitespace tokens by equality, never substrings
-> (confirmed on server 1.32.9, 2026-08-14 — see "Three further limitations" below for the mechanism
+> (confirmed on server 1.32.9, 2026-08-14 — see "Four further limitations" below for the mechanism
 > and the evidence). `extract` is not exotic: any prose field with an embedded address, date of birth
 > or identifier reaches it.
 >
@@ -572,7 +759,7 @@ a later reader does not read the absence as the same omission step 10 once had.
 > at your own correct code. Confirm the value is faithful to the source, **record the exemption and
 > its reason** in the source's mapping notes, and **proceed** — a checker limitation must not become
 > an iterate-forever loop or a blocked module (INV-048/INV-173). The four numbered steps under
-> "Three further limitations" are the full procedure; this pointer exists because that block sits
+> "Four further limitations" are the full procedure; this pointer exists because that block sits
 > below the step where the collision happens.
 
 > **Heads-up before you map a dynamic-key field.** When a value is derived from the source **field
@@ -582,15 +769,29 @@ a later reader does not read the absence as the same omission step 10 once had.
 > mapping defect. Read "⛔ A value derived from a source *field name*…" later in this step **before**
 > you get there, so an expected exit 1 does not read as a bug in your mapper.
 
-⚠️ **The field-count warning no longer fires — if one still reaches you, do not chase it.**
-Re-checked on server **1.32.9, 2026-08-14**: a step-3 advance for a 6-field master schema
-(4 `feature`, 1 `payload`, 1 `ignore`) carrying **three** `derived` entries — `DATA_SOURCE`,
-`RECORD_ID` and `RECORD_TYPE` — returned `{"status":"ok","step":4,…}` with **no field-count warning
-anywhere in the response**. That mapping is squarely inside the scope the earlier observation called
-unavoidable, so the counter appears to have been fixed upstream. Read the rest of this block as a
-conditional: it tells you what the warning meant, if you ever see it.
+⚠️ **The field-count warning is half fixed. The `derived` half is gone; the `type_discriminator`
+half still fires — and the warning now tells you which.** Both halves re-checked on server
+**1.33.0, 2026-08-21**.
 
-<!-- MCP-NEGATIVE: mapping_workflow(action='advance') from step 3 with three derived entries (DATA_SOURCE, RECORD_ID, RECORD_TYPE) — no field-count warning appears anywhere in the response — owner: the step-3 advance response is the only route that can carry this warning, and it was asked directly rather than inferred from a sibling call; it returned status ok to step 4 with no warning text (absence negative) — server 1.32.9, 2026-08-14 -->
+The **`derived` half is fixed**, and the counter now says so in its own text rather than merely
+falling silent: it reports `derived=N are synthesized and not source fields`, which is exactly the
+correct treatment.
+
+The **`field_overrides` half reproduces.** A step-3 advance for an 8-field master schema carrying a
+`type_discriminator` on one field, whose `types.*.field_overrides` declared one further source field,
+returned `{"status":"ok","step":4,…}` with:
+
+```text
+Schema 'watchlist_pep': mapping covers 7 of the 8 profiled source fields
+(dispositions: feature=2, payload=3, ignore=1, extract=0, code_mapping=0,
+ discriminator=1; derived=2 are synthesized and not source fields)
+```
+
+**Check the arithmetic against your own mapping — that is the confirmation, and you can run it
+yourself.** `feature + payload + ignore + extract + code_mapping + discriminator` sums to **7**
+against a `field_count` of 8. `discriminator=1` counts the discriminator field alone; the field
+declared only inside `type_discriminator.types.*.field_overrides` is counted by nothing. Expect the
+count to fall short by exactly the number of `field_overrides`-only fields you declared.
 
 **The earlier observation, kept as history.** Through server **1.32.3** (verified **2026-07-31**)
 step 3 emitted "mapped N fields … but profile reported M fields" on mappings using `derived` entries
@@ -601,17 +802,17 @@ wrong in both directions. Measured 2026-07-27 across four sources on SDK **4.3.3
 reported as 13 (high), and 16 reported as 14 (low), with every source field dispositioned in both
 cases. Reported upstream 2026-07-31.
 
-**Both mechanisms the diagnosis rests on are still in the schema** — re-read on server **1.32.9,
-2026-08-14**: a `derived` entry still requires a `derived_as` key whose enum is `DATA_SOURCE`,
+**Both mechanisms the diagnosis rests on are still in the schema** — re-read on server **1.33.0,
+2026-08-21**: a `derived` entry still requires a `derived_as` key whose enum is `DATA_SOURCE`,
 `RECORD_ID`, `RECORD_TYPE`, `REL_ANCHOR`, `REL_POINTER`, and `type_discriminator` is still a step-3
-field carrying its own `field_overrides`. So the shapes that produced the miscount have not gone
-away; only the warning has. That is the reason to keep this block rather than delete it — an absent
-warning today is not proof it never fires.
+field carrying its own `field_overrides`. So the diagnosis was right in **both** directions, and one
+direction has since been fixed.
 
-⚠️ **Only the `derived` half was re-run.** The 2026-08-14 walk used a single-type source, so it
-carried no `type_discriminator` and settles nothing about that half of the original claim. What would
-confirm or retire it: a source with a per-record entity-type field, mapped with a
-`type_discriminator` whose `field_overrides` declare at least one source field.
+✅ **The `type_discriminator` half is confirmed, not un-re-run.** An earlier version of this block
+called it the one half never re-run and named what would settle it: *a source with a per-record
+entity-type field, mapped with a `type_discriminator` whose `field_overrides` declare at least one
+source field*. That is exactly the mapping run on **1.33.0, 2026-08-21**, and it fires — see the
+quoted warning and its arithmetic at the top of this block.
 
 **What to do:** confirm every source field carries a disposition — that is the real question the
 warning gestures at, and it holds whether or not the counter is wrong — and if it does, record any
@@ -709,7 +910,11 @@ no MCP server version, so every bootcamper is on the current server and this is 
    not evidence about your data. Confirm separately that the emitted value is faithful to the source:
    same value, and a JSON type you chose deliberately.
 2. **Choose the emission on the Entity Specification's terms, not the checker's.** Confirm the
-   attribute's expected form via `search_docs(category='data_mapping')` at the time you map it — for
+   attribute's expected form via `search_docs(query='REL_ANCHOR_KEY REL_POINTER disclosed relationship keys',
+   category='data_mapping')` at the time you map it — `query` is the tool's only required
+   parameter, so a bare category is not a callable form, and naming the vocabulary is what makes
+   the check re-runnable (INV-212). Swap the query for the attribute you are actually confirming.
+   For
    the relationship keys, the specification's JSON examples show string values (`"ORG1001"`,
    `"ACME-1001"`) while its `REL_ANCHOR_KEY` guidance column shows a bare `1001`, so it does not
    mandate a type (verified 2026-07-28). Neither emission is made correct or incorrect by what the
@@ -722,20 +927,24 @@ no MCP server version, so every bootcamper is on the current server and this is 
    would not even work — the allowed set was built without it, under either emission — and distorting
    data to turn a gate green is the one outcome worse than the gate being wrong.
 
-⛔ **Three further limitations, where the harvester works and something else does not.** First
+⛔ **Four further limitations (INV-173), where the harvester works and something else does not.** First
 observed 2026-07-27 on SDK 4.3.3.26191, across four sources mapped end to end (`OPENSANCTIONS_PEP`,
-`OFAC_SDN`, `ICIJ`, `UK_COMPANIES_HOUSE`); all three reported upstream the same day.
+`OFAC_SDN`, `ICIJ`, `UK_COMPANIES_HOUSE`); those three were reported upstream the same day.
+**Limitation 4 came later** — found 2026-08-31 on a CORD source and reported upstream that day.
 
-⚠️ **Freshness, per limitation — 1 and 3 are CURRENT behavior; only 2 is still un-re-run.**
+⚠️ **Freshness, per limitation — all four are CURRENT behavior.**
 Limitations 1 and 3 were re-confirmed on **MCP server 1.32.9, 2026-08-14**, by reading the scripts
 the server itself delivers — `download_resource(filenames=['sz_verbatim_check.py',
 'sz_routing_report.py'])`, whose response is a **listing of URLs, not the scripts**, so reading them
 means fetching each `url` first (`ground-rules.md` → "Working examples") — and the live
 `mapping_workflow` step-3 schema. That is a check of the
 **mechanism**, which is what these entries assert, and it does not depend on re-running a mapping.
-Limitation **2** is the only one still carrying the old "expect this, and check" caveat: verifying it
-needs a source with **disclosed relationships**, which the re-check did not have. If you are mapping
-one, that is the entry to confirm and report on.
+Limitation **2** was confirmed end to end on **2026-08-18** by a run that finally had a source with
+**disclosed relationships** — and that run also **widened** it: see the entry itself, which now
+states the condition under which the KEY attributes fail too.
+Limitation **4** was re-confirmed on **MCP server 1.35.3, 2026-09-01**, the same way as 1 and 3 — by
+reading the delivered `sz_routing_report.py` and checking `discover_payload_fields()`'s `return []`
+against the resource list `download_resource` advertises. Mechanism, not a re-run.
 
 1. **Any correct `extract` output is rejected. CONFIRMED CURRENT — server 1.32.9, 2026-08-14.** The
    workflow documents `extract` for prose fields
@@ -752,20 +961,47 @@ one, that is the entry to confirm and report on.
    `'BNC'.`. **Any** substring pulled from prose fails the same way. Emitting `'BNC'.` to satisfy it
    would write quotes and a period into a name field; dropping the alias loses real data. Take the
    exemption path instead.
-2. **`REL_ANCHOR_DOMAIN`, `REL_POINTER_DOMAIN` and `REL_POINTER_ROLE` are rejected.**
-   ⚠️ **This is the one entry still NOT re-run** — "expect this, and check". Confirming it needs a
-   source carrying disclosed relationships. (The waiver mechanism it turns on *was* re-read on
-   1.32.9, 2026-08-14: `is_exempt()` is still `attr in {"DATA_SOURCE", "RECORD_ID"} or
-   attr.endswith("_TYPE")`, so these three are still outside it — but whether the rejection still
-   fires end to end is unverified.) These are
-   structural constants that by definition have no source value, so the harvester cannot see them and
-   `is_exempt()`'s waiver — `DATA_SOURCE`, `RECORD_ID`, and any attribute ending `_TYPE` — does not
-   cover them. `REL_ANCHOR_KEY` and `REL_POINTER_KEY` **pass**, because those do carry source values,
-   which is what identifies the cause. Observed: 31 offenders across 21 records, every one of those
-   three attributes. The Entity Specification defines all of them — its *Feature: REL_ANCHOR* and
-   *Feature: REL_POINTER* sections give `REL_ANCHOR_DOMAIN`/`KEY` and
-   `REL_POINTER_DOMAIN`/`KEY`/`ROLE` with rules and worked examples (`search_docs`, server 1.32.3,
-   docs index 2026-07-31 20:21 UTC) — so the gate rejects scaffolding the specification prescribes.
+2. **Every REL_* attribute whose value the harvester cannot see is rejected. CONFIRMED END TO END —
+   2026-08-18, engine-side observation.** `REL_ANCHOR_DOMAIN`, `REL_POINTER_DOMAIN` and
+   `REL_POINTER_ROLE` always; `REL_ANCHOR_KEY` and `REL_POINTER_KEY` **conditionally** — read the
+   next paragraph before you conclude your keys are wrong.
+
+   The DOMAIN and ROLE attributes are structural constants that by definition have no source value,
+   so the harvester cannot see them and `is_exempt()`'s waiver — `DATA_SOURCE`, `RECORD_ID`, and any
+   attribute ending `_TYPE` (re-read on 1.32.9, 2026-08-14: `is_exempt()` is still `attr in
+   {"DATA_SOURCE", "RECORD_ID"} or attr.endswith("_TYPE")`) — does not cover them.
+
+   <!-- MCP-NEGATIVE-SCAN: not-a-tool-claim — "a computed value that appears nowhere in the source"
+        is a fact about the Bootcamper's own data and their mapper's output, not about any MCP tool's
+        content, so it needs no MCP-NEGATIVE marker. The tool claims in this entry are POSITIVE and
+        cited inline: `record_id_source`'s RECORD_HASH sentinel and step 4's deterministic-hash
+        prescription, both re-read live from mapping_workflow on server 1.33.0, 2026-08-21. Triaged
+        2026-08-21 from `coverage_reports.py unmarked`. -->
+   ⛔ **`REL_ANCHOR_KEY` and `REL_POINTER_KEY` pass only when `record_id_source` names a source
+   field. On the `RECORD_HASH` sentinel they fail alongside the others** — and that is the *normal*
+   case for an `embedded_master`, which is the disposition that produces REL_* scaffolding in the
+   first place (see "`record_id_source` is `RECORD_HASH` for the embedded entity" earlier in this
+   step). A REL_*_KEY mirrors the RECORD_ID it points at; when that RECORD_ID is a deterministic hash
+   over identity fields, the key is a **computed value that appears nowhere in the source**, so the
+   harvester cannot see it either. The condition is current: `mapping_workflow`'s step-2 advance
+   schema documents `record_id_source` as *"field name of the stable natural key (PREFERRED), or
+   RECORD_HASH only when no stable unique field exists"*, and step 4 still prescribes *"a
+   deterministic hash over that entity's stable IDENTITY fields only"* on the sentinel (both re-read
+   live, server **1.33.0, 2026-08-21**).
+
+   **The offender count is how you tell this limitation from a real mapping defect, and you can
+   check it yourself.** It reconciles to `records × REL_* attributes per record`, and every offender
+   is scaffolding rather than a data value. Two measurements, both engine-side observations with
+   their conditions: 31 offenders across 21 records on a source whose keys came from source fields
+   (DOMAIN and ROLE only, 2026-07-27, SDK 4.3.3.26191); and **83,338** offenders on a `RECORD_HASH`
+   embedded master — `25,000 senders × 3 pointer attributes + 4,169 beneficiaries × 2 anchor
+   attributes`, the KEY attributes included (2026-08-18). If your count reconciles that way, record
+   the exemption and proceed; if it does not, look at your mapping.
+
+   The Entity Specification defines all of them — its *Feature: REL_ANCHOR* and *Feature:
+   REL_POINTER* sections give `REL_ANCHOR_DOMAIN`/`KEY` and `REL_POINTER_DOMAIN`/`KEY`/`ROLE` with
+   rules and worked examples (`search_docs`, server 1.32.3, docs index 2026-07-31 20:21 UTC) — so the
+   gate rejects scaffolding the specification prescribes.
 3. **Neither script runs on a CSV source. CONFIRMED CURRENT — server 1.32.9, 2026-08-14.**
    `sz_verbatim_check.py` and `sz_routing_report.py` both
    define `load_jsonl(path)` as `json.loads(ln)` over the file's non-blank lines, with **no** CSV
@@ -780,7 +1016,36 @@ one, that is the entry to confirm and report on.
    limitation, not an environment problem** — see the gate presentation at step 4, which says so
    where you will meet it.
 
-**Handling is the same for all three: the four steps above.** Do not conclude the mapping is wrong,
+4. **The routing report counts every PAYLOAD field as "dropped". CONFIRMED CURRENT — server
+   1.35.3, 2026-09-01.** `sz_routing_report.py` exempts payload fields from its dropped list —
+   `exempt_fields = NEVER_FROM_SOURCE | set(payload_fields)` — but `discover_payload_fields()`
+   populates that set only from a `--payload-fields` override or from a `phase1_manifest.json`
+   beside the output, and **neither exists in this workflow**: step 4's own command passes no
+   override, and `phase1_manifest.json` is not among the seven resources `mapping_workflow`
+   delivers (`sz_schema_generator.py`, `sz_json_analyzer.py`, `sz_verbatim_check.py`,
+   `sz_routing_report.py`, `senzing_entity_specification.md`, `senzing_mapping_examples.md`,
+   `identifier_crosswalk.json`) nor written by any step. So the set is always empty and the
+   exemption never engages. Re-read from the script the server delivers today (6,855 bytes): the
+   `return []` at the end of `discover_payload_fields()` is still what runs.
+
+   **Measured, server 1.35.1, 2026-08-31** — mapping the 1,554-record `las-vegas /
+   US-LABOR-VIOLATIONS` CORD source (61 fields; 6 feature, 6 payload, 49 ignore): **14,480** dropped
+   entries as the workflow instructs, against **5,620** with `--payload-fields` supplied by hand.
+   The **8,860** difference — 61% of the report — is the six correctly-dispositioned payload
+   fields, all present at the root of all 1,554 output records. **The report contradicts itself
+   within one page**: it prints those same fields under *"Payload root keys"* a few lines above the
+   dropped list.
+
+   ⛔ **(INV-173) Never promote a payload field into a feature to quiet this report.** Step 4 tells you to
+   reconsider every dropped entry *and* not to route dropped values into payload; with payload
+   fields listed as dropped those two instructions conflict, and the path of least resistance is
+   the **dumping-ground anti-pattern the workflow's own mapping reference warns against** — reached
+   by believing a broken measurement. Read the dropped list with your payload fields struck out,
+   or re-run with `--payload-fields "<your payload fields, comma-separated>"` for the true list.
+   ⚠️ **This is a reporting defect, not a mapping one**: it says nothing about your dispositions,
+   and nothing about the mapping needs changing because of it.
+
+**Handling is the same for all four: the four steps above.** Do not conclude the mapping is wrong,
 confirm faithfulness against the Entity Specification via MCP, record the exemption and its reason,
 and proceed (INV-173). For the CSV case the workable route is to adapt CSV→JSONL and call the
 checker's own `verify()`, so the executed logic stays upstream's, unmodified.
@@ -792,6 +1057,21 @@ around them and re-check whether the workaround is still needed.
 Do not ship a patched copy of `sz_verbatim_check.py`: it is delivered by the MCP server, so the fix
 arrives from upstream and a fork would mask it (INV-080). The numeric case is the worked example —
 reported 2026-07-28, fixed in 1.32.2 — and a fork would still be carrying the workaround today.
+
+**One mechanism, three known reachings — recognize the fourth on sight rather than filing it as a
+discovery.** `sz_verbatim_check.py` harvests the allowed set from source **values**, and every
+entry in this block is that one scope limit reached by a different route:
+
+| The emitted value is derived from… | Where it is documented here |
+|---|---|
+| a source value stored as a **JSON number** (non-string) | the non-string-values entry above |
+| a source **field name** | this entry |
+| a **hash** over identity fields (`RECORD_HASH`) | limitation 2's REL_*_KEY condition |
+
+Any value the mapper computes rather than copies will be absent from the allowed set, whatever
+produced it. If you meet a fourth route, the resolution is the same four steps — confirm
+faithfulness on the Entity Specification's terms, record the exemption and its reason, proceed, and
+never alter a source value to satisfy the tool (INV-048/INV-173).
 
 ⛔ **A value derived from a source *field name* is a second, distinct cause of the same failure —
 and unlike the cases above it has no correct alternative emission.** The allowed set is built from
@@ -814,8 +1094,10 @@ Follow that exactly on a source whose fields are `"Digital Currency Address - XB
 (reproduced 2026-07-29: two records → `rec0 ACCOUNT_DOMAIN='XBT'; rec1 ACCOUNT_DOMAIN='LTC'`,
 exit 1). `ACCOUNT_DOMAIN` is not in `EXEMPT_KEYS` and does not end `_TYPE`, so there is no waiver.
 The mapping is **right** — `ACCOUNT_DOMAIN` is defined as "Domain/system for the account number"
-(`search_docs(category='data_mapping')`, Entity Specification, Feature: ACCOUNT, verified
-2026-07-29), and a currency/network code is exactly that.
+(`search_docs(query='ACCOUNT_NUMBER ACCOUNT_DOMAIN account feature',
+category='data_mapping')`, Entity Specification, *Identifiers > Feature: ACCOUNT*, verified
+2026-07-29; query re-verified as top hit on 1.33.0, 2026-08-23, returning "Domain/system for the
+account number" verbatim), and a currency/network code is exactly that.
 
 **What to do:**
 
@@ -861,7 +1143,11 @@ in as many words:
 > schema that has just one list for all features."
 
 Re-confirm that statement from the MCP server rather than trusting this file (a sourcing floor)
-(`search_docs(category='data_mapping')`, or `download_resource(filename='senzing_entity_specification.md')`
+(`search_docs(query='recommended JSON schema FEATURES list multiple values sub-list',
+category='data_mapping')` — that query returns the *Recommended JSON schema* section carrying the
+sentence above as its top hit, verified server 1.33.0, 2026-08-23; `query` is the tool's only
+required parameter, so the vocabulary is part of the instruction (INV-212) — or
+`download_resource(filename='senzing_entity_specification.md')`
 — that second call returns a **listing**, so fetch its `url` before reading, per `ground-rules.md` →
 "Working examples") — INV-080 applies to this claim as much as to any attribute name.
 
@@ -875,7 +1161,7 @@ root attributes. Read the actual records.
 Both statements are true, and they answer different questions. The analyzer measures conformance;
 the gate this module needs is loadability.
 
-**`No NAME features found` does not mean the names are missing.** It is an artefact of the analyzer
+**`No NAME features found` does not mean the names are missing.** It is an artifact of the analyzer
 not looking inside the sub-list — it reports `NAMES` and `ADDRESSES` as *payload* attributes and
 skips feature analysis entirely. Names in sub-list records are extracted normally at load. This is
 the single most misleading line in the report, because a bootcamper cannot tell "the analyzer did
@@ -981,7 +1267,7 @@ reads/writes, and what it handles.
 ⛔ **On Java, that `snake_case` filename and an idiomatic class name cannot both be `public`** —
 declare the top-level class package-private and keep the prescribed path. Applies equally to the
 `<name>_mapper.<ext>` the workflow's own step 4 asks for. The rule, its reason and the C# difference
-are in `../bootcamp-onboarding/ground-rules.md` → "File placement" (INV-237); do not restate them
+are in `../bootcamp-onboarding/ground-rules.md` → "File placement" (INV-237, INV-300); do not restate them
 here.
 
 **Keep JSON handling dependency-free.** This is usually the first Java the bootcamp generates, and
@@ -990,7 +1276,7 @@ depend on an external JSON library (a scaffold importing `javax.json` will not c
 Write the reader here so it needs only the standard library, and **reuse this same reader in later
 modules** rather than re-deriving one per module: Data processing's loading program expects it. Full
 rationale, and the rule that replacing the JSON library is safe while altering SDK calls is not, are
-in `../module-02-sdk-setup/SKILL.md` → "The launch environment".
+in `../module-02-sdk-setup/SKILL.md` → "The launch environment" (INV-300).
 
 **Checkpoint:** write step 13.
 
@@ -998,8 +1284,12 @@ in `../module-02-sdk-setup/SKILL.md` → "The launch environment".
 
 Run on 10-100 records from `data/samples/`. Validate with
 `analyze_record(workspace_dir='data/mapping')` — ⛔ `workspace_dir` is a **required** parameter on
-this tool as well, and it is where the analyzer script and its reports are written, so it takes the
-same project-local mapping directory as the workflow. Tell the user: pass/fail, output file path,
+this tool as well (INV-136), and it is where the analyzer script and its reports are written, so it
+takes the same project-local mapping directory as the workflow, which INV-200 requires of every
+tool argument naming a writable directory. Re-confirmed on MCP server 1.33.0, 2026-08-21:
+`get_capabilities` describes `analyze_record` as taking a "REQUIRED parameter: `workspace_dir` (a
+writable directory where the analyzer script and any reports are saved); do NOT assume /tmp
+exists". Tell the user: pass/fail, output file path,
 sample record, any observations.
 
 > **Presentation (conditional on `mapping_verbosity`):**
@@ -1022,7 +1312,7 @@ source's mapper is written, reviewed and documented — not here. Tell the user:
 it means for matching, any issues found.
 
 ⚠️ **This advance is unconditional in both modes too, and for a different reason than step 11's.**
-The `verdict` is not a preference the bootcamper holds — it is a QA judgement that follows from the
+The `verdict` is not a preference the bootcamper holds — it is a QA judgment that follows from the
 analyzer's own output (features at 0%, a short record count, a payload that should have been a
 feature), so putting it to a vote would be asking them to ratify evidence they have just been shown.
 Compute it, say which check decided it, and advance. The bootcamper's decision points here are the
@@ -1191,7 +1481,8 @@ production load still happens in Data processing regardless.
 Each source gets its own transformation program and its own `mapping_workflow` run.
 
 ⛔ **Before starting the next source's `mapping_workflow(action='start')`, confirm this source's
-`profile_report.md`, `schema_hints.md` and `JOURNAL.md` have already been relocated to
+profile report (`profile_report.md`, or every `profile_report_<stem>.md` when several files were
+profiled), `schema_hints.md` and `JOURNAL.md` have already been relocated to
 `docs/mapping/` under their source-qualified names** (`{source_name}_profile_report.md`,
 `{source_name}_schema_hints.md`, `{source_name}_JOURNAL.md` — see "File placement during the
 workflow"). This is INV-177: relocation under a source-qualified name happens **before** the next

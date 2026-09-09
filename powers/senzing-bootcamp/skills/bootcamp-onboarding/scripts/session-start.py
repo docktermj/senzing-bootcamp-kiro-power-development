@@ -5,8 +5,8 @@ Also folds any in-progress module recap checkpoint into docs/bootcamp_recap.md o
 resume, so a module that was interrupted (quit / compaction / prior session) keeps
 its in-progress narrative in the recap (see recap_checkpoint.py).
 
-Cross-platform: invoked in exec form (``python3 <path>``) so no shell is required on
-any platform. Python is already a hard bootcamp dependency (the graduation recap PDF always
+Cross-platform: invoked as a ``type: command`` hook whose ``command`` names the
+interpreter and this script, quoted (``python3 "<path>"``), per INV-052. Python is already a hard bootcamp dependency (the graduation recap PDF always
 runs under python3; the Truth Set visualization server also does when the chosen language is
 Python).
 """

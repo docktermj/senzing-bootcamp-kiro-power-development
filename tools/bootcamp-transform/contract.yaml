@@ -1396,12 +1396,12 @@ substitutionSets:
 # description character-for-character — so for almost every ported skill, R8 AC6 is
 # satisfied by preservation and this section says nothing about it.
 #
-# `bootcamp-preparation` in release 0.5.1 is the exception. Its description states
-# *when* the module runs ("Use right after the onboarding WELCOME preface, before the
-# entity-resolution primer / Module 1") but names no phrase a Bootcamper can state, so
-# the Schema_Validator reports E_FRONTMATTER_INVALID for it and Test_Checklist step 6 —
-# stating each of the 16 skills' trigger phrases and observing activation — has nothing
-# to state for that one skill.
+# `bootcamp-preparation` is the exception, in release 0.5.1 and still in 0.5.3. Its
+# description states *when* the module runs ("Use right after the onboarding WELCOME
+# preface, before the entity-resolution primer / Module 1") but names no phrase a
+# Bootcamper can state, so the Schema_Validator reports E_FRONTMATTER_INVALID for it
+# and Test_Checklist step 6 — stating every skill's trigger phrase and observing
+# activation — has nothing to state for that one skill.
 #
 # The phrase is declared HERE, as contract data, and not synthesized in the engine: a
 # trigger phrase is a mapping decision about what the Bootcamper is told to say, and an
@@ -1417,9 +1417,13 @@ substitutionSets:
 # signal that put this entry here, raised by the gate that owns it. Nothing is
 # asserted about this list at build time, so a partial tree still builds.
 #
-# Phrases stay lexically disjoint from the three command-derived triggers ("start the
-# senzing bootcamp", "graduate the senzing bootcamp", "give senzing bootcamp
-# feedback"), so no single statement matches two skills (R9 AC3).
+# Phrases stay lexically disjoint from the command-derived triggers ("start the senzing
+# bootcamp", "graduate the senzing bootcamp", "give senzing bootcamp feedback", "take a
+# senzing bootcamp note", "package the senzing bootcamp") and from the
+# client-adaptation skill's ("install the senzing bootcamp enforcement hooks"), so no
+# single statement matches two skills (R9 AC3). Disjoint here means no phrase is a
+# substring of another, which is the condition Property 19 checks — not merely that the
+# phrases differ.
 skillTriggers:
   bootcamp-preparation: 'Use when the bootcamper says "prepare the senzing bootcamp".'
 
@@ -1721,12 +1725,26 @@ rules:
     dest: "mcp.json"
 
   # --- Deliberately not ported, with a rule rather than a bare path -------
-  # The template's three slash commands are thin wrappers around
-  # `bootcamp-onboarding`. Kiro has no plugin-level slash commands, so each is
-  # represented instead by one trigger-phrase skill materialized by the
-  # `command-skills` rule below (R9 AC1). The command markdown itself is therefore
-  # matched and not ported; the Schema_Validator still checks the one-to-one
-  # correspondence between this command set and those three skills.
+  # The template's slash commands are thin wrappers around `bootcamp-onboarding`.
+  # Kiro has no plugin-level slash commands, so each is represented instead by one
+  # trigger-phrase skill materialized by the `command-skills` rule below (R9 AC1).
+  # The command markdown itself is therefore matched and not ported; the
+  # Schema_Validator still checks the one-to-one correspondence between this
+  # command set and those skills.
+  #
+  # ⚠️ THIS GLOB IS WHY A NEW UPSTREAM COMMAND DOES NOT REPORT ITSELF AT BUILD
+  # TIME. `commands/*.md` claims a command file this contract has never seen, so
+  # `E_UNMATCHED_FILE` — the early warning for genuinely new upstream content —
+  # cannot fire for one. The gate that does catch it is the Schema_Validator's
+  # `skill-inventory` bijection, which reports `E_INVENTORY_MISMATCH`
+  # (`template-command-unrepresented`) naming the command file. That is a later
+  # and narrower signal than the unmatched-file halt, so when a release adds a
+  # command the answer is a new `dest` on `command-skills` plus an authored skill
+  # under `templates/kiro-owned/skills/`, exactly as release 0.5.3's
+  # `bootcamp-note` and `package-bootcamp` were added. Narrowing this glob to an
+  # enumerated list was considered and rejected: it would move the signal earlier
+  # at the cost of a second place to declare every command, and the bijection
+  # already names the missing one precisely.
   - id: commands-superseded
     kind: ignore
     source: "commands/*.md"
@@ -1760,12 +1778,38 @@ rules:
     dest: ["skills/bootcamp-onboarding/assets/kiro-hooks/", "dev.kiro/hooks/"]
     substitutions: [tool-names, scripts-dir-strategy]
 
-  # The three command-derived skills, one per template command, each carrying exactly
-  # one distinct trigger phrase (R9 AC1, AC2, AC3).
+  # The command-derived skills: one per template command, each carrying exactly one
+  # distinct trigger phrase (R9 AC1, AC2, AC3).
+  #
+  # ONE `dest` PER COMMAND THE RESOLVED RELEASE DECLARES, AND THE LIST IS NOT A
+  # COUNT. `skill-inventory` checks a bijection against `commands/*.md` in the
+  # resolved release, in both directions, so this list is wrong in a way that
+  # blocks tagging if it drifts from that set either way: a command with no skill
+  # is `template-command-unrepresented`, and a skill declaring a command the
+  # release does not carry is `declares-absent-template-command`. That second
+  # direction is why the list cannot simply accumulate — a `dest` is removed when
+  # upstream removes the command it stands for.
+  #
+  # The template command name and the skill name are deliberately allowed to
+  # differ: `graduate` is represented by `graduate-bootcamp`, so what ties the two
+  # together is the `metadata.templateCommand` field in each authored skill's
+  # frontmatter, never the directory name. The four names that happen to match
+  # match by coincidence of good naming, not by rule.
+  #
+  # Release 0.5.3 added `bootcamp-note` and `package-bootcamp`; both are
+  # Bootcamper-facing flows whose workflow documents (`notes.md`, `packaging.md`)
+  # port into `bootcamp-onboarding` under the `skills-fixed` rule, so each authored
+  # skill here is an entry point that hands off to a ported document, exactly as
+  # the other three are.
   - id: command-skills
     kind: kiro-owned
     owner: kiro
-    dest: ["skills/start-bootcamp/", "skills/graduate-bootcamp/", "skills/bootcamp-feedback/"]
+    dest:
+      - "skills/start-bootcamp/"
+      - "skills/graduate-bootcamp/"
+      - "skills/bootcamp-feedback/"
+      - "skills/bootcamp-note/"
+      - "skills/package-bootcamp/"
 
   # The client-adaptation skill that realizes the Hook_Installer (R7 AC6-AC11).
   - id: enforcement-setup-skill

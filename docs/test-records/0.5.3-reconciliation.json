@@ -1,0 +1,197 @@
+{
+  "reportVersion": 1,
+  "fromRelease": "0.5.1",
+  "toRelease": "0.5.3",
+  "added": [
+    "skills/bootcamp-note/SKILL.md",
+    "skills/bootcamp-onboarding/notes.md",
+    "skills/bootcamp-onboarding/packaging.md",
+    "skills/bootcamp-onboarding/scripts/package_bootcamp.py",
+    "skills/bootcamp-onboarding/scripts/secret_patterns.py",
+    "skills/graduation/database-backup.md",
+    "skills/package-bootcamp/SKILL.md"
+  ],
+  "modified": [
+    "docs/examples/bootcamp_recap.example.md",
+    "plugin.json",
+    "skills/bootcamp-onboarding/SKILL.md",
+    "skills/bootcamp-onboarding/feedback.md",
+    "skills/bootcamp-onboarding/ground-rules.md",
+    "skills/bootcamp-onboarding/module-completion.md",
+    "skills/bootcamp-onboarding/onboarding-flow.md",
+    "skills/bootcamp-onboarding/scripts/brand_tokens.py",
+    "skills/bootcamp-onboarding/scripts/capture_screenshots.py",
+    "skills/bootcamp-onboarding/scripts/checkpoint-tick.py",
+    "skills/bootcamp-onboarding/scripts/docker_lifecycle.py",
+    "skills/bootcamp-onboarding/scripts/feedback-capture.py",
+    "skills/bootcamp-onboarding/scripts/generate_discoveries_pdf.py",
+    "skills/bootcamp-onboarding/scripts/generate_recap_pdf.py",
+    "skills/bootcamp-onboarding/scripts/precompact-recap.py",
+    "skills/bootcamp-onboarding/scripts/recap_checkpoint.py",
+    "skills/bootcamp-onboarding/scripts/senzing_viz_server.py",
+    "skills/bootcamp-onboarding/scripts/session-end.py",
+    "skills/bootcamp-onboarding/scripts/session-start.py",
+    "skills/bootcamp-onboarding/scripts/stop-nudge.py",
+    "skills/bootcamp-onboarding/scripts/write-gate.py",
+    "skills/bootcamp-preparation/SKILL.md",
+    "skills/graduation/SKILL.md",
+    "skills/module-00-entity-resolution-concepts/SKILL.md",
+    "skills/module-00-entity-resolution-concepts/concepts.md",
+    "skills/module-01-business-problem/SKILL.md",
+    "skills/module-01-business-problem/phase1-discovery.md",
+    "skills/module-01-business-problem/phase2-document-confirm.md",
+    "skills/module-02-sdk-setup/SKILL.md",
+    "skills/module-03-system-verification/SKILL.md",
+    "skills/module-03-system-verification/phase1-verification.md",
+    "skills/module-03-system-verification/phase2-report-close.md",
+    "skills/module-03b-truthset-visualization/SKILL.md",
+    "skills/module-03b-truthset-visualization/phase1-visualization.md",
+    "skills/module-03b-truthset-visualization/phase2-close.md",
+    "skills/module-03b-truthset-visualization/visualization-api-reference.md",
+    "skills/module-04-data-collection/SKILL.md",
+    "skills/module-05-data-quality-mapping/SKILL.md",
+    "skills/module-05-data-quality-mapping/phase1-quality-assessment.md",
+    "skills/module-05-data-quality-mapping/phase2-data-mapping.md",
+    "skills/module-05-data-quality-mapping/phase3-test-load.md",
+    "skills/module-06-data-processing/SKILL.md",
+    "skills/module-06-data-processing/phaseA-build-loading.md",
+    "skills/module-06-data-processing/phaseB-load-first-source.md",
+    "skills/module-06-data-processing/phaseC-multi-source.md",
+    "skills/module-06-data-processing/phaseD-validation.md",
+    "skills/module-07-query-visualize-discover/SKILL.md",
+    "skills/module-07-query-visualize-discover/phase1-query-visualize.md",
+    "skills/module-07-query-visualize-discover/phase2-discover.md",
+    "skills/module-07-query-visualize-discover/phase2b-discover.md"
+  ],
+  "removed": [],
+  "unchanged": [
+    "LICENSE",
+    "docs/examples/bootcamp_recap.example.truthset.png",
+    "docs/examples/visualizations/data_quality_assessment.png",
+    "docs/examples/visualizations/results_visualization-cross-source.png",
+    "docs/examples/visualizations/results_visualization-entity-graph.png",
+    "docs/examples/visualizations/results_visualization-feature-scores.png",
+    "docs/examples/visualizations/results_visualization-match-keys.png",
+    "docs/examples/visualizations/results_visualization-merge-statistics.png",
+    "docs/examples/visualizations/results_visualization-search-probe.png",
+    "docs/examples/visualizations/truthset_verification-cross-source.png",
+    "docs/examples/visualizations/truthset_verification-entity-graph.png",
+    "docs/examples/visualizations/truthset_verification-feature-scores.png",
+    "docs/examples/visualizations/truthset_verification-match-keys.png",
+    "docs/examples/visualizations/truthset_verification-merge-statistics.png",
+    "docs/examples/visualizations/truthset_verification-search-probe.png",
+    "mcp.json",
+    "skills/bootcamp-onboarding/scripts/generate_document_pdf.py",
+    "skills/bootcamp-onboarding/scripts/normalize_docs_markdown.py",
+    "skills/bootcamp-onboarding/scripts/senzing_logo_light.png",
+    "skills/bootcamp-onboarding/scripts/vendor/d3.v7.min.js"
+  ],
+  "preservedAdaptations": [
+    {
+      "path": "dev.kiro/hooks/hook-parity-coverage.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "dev.kiro/hooks/senzing-bootcamp-checkpoint-tick.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "dev.kiro/hooks/senzing-bootcamp-feedback-capture.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "dev.kiro/hooks/senzing-bootcamp-session-start.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "dev.kiro/hooks/senzing-bootcamp-stop-nudge.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "dev.kiro/hooks/senzing-bootcamp-write-gate.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "dev.kiro/hooks/tier1-instructions/senzing-bootcamp-tier1-ground-rules.md",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "dev.kiro/hooks/tier1-instructions/senzing-bootcamp-tier1-recap-folding.md",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "dev.kiro/hooks/tier1-instructions/senzing-bootcamp-tier1-session-lifecycle.md",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "docs/examples/bootcamp_recap.example.pdf",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "docs/model-selection.md",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-enforcement-setup/SKILL.md",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-enforcement-setup/scripts/install_hooks.py",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-feedback/SKILL.md",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/hook-parity-coverage.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-checkpoint-tick.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-feedback-capture.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-session-start.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-stop-nudge.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/senzing-bootcamp-write-gate.json",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-ground-rules.md",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-recap-folding.md",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/assets/kiro-hooks/tier1-instructions/senzing-bootcamp-tier1-session-lifecycle.md",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/bootcamp-onboarding/scripts/optional_runtime.py",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/graduate-bootcamp/SKILL.md",
+      "reason": "kiro-owned"
+    },
+    {
+      "path": "skills/start-bootcamp/SKILL.md",
+      "reason": "kiro-owned"
+    }
+  ],
+  "conflicts": [],
+  "flaggedInvariantDiscounts": []
+}
