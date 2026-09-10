@@ -20,6 +20,14 @@ least one non-empty desired-output field:
 - Derive between 1 and 10 query requirements from the success criteria and desired outputs in
   the document. Each derived requirement must reference the specific success criterion or
   desired output it addresses.
+  - ⚠️ **(INV-275) Derive from the REFINED prose, not from the `> "…"` quotes beside it.** Those blockquotes
+    are the Bootcamper's own words, preserved so a misrendering can be caught at Module 1's
+    confirmation gate; they are provenance, not requirements input. **But read them when the two
+    disagree** — a quote that contradicts the prose above it means the refinement drifted, and the
+    quote is what the Bootcamper actually said. Raise the discrepancy here rather than deriving a
+    requirement from either side of it: on 2026-08-25 a *possible*-fraud routing rule was rendered
+    as *confirmed* fraud, and requirement 7 came out titled "Confirmed-fraud candidate list" three
+    modules downstream of the substitution.
 - Present them with this attribution: "Based on your business problem, here are
   the query requirements I've derived:"
 - List each requirement with its source (e.g. "From your success criterion about [X]..." or
@@ -62,11 +70,34 @@ language='<lang>', version='current')`.
 bootcamper's query intent. Explain the choice in one sentence: "I'm using [flag] so we can see
 [what it provides]." For visualization-bound queries, include `SZ_INCLUDE_FEATURE_SCORES`
 and/or `SZ_INCLUDE_MATCH_KEY_DETAILS`. ⚠️ **`SZ_INCLUDE_MATCH_KEY_DETAILS` `depends_on` a relations
-flag and writes into `RELATED_ENTITIES[]`, so pass it only alongside one** — `SZ_ENTITY_INCLUDE_ALL_RELATIONS`
-or one of its four members — and only for the methods that return related entities. Passed on its own
-it is accepted and adds nothing, which reads as "no relationships in this data" rather than as a
-missing flag (INV-179). It is **not** how a why response explains its match: see step 3a.
-(`get_sdk_reference(topic='flags', filter='SZ_INCLUDE_MATCH_KEY_DETAILS')`, server 1.32.9, 2026-08-14.)
+flag, so pass it only alongside one** — `SZ_ENTITY_INCLUDE_ALL_RELATIONS` or one of its four members.
+Passed on its own it is accepted and adds nothing, which reads as "no relationships in this data"
+rather than as a missing flag (INV-179). It is **not** how a why response explains its match: see
+step 3a.
+
+⛔ **(INV-169) Do NOT restrict this flag to "methods that return related entities" — the server does not, and
+that restriction excludes the one method whose own schema documents the field (INV-169).** Three
+statements from the server, re-verified on **1.33.0, 2026-08-26**, and they do not fully agree:
+
+- `applies_to` **includes** `how_entity_by_entity_id`, alongside the entity, `search`, `why_*`,
+  `find_path_*`, `find_network_*` and export methods.
+- The flag's own `response_paths` are `RELATED_ENTITIES[]` and `RESOLVED_ENTITY.*`, and its
+  description says *"each related entity includes a MATCH_KEY_DETAILS object"* — a shape
+  `how_entity` does not return at all.
+- `get_sdk_reference(topic='response_schemas', filter='how_entity', language='python')`
+  nevertheless documents `HOW_RESULTS.RESOLUTION_STEPS[].MATCH_INFO.MATCH_KEY_DETAILS.CONFIRMATIONS[]`
+  in full.
+
+**Record all three and reconcile none.** This is a coverage gap on the server's side, not a fact the
+Power can settle — so pass the flag **with its relations flag** wherever a breakdown is wanted,
+treat the breakdown as **conditional**, and fall back to `FEATURE_SCORES` when it is absent. Whether
+the flag is what makes the field appear is **observation-only** on both methods (INV-080/INV-149): no
+MCP route reports which flag set populated a given engine response. An earlier version of this
+clause read the `response_paths` line as governing and told the guide to skip the flag on methods
+without related entities, while step 4c's own cross-reference promised `how_entity`'s
+`MATCH_KEY_DETAILS.CONFIRMATIONS[]`; the instruction and the promise did not meet.
+(`get_sdk_reference(topic='flags', filter='SZ_INCLUDE_MATCH_KEY_DETAILS')` and
+`topic='response_schemas', filter='how_entity'`, server **1.33.0**, 2026-08-26.)
 
 ⚠️ **The server cautions that DEFAULT composites are not for production code — relay this when you
 teach them.** Returned verbatim as the top-level `caution` field of
@@ -117,12 +148,30 @@ complete and only the human-readable labels are missing, so it reads as unnamed 
 than as a flags problem. OR the flag in explicitly:
 `SZ_WHY_ENTITIES_DEFAULT_FLAGS | SZ_ENTITY_INCLUDE_ENTITY_NAME`
 (`SZ_ENTITY_INCLUDE_ENTITY_NAME`'s `applies_to` includes `why_entities`, `why_records` and
-`why_record_in_entity` — verified 2026-07-31). ⛔ **`SZ_INCLUDE_MATCH_KEY_DETAILS` was in this
-expression and has been removed: it `depends_on` a relations flag and writes into
-`RELATED_ENTITIES[]`, so on a why call it adds nothing.** The CONFIRMATIONS and DENIALS named
-above are already there without it — they are part of `WHY_RESULTS[].MATCH_INFO.WHY_KEY_DETAILS`
-(`get_sdk_reference(topic='response_schemas', filter='why_records')`, server 1.32.9,
-2026-08-14). Adding a flag that changes nothing is how a wrong field name survives review. The same holds for
+`why_record_in_entity` — verified 2026-07-31). ⛔ **Add `SZ_INCLUDE_MATCH_KEY_DETAILS` together
+with a relations flag when the match-key breakdown is wanted.** **The server documents the requirement — read it from
+`response_schemas`, not from `flags`.** `get_sdk_reference(topic='response_schemas',
+filter='why_entities')` lists `WHY_RESULTS[].MATCH_INFO.WHY_KEY_DETAILS` carrying
+`requires_flags: ["SZ_INCLUDE_MATCH_KEY_DETAILS"]`, and that flag's own row documents the relations
+dependency: *"dependent on using one of the following flags: SZ_ENTITY_INCLUDE_ALL_RELATIONS,
+SZ_ENTITY_INCLUDE_POSSIBLY_SAME_RELATIONS, …"* (server **1.35.3**, 2026-09-01). ⚠️ **The `flags`
+topic alone still attributes nothing to the why-side path** — `SZ_INCLUDE_MATCH_KEY_DETAILS`'
+`response_paths` names only `RELATED_ENTITIES[].MATCH_KEY_DETAILS` — so a reader who checks only
+that topic concludes the field is unattributed. Check `response_schemas` too. The earlier
+engine-side observation agrees with what is now documented: on **SDK 4.3.4** the field was
+**absent** without that flag and **present** with it plus `SZ_ENTITY_INCLUDE_ALL_RELATIONS`, and on
+**4.3.2** absent without it (observation-only, 2026-08-16; INV-080/INV-149).
+
+⚠️ **A why call under its own default composite will not produce it, and that is documented rather
+than broken.** `SZ_WHY_RECORDS_DEFAULT_FLAGS` is `composite_members: ["SZ_INCLUDE_FEATURE_SCORES"]`
+— *"Equivalent to: SZ_INCLUDE_FEATURE_SCORES"* (server **1.35.3**, 2026-09-01) — so a
+`whyRecords(...)` called with the default plus a name flag returns `FEATURE_SCORES` and no
+`WHY_KEY_DETAILS`. Reported from a live Java run on 2026-08-26 and consistent with the
+documentation: the field is conditional, and the default composite does not carry its condition. ⚠️ **This flag was previously removed from this
+expression on the grounds that the breakdown is "already there without it" — that was wrong**: the
+measurement it rested on passed the flag in *both* arms, so its contribution was never varied. The
+full statement, with both builds and the reason a version floor cannot be read from them, is in
+`phase2-discover.md` step 4b.3. The same holds for
 `SZ_WHY_RECORDS_DEFAULT_FLAGS` and `SZ_WHY_RECORD_IN_ENTITY_DEFAULT_FLAGS`, both documented
 as equivalent to `SZ_INCLUDE_FEATURE_SCORES` (each **checked individually**, not inferred from
 its sibling — INV-169).
@@ -147,6 +196,71 @@ the "Equivalent to:" line quoted above (source: `senzing.com/docs/flags/4/flags_
 
 **"The server does not document X" is only ever "the tool I asked does not document X."**
 An empty structured field is not an absent fact.
+
+⛔ **(INV-268) Confirm a composite's *representation* for the chosen binding before composing a flag set —
+a composite is not always the same kind of thing as the flags it contains.** `composite_members`
+tells you *which* flags a composite carries; it does not tell you what a composite **is** in the
+binding you are writing. Read the flags argument's own type first:
+
+```text
+get_sdk_reference(topic='parameters', filter='<method>', language='<chosen_language>')
+```
+
+That response is the authority, and it is explicit about divergence. For `get_entity_by_entity_id`
+it returns `flags` as `Set<SzFlag>` in Java, `int` in Python, `SzFlag?` in C#, `Option<SzFlags>` in
+Rust and `bigint` in TypeScript, with a warning naming every binding that differs
+(`get_sdk_reference(topic='parameters', filter='get_entity_by_entity_id', language='java')`,
+server 1.33.0, 2026-08-26). Two shapes follow, and the choice is the binding's, not yours:
+
+- **The parameter is a scalar/bitmask** — OR the composite in directly; it is one value among values.
+- **The parameter is a collection** — the composite may be a *member* of that collection, or may
+  itself be a **collection of members**. If it is a collection, it cannot be listed among the
+  members; it is **merged** into the set.
+
+<!-- MCP-NEGATIVE: get_sdk_reference(topic='flags', filter='SZ_ENTITY_INCLUDE_ALL_RELATIONS', language='java') — no field on any returned row names a binding or its argument types — the rows carry only membership, dependency and provenance fields — and the response is byte-identical with and without the language argument — owner: get_sdk_reference(topic='parameters', filter='<method>', language='java') IS the route that owns per-binding types and returns flags as Set<SzFlag> for Java plus a warning naming every binding that differs, so the parameters topic is where the reader must go (routing negative) — server 1.36.0, 2026-09-02 -->
+⚠️ **`topic='flags'` cannot answer this — no field it returns names a binding or its argument
+types.** Rows differ from one another only in membership and dependency fields
+(`composite_members`, `depends_on`, `response_paths`), never in anything language-specific
+(`get_sdk_reference(topic='flags', filter='SZ_ENTITY_INCLUDE_ALL_RELATIONS', language='java')`,
+server 1.35.3, 2026-09-01: the response is byte-identical with and without `language`). So the flags
+listing is where you learn membership and the parameters listing is where you learn representation;
+asking only the first is what produces a flag set that does not compile.
+
+**Worked example — Java, which has both shapes under one name.** Verified against the installed
+`sz-sdk.jar` on 2026-08-26 (`javap`, then `javac`/`java`; observation-only per INV-080/INV-149 —
+no MCP route reports a binding's class layout):
+
+- `com.senzing.sdk.SzFlag` is an **enum** whose constants are the individual flags, and the same
+  class declares `public static final Set<SzFlag>` fields for the composites.
+  `SzFlag.SZ_ENTITY_INCLUDE_ALL_RELATIONS` is one of those `Set` fields — **not** an enum constant.
+- `com.senzing.sdk.SzFlags` — plural, a different class — declares `public static final long`
+  bitmask constants under the **same names**. `SzFlags.SZ_ENTITY_INCLUDE_ALL_RELATIONS` is `960`.
+
+So this does not compile, because a `Set` cannot be an `EnumSet.of` element:
+
+```java
+// error: no suitable method found for of(SzFlag,SzFlag,Set<SzFlag>)
+EnumSet.of(SzFlag.SZ_ENTITY_INCLUDE_ENTITY_NAME,
+           SzFlag.SZ_ENTITY_INCLUDE_RECORD_SUMMARY,
+           SzFlag.SZ_ENTITY_INCLUDE_ALL_RELATIONS);
+```
+
+and this does — the composite is merged, expanding to its four members for six flags total:
+
+```java
+Set<SzFlag> flags = EnumSet.of(SzFlag.SZ_ENTITY_INCLUDE_ENTITY_NAME,
+                               SzFlag.SZ_ENTITY_INCLUDE_RECORD_SUMMARY);
+flags.addAll(SzFlag.SZ_ENTITY_INCLUDE_ALL_RELATIONS);
+```
+
+⛔ **(INV-268) Do not reach for the plural class to escape this.** `SzFlags.*` compiles on its own and then
+cannot be passed to a `Set<SzFlag>` parameter at all — two classes one letter apart, identical
+constant names, different types. Read the parameter type, then pick the class that matches it.
+
+⚠️ **This sits directly on the path the reference itself recommends.** The same response that says
+*"request exactly the flags whose output you consume"* rather than a `*_DEFAULT_FLAGS` composite
+returns a list in which some entries cannot be used the way the others can, and does not say which.
+Anyone following that advice in a collection-typed binding meets it.
 
 And the flag→field mapping that makes the consequence exact: `SZ_ENTITY_INCLUDE_RECORD_DATA` →
 `RESOLVED_ENTITY.RECORDS[]`; `SZ_ENTITY_INCLUDE_RECORD_SUMMARY` → `RESOLVED_ENTITY.RECORD_SUMMARY[]`.
@@ -194,6 +308,14 @@ field from the same response object reads fine, suspect the **flags** before the
 `RECORD_SUMMARY[]` correctly while `RECORDS[]` comes back empty is that signature exactly. Fix it
 by OR-ing in the missing sub-flag, not by switching to a different field and not by re-verifying a
 name that is already correct.
+
+⛔ **One exception to that discriminator, because it points the wrong way there: a container the
+schema documents can be PRESENT and EMPTY.** Then the key exists, the path is confirmed, a sibling
+reads fine — every signal the rule uses to say "suspect the flags" — and adding flags cannot fill an
+array the engine had nothing to put in. Distinguish **absent** (the key is missing → cause 2, flags)
+from **present but empty** (the key is there with no members → cause 3, data). The worked instance is
+`WHY_KEY_DETAILS.CONFIRMATIONS[]`, whose three states and fallback are stated once in
+`phase2-discover.md` step 4b.3 (INV-179, INV-300).
 
 Verify against `response_schemas` or a dumped raw response before rendering. Never render a blank
 value as though it were a real result — say "no value returned for X" so the failure is visible.
@@ -286,10 +408,23 @@ When presenting results from `how_entity` or the `why_*` methods (`why_entities`
 presentations are built from (it applies to all four methods; `get_sdk_reference(topic='flags',
 filter='why_records')`, server 1.32.9, 2026-08-14). If the query used default flags, note what
 additional detail feature scores would add. ⛔ **For a why response the match-key breakdown is
-read from `WHY_RESULTS[].MATCH_INFO.WHY_KEY_DETAILS`, not from a `MATCH_KEY_DETAILS` field and
-not by adding `SZ_INCLUDE_MATCH_KEY_DETAILS`** — that flag targets `RELATED_ENTITIES[]` and needs
-a relations flag, so on a why call it has nothing to attach to and a parser written for it renders
-blank with no error (INV-179; see `phase2-discover.md` step 4b.3, which states this once).
+read from `WHY_RESULTS[].MATCH_INFO.WHY_KEY_DETAILS`, never from a `MATCH_KEY_DETAILS` field** —
+that field name is the one this module already corrected, and it is still wrong here.
+⛔ **And the rename is the whole `MATCH_*` family, not just that details object: its two sibling
+scalars are `WHY_RESULTS[].MATCH_INFO.WHY_KEY` and `WHY_RESULTS[].MATCH_INFO.WHY_ERRULE_CODE`.**
+`MATCH_KEY` and `ERRULE_CODE` are the **entity-side** names — real, but on
+`RESOLVED_ENTITY.RECORDS[]` and `RELATED_ENTITIES[]`. Carrying them across from a `get_entity` or
+export parser is the habit that produces the error, and all three fields render blank rather than
+raising (`get_sdk_reference(topic='response_schemas', filter='why_entities', language='python')` —
+the document shared by `why_entities`, `why_records` and `why_record_in_entity` — server 1.33.0,
+2026-08-21).
+<!-- MCP-NEGATIVE: get_sdk_reference(topic='response_schemas', filter='why_entities', language='python') — no MATCH_KEY, ERRULE_CODE or MATCH_KEY_DETAILS field appears under WHY_RESULTS[] at any depth — owner: get_sdk_reference(topic='response_schemas', filter='why_entities') IS the route that owns the why response document (shared by why_entities, why_records and why_record_in_entity), so its field list is the answer rather than a miss; the same document carries the renamed trio one level in, at WHY_RESULTS[].MATCH_INFO — WHY_KEY, WHY_ERRULE_CODE and WHY_KEY_DETAILS, of which only WHY_KEY_DETAILS is flag-gated (requires_flags SZ_INCLUDE_MATCH_KEY_DETAILS) — which is what makes the absence a rename rather than a gap (absence negative) — server 1.36.0, 2026-09-02 -->
+⚠️ **Getting
+`WHY_KEY_DETAILS` to appear may require `SZ_INCLUDE_MATCH_KEY_DETAILS` plus a relations flag**: no
+flag is *documented* to populate it, yet it was absent without that flag on two SDK builds
+(observation-only). If it is missing for the flags in force, say so explicitly and fall back to
+`FEATURE_SCORES` rather than rendering an empty section — the full statement is in
+`phase2-discover.md` step 4b.3, which states it once (INV-179, INV-300).
 
 **Checkpoint:** write step 3a.
 
@@ -319,7 +454,7 @@ server 1.32.9 (docs index 2026-08-11), that query returns the *Entity Resolution
 BM25 matched "evaluation" in the procurement sense. `reporting_guide` owns this material; ask it.
 If a lookup here returns nothing relevant, re-query with the documentation's own vocabulary before
 concluding the material is uncovered — [`concepts.md`](../module-00-entity-resolution-concepts/concepts.md)
-states that rule in full; follow it rather than restating it here.
+states that rule in full; follow it rather than restating it here (INV-300).
 
 ⛔ **Never state a quality verdict without showing the evidence for it.** Verbatim from
 `reporting_guide(topic='evaluation', language='python')` (server 1.32.9, 2026-08-12), which calls
@@ -368,9 +503,65 @@ Based on the assessment — evidence first, wording second:
   entities. Quality looks good — let's proceed to visualizations."
 - **Marginal:** "I see some potential issues. Here are the specific entities to review." (Show the
   sampled entities and pairs with their match keys, then ask whether to proceed or iterate.)
-- **Poor:** "The results suggest mapping improvements would help." (Show the entities or possible-match
-  pairs that demonstrate it — naming the match key pattern the near-misses share, since that is what
-  points at the unmapped feature — then give recommendations and offer the Module 5 feedback loop.)
+- **Poor:** a high possible-match rate is a **finding, not a verdict on the mapping.** Show the
+  possible-match pairs and name the match-key pattern they share, then run the test below before
+  saying anything about mapping. ⛔ **The band says to look hard; it does not say what you will
+  find.**
+
+⛔ **The Poor band has THREE outcomes, and only one of them reaches Module 5 (INV-264).** This mirrors the
+match-key audit's shape one module earlier (`../module-06-data-processing/phaseD-validation.md` →
+"Report a high-share suppressor as a FINDING, never a pass/fail", whose buckets decide **which**
+question the finding earns), and for the same
+reason: the possible-match rate is driven mostly by things a remap cannot change — how populated each
+field is in the source, how common the names are, and how large the dataset is. On the
+generated-scenario path the Power **creates** those characteristics itself: INV-239 requires a source
+gapped into the 70-79% band, and gapped contact fields are the first thing that produces near-misses
+no remap can fix.
+
+**What the server actually says** (`reporting_guide(topic='evaluation', language='<chosen_language>')`
+— the call this step already makes above — server **1.33.0, 2026-08-21**), quoted rather than
+paraphrased, because the Power used to assert what the server hedges:
+
+> **UNDER-MATCHING:** … **If many near-misses are concentrated on one match key pattern, this likely
+> indicates a mapping issue** (e.g., phone numbers not mapped).
+
+and, from the same response's evaluation anti-patterns:
+
+> if many near-misses share the same match key pattern, a feature is likely **unmapped or has data
+> quality issues**.
+
+Three things follow: the diagnosis is conditional on **concentration**, not on the rate; it is
+**likely**, not certain; and it has **two** causes, of which only the first is mapping-actionable.
+
+⛔ **Run the sanity comparison first — it is the discriminator, and this step already has both
+numbers.** The same response prescribes it: *"Compare compression rates against source profiler
+uniqueness stats from the data profiling step. … If profiler showed 30% duplicate names but
+compression is only 2%, likely under-matching."* Compare against Module 5's profile for that source.
+A dataset that genuinely contains many similar people is not a mapping defect.
+
+Then route on what the evidence shows:
+
+1. **Mapping-actionable** — near-misses concentrated on one match-key pattern that a mapping change
+   would affect. Report it, give recommendations, and offer the Module 5 feedback loop below.
+2. **Not mapping-actionable** — the cause is a data characteristic. **Say plainly that remapping
+   would not change it**, record the finding, and continue to **3c**. Two causes are common enough to
+   name so they are recognized rather than rediscovered:
+   - **Source field sparsity** — a correctly-mapped field whose values are simply absent from the
+     source. Check the **populated share per field**: Module 5 already measured it as `completeness`,
+     so read that figure rather than inventing a measurement.
+   - **Name-only collisions** in small or synthetic datasets, from a limited name pool. On a
+     generated scenario the Power built that pool.
+3. **Could not determine** — say so, record it, and continue to **3c**. Do not guess in either
+   direction; an unsupported "mapping looks fine" is the same defect as an unsupported remap.
+
+⛔ **Outcomes 2 and 3 do NOT ask the Module 5 question** — they end by continuing into 3c, whose
+pinned visualization offer closes the turn, exactly as the **Acceptable** branch already does. Do not
+invent a question for a branch that has none (the unsatisfiable-instruction class
+`module5-quality-gate-demands-a-question-its-best-branch-lacks` records).
+
+⛔ **A non-actionable Poor finding still goes in the module recap.** It is a real result about the
+Bootcamper's data — "48.9% possible matches, driven by 46% phone population in one source, not by the
+mapping" is worth keeping — and a finding that routed nowhere must not be silently discarded.
 
 **Module 5 feedback loop (when quality is poor or the bootcamper requests iteration):**
 
@@ -432,6 +623,23 @@ and the `../module-03b-truthset-visualization/visualization-api-reference.md` co
 bootcamper's chosen programming language (INV-090), pointed at the bootcamper's loaded data instead
 of the Truth Set. It MUST:
 
+- ⛔ **Color each graph node by the entity's whole source SET, not by its first source** — see the
+  contract's "Coloring graph nodes". ⚠️ **This is the rule the Truth Set cannot test.** Most Truth
+  Set entities sit in one source, so first-source coloring looks correct there and only misreports
+  on the bootcamper's own data: one run rendered **1,951 cross-source entities in a single-source
+  color**, under a legend implying they were single-source, and the headline finding of the whole
+  bootcamp — the same vendor found in more than one system — was invisible in the tab built to show
+  it. Nothing looked broken. This step's own warning applies to itself here: *the bootcamper cannot
+  tell a bad default from bad data*, so check what the colors encode rather than assuming the
+  reference got it right.
+  - ⛔ **Run the encoding self-check here too, and here it is not vacuous (INV-270, INV-259, INV-265).** Compare the legend's
+    distinct color-key count against `encoding_check.distinct_source_set_keys` from the graph
+    endpoint (the contract's "The encoding self-check"). ⚠️ The Truth Set build **also** exercises
+    this check — it registers three data sources, so a `not_exercised` result back in Module 3b was a
+    signal rather than the norm — and the bootcamper's data exercises it again at larger scale. Do
+    not treat a clean Module 3b verdict as covering this run: different data, different encoding
+    path, and the 1,951-entity defect above happened here. Stop and fix the encoding on a mismatch
+    rather than capturing; the screenshots persist into the recap.
 - Serve/render every applicable tab from that contract — Entity Graph, Merge Statistics, Match
   Keys, Feature Scores, Cross-Source, and Search / Probe. That is the whole set: **six** tabs. Tabs
   whose data is absent are simply not shown (e.g. Cross-Source needs 2+ sources; Match Keys /
@@ -461,13 +669,58 @@ of the Truth Set. It MUST:
   (off above ~150 nodes) precisely because a default tuned to 84 entities produced an unreadable
   hairball at ~4,000. Re-check any other visual default at your actual entity count before
   presenting; the bootcamper cannot tell a bad default from bad data.
+- ⛔ **(INV-289) Build the model from the EXPORT STREAM, not one `get_entity` call per record.** The reference
+  server reads a records file and calls the engine once per record — correct at the Truth Set's 84
+  entities, and **19,584 round trips** on a Bootcamper's own data (observed 2026-08-26; the same
+  model built in ~15 seconds from the export stream). ⚠️ **The correctness gain outlives the speed
+  one:** a records-file build can only see entities that have a record in the file it was handed,
+  while the export stream yields **every resolved entity** — including embedded-master records the
+  mapper emitted that appear in no input file. Absorbing needs no change: each export row carries
+  the shape a `get_entity` response does.
+  - ⛔ **Take the export signature from the server, per binding (INV-002/INV-080).** Verified
+    `get_sdk_reference(topic='parameters', filter='export_json_entity_report', language='python')`,
+    server **1.35.3**, 2026-09-01: Python is
+    `export_json_entity_report(flags: int = <SzEngineFlags.SZ_EXPORT_DEFAULT_FLAGS: 3734497>) -> int`
+    on `SzEngine`, returning an export **handle**. The **method name and the flags type both differ
+    by binding** — Java `exportJsonEntityReport` taking `Set<SzFlag>`, C# `ExportJsonEntityReport`,
+    TypeScript `exportJsonEntityReport` taking `bigint` — so look it up for the Bootcamper's
+    language rather than translating the Python form.
+  - ⛔ **(INV-179) Pass `SZ_EXPORT_INCLUDE_ALL_ENTITIES | SZ_ENTITY_DEFAULT_FLAGS` — do NOT hand-assemble
+    the export flags from `SZ_ENTITY_INCLUDE_*` members.** This is the one call where this
+    module's usual "request exactly the flags you consume" advice is **wrong**, and it is wrong
+    in a way that was observed rather than reasoned about: a bootcamp session that assembled
+    export flags from those members got rows with **no `RELATED_ENTITIES` key at all, and no
+    error** — a graph with nodes and no edges (`../module-06-data-processing/phaseD-validation.md`,
+    which records both observations and treats the dumped row as the authority).
+    The documentation agrees: the relationship and record-detail flags do **not** list the export
+    methods in their `applies_to`, while `SZ_ENTITY_DEFAULT_FLAGS` does, and its `response_paths`
+    cover `RELATED_ENTITIES[]` and `RESOLVED_ENTITY.ENTITY_ID`/`.ENTITY_NAME`/`.RECORDS[]`
+    (`get_sdk_reference(topic='flags', filter='SZ_ENTITY_DEFAULT_FLAGS')`, server **1.35.4**,
+    2026-09-01). `../bootcamp-onboarding/scripts/senzing_viz_server.py` does exactly this, so a server modeled on it
+    inherits the right choice.
+    ⚠️ **The DEFAULT-composite caution is not waived — it is relocated.** Membership can still
+    shift between versions with no error, which matters for the code that *leaves* with the
+    Bootcamper: `production/MIGRATION_CHECKLIST.md` carries it as a Performance item, and that
+    item's own carve-out says the export call is where the replacement must not be applied
+    blindly.
 - Keep all generated code and output inside the working directory (`src/server/` for code, HTML →
   `docs/visualizations/`, other output → `docs/` or `data/`; never `/tmp/`); pull
   entity/relationship/report data through generated SDK code and `reporting_guide`, never direct
   SQL.
 - Render offline with the vendored D3 asset inlined, no CDN (INV-091), and take palette/typography
-  from `${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/brand_tokens.py` (INV-081; skill-relative fallback
-  `../../../bootcamp-onboarding/scripts/brand_tokens.py`, INV-252).
+  from `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/brand_tokens.py` (INV-081; skill-relative fallback
+  `../bootcamp-onboarding/scripts/brand_tokens.py`, INV-252).
+  - ⛔ **(INV-091) Copy the D3 asset into the project and resolve it from there — the reference's
+    lookup is
+    position-dependent and does not travel.** `senzing_viz_server.py` finds `vendor/d3.v7.min.js`
+    beside **its own file**, which is correct in the Power's layout and finds nothing for a server
+    written into `src/server/`. Copy the asset under the project on first build and read it from
+    that path, so the live app keeps working after a Power update moves or replaces the cached
+    Power directory — Step 6c tells the Bootcamper they can return to this visualization, and that
+    promise is only as durable as the asset it needs. ⚠️ **The standalone snapshot is unaffected**:
+    D3 is inlined into it at build time, so only the **live server** is at risk.
+  - ⛔ **(INV-091) Keep the refusal-to-render when no asset is found.** Failing visibly is correct,
+    and a CDN fallback would break the offline guarantee that is the reason for vendoring D3 at all.
 - Write a self-contained standalone HTML snapshot under `docs/visualizations/` (INV-070), passing
   the app **dataset wording that names the Bootcamper's own sources** — e.g. "your CUSTOMERS and
   REFERENCE data", built from `config/data_sources.yaml`. ⛔ Never let it default to neutral wording
@@ -481,6 +734,37 @@ of the Truth Set. It MUST:
   `{name}` = `results_visualization`. Capture **one image per tab** from the running server
   (`--url http://localhost:<port>`, with `--query` so Search / Probe shows real results) — not
   several shots of one tab — and derive every caption from the opened image and its tab label.
+
+  ⛔ **The capture tool is bundled — run it, do not assess whether automation exists.**
+  `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/capture_screenshots.py` (INV-185; skill-relative fallback
+  `../bootcamp-onboarding/scripts/capture_screenshots.py`, INV-252). It tries several headless backends itself and
+  writes both the PNGs and a `<name>-tabs.json` coverage manifest that graduation reads:
+
+  ```bash
+  python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/capture_screenshots.py" \
+    --url "http://localhost:<the port 3b actually bound>" \
+    --name results_visualization --tabs all --query "<a name present in the loaded data>"
+  ```
+
+  ⛔ **"No headless capability" is a conclusion the helper reaches and reports, never one you reach
+  first.** Enter the silent-skip path on its **exit code** — it distinguishes its reasons — and never
+  on an assumption that browser automation is unavailable. A guide that skipped capture here on that
+  assumption, without running this script, lost twelve recap images; the same script then captured
+  6 of 6 tabs first try against plain headless Chrome. The procedure (backends, exit codes,
+  `--single`, the caption rule) stays stated once in `module-completion.md` — this is the tool's
+  identity, not a copy of its manual (INV-183, INV-300).
+
+  ⛔ **The reported reason is INV-122's requirement, not a courtesy.** The helper MUST distinguish
+  "no headless capability" from "no requested tab exists" — which is exactly why its exit code is
+  the authority here and your own assessment is not.
+
+  ⛔ **Embed in the app's own tab order — never in capture or append order, and never in
+  filename-discovery order.** The ordering authority is the tab table in
+  `../module-03b-truthset-visualization/visualization-api-reference.md`, whose row order *is* the
+  order the app presents its tabs; cite it rather than restating the list, or the two orders fork (INV-300).
+  ⛔ **A caption must never imply a result set the image does not show.** Where Search / Probe was
+  captured empty or inactive, say so in the caption — an undisclosed empty panel reads as the data
+  having nothing in it (INV-123).
 - ⛔ **If the visualization changes after the snapshot is written — a bootcamper request, a fix, a
   styling tweak — rebuild the snapshot and re-capture its screenshots.** The snapshot is the retained
   artifact and the one the recap embeds; the server is disposable. A change present only on the
@@ -518,6 +802,13 @@ and wait for their go-ahead; do not re-ask on a loop. Never leave the bootcamper
 restart for a server they never agreed to stop. If the module ends with the server still up, say
 plainly that it is still running and how to stop it, rather than stopping it unasked.
 
+⛔ **(INV-001, INV-002) On macOS, start it as a DIRECT CHILD of the shell that sourced the env script — never
+through `nohup`, `env`, or a nested `bash -c`.** SIP strips `DYLD_*` when a protected binary execs a child,
+and those three are protected, so the server cannot find the native library even though the parent
+shell has the variable set. It surfaces as `no Sz in java.library.path`, and adding
+`-Djava.library.path` does not fix it. Full rule and the demonstration:
+`../module-03b-truthset-visualization/visualization-api-reference.md` → "Server lifetime" (INV-001, INV-002).
+
 ⛔ **Stop it by the pid captured when it was started, never by a command-line pattern.** (INV-223.)
 Capture the
 handle at launch (`$!` in a POSIX shell, `$proc.Id` from PowerShell's `Start-Process … -PassThru`)
@@ -525,9 +816,24 @@ and record it in the `m7_visualizations` checkpoint below, with the port it boun
 signal that pid and confirm the port is free before saying the server is stopped. `pkill -f <script name>` matches the invoking shell's own
 command line and signals the caller, and this module's server is generated in the bootcamper's
 chosen language (INV-090), so there is no script name to match on anyway. When the pid is missing,
-find the listener by port (`lsof -ti:<port>`, or `Get-NetTCPConnection -LocalPort <port>`). Full rule:
+find the listener by port (`lsof -ti:<port>`, or `Get-NetTCPConnection -LocalPort <port>`). ⛔ **On
+the `docker` path neither `lsof` nor a `kill` binary exists in the container (INV-223)** — signal through the
+shell builtin using the pid INV-223 required the launch to record, and probe the port with `python3`, and treat the port's answer as the observation
+rather than the kill's exit status. Full rule:
 `../module-03b-truthset-visualization/visualization-api-reference.md` → "Server lifetime" →
 "Identifying the server process".
+
+⛔ **A port that binds is not a port that was free, so never read a successful start as proof.**
+The server the bootcamper writes here MUST bind the loopback interface explicitly and MUST confirm,
+before the URL is handed over, that the process answering `/api/stats` is the one just started —
+both required by the any-language contract (`visualization-api-reference.md` → "Binding the port"
+and "Confirming the server that answers is yours"). ⚠️ **A wildcard bind coexists with an existing
+loopback listener on the same port:** both succeed, two processes listen, and either may answer.
+Observed 2026-08-17 — a three-week-old server from an unrelated project held the port, this
+module's server bound alongside it, and only luck decided which one the browser reached. The other
+outcome shows the bootcamper **a stranger's dataset under their own project's title**, with every
+figure wrong and the recap screenshots capturing it. If the identity check disagrees, stop and
+report the conflict; do not hand over the URL with a warning attached.
 
 **Checkpoint:** write step 3c to `config/bootcamp_progress.json`, recording `m7_visualizations`
 (offered/accepted, the artifact path, and — while the server is up — the port and pid it was started
@@ -595,7 +901,10 @@ Source every figure through generated SDK code and `reporting_guide` — never d
    (INV-242) — and say explicitly which case applies: **the data had little overlap
    to find**, or **the pipeline underperformed**. Without it, a correct result on a
    low-overlap dataset reads as a weak one. If the match-key audit ran in Data processing, its
-   suppressor findings belong here.
+   suppressor findings belong here — **carrying the bucket they came from**, because a per-record
+   suppressor (records merged despite a conflict) and a relationship suppressor (entities the engine
+   declined to merge because of one) read as the same number and mean opposite things. A keepsake
+   that records the share without the bucket cannot be acted on later.
 
 ⛔ **Write it in Latin-script characters, and build diagrams from ASCII.** The PDF's built-in fonts
 cover Latin-1 only, so any character outside it — Cyrillic, Greek, CJK, Arabic — is **dropped from
@@ -608,14 +917,14 @@ fabricate to fill a field). The generator now reports every character it had to 
 and the first affected passage on stderr, so a slip is visible rather than silent — but it reports
 the loss, it cannot undo it: the characters are gone from that PDF.
 
-Then render the PDF with the bundled generator. ⛔ **It ships inside the plugin, not in the
+Then render the PDF with the bundled generator. ⛔ **It ships inside the Power, not in the
 bootcamp project** — resolve it the same way every other bundled script is resolved, and never as a
-bare `../bootcamp-onboarding/scripts/…` path, which resolves against the project working directory where no top-level
-`../bootcamp-onboarding/scripts/` exists (INV-050 puts the project's own utilities under `src/../bootcamp-onboarding/scripts/`):
+bare `scripts/…` path, which resolves against the project working directory where no top-level
+`scripts/` exists (INV-050 puts the project's own utilities under `src/scripts/`):
 
 ```bash
-python3 "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/generate_discoveries_pdf.py"
-# or, if CLAUDE_PLUGIN_ROOT is unset: python3 <this-skill-dir>/../../../bootcamp-onboarding/scripts/generate_discoveries_pdf.py
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_discoveries_pdf.py"
+# or, if PLUGIN_ROOT is unset: python3 <this-skill-dir>/../bootcamp-onboarding/scripts/generate_discoveries_pdf.py
 ```
 
 That script is the discoveries **sibling** of the recap generator — do not point

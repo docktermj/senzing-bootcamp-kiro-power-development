@@ -109,7 +109,7 @@ steering files.)
   from. If you cannot point to the step in a skill file that specifies a question, it is not a
   bootcamp question and must not be asked. In particular, **never present a session- or host-level
   control as a bootcamp question** — auto mode, auto-accept edits, permission mode, plan mode, fast
-  mode, background tasks, `/compact`, `/loop`. Those belong to the bootcamper's Claude session, not
+  mode, background tasks, `/compact`, `/goal`. Those belong to the bootcamper's Kiro session, not
   to the bootcamp, and asking about one is not made legitimate by the host surfacing that control
   alongside the bootcamp. **The single exception is the module-start model/effort switch** (see
   "Module start banners and transitions"), which is the only Kiro-surface control the bootcamp
@@ -129,7 +129,7 @@ steering files.)
     host prompt *"Set up auto mode for your environment?"* — the harness's own dialog, offering
     "Set it up" / "Not now" / "Don't show again" — appeared during the onboarding preface with
     `👉 Do you have any questions before we get started?` pending and unanswered. **That prompt is
-    host-rendered: no file in this plugin asks it, and on both runs the guide originated nothing.**
+    host-rendered: no file in this Power asks it, and on both runs the guide originated nothing.**
     What it demonstrates is the hazard this rule exists for. It cost each run its pending question,
     and the bootcamper could not tell it from bootcamp content — arriving *before* any sanctioned
     interface question, so the frame they formed for every later one came from something the
@@ -151,6 +151,18 @@ steering files.)
 
     Once the bootcamper says something substantive, the reference-something-specific form applies
     again; this carve-out is for content-free answers only.
+  - ⛔ **(INV-272) When proceeding requires LOADING anything, the acknowledgment goes out first — in its own
+    bootcamper-visible text, before the first tool call.** Invoking a skill, reading a file or
+    running a script produces **no** bootcamper-visible output, so an acknowledgment composed *after*
+    the loading leaves their answer looking unregistered for the whole interval — which at a module
+    transition is several consecutive calls long. "Acknowledge before proceeding" is satisfiable by
+    one combined reply everywhere the next step is **composed**; it is not, where the next step must
+    first be **loaded**. Recorded 2026-08-25: a bootcamper answered the Module 7 transition question,
+    saw nothing across a skill invocation and two file reads, interrupted, and answered a second time
+    — *"I lost my place and had to re-confirm"*. ⚠️ **Emit a statement, not a turn boundary.** It
+    carries no 👉, ends nothing, and does not preview or duplicate whatever the loaded step then
+    produces; the module-start apparatus follows in the same flow (INV-005–INV-009 untouched, and the
+    question is still asked exactly once — INV-006).
 - **Continuation requests** ("continue", "keep going", "next", "proceed", "move on") -> give
   the next step this same turn. Never suggest pausing, "take a break", or "pick this up later".
 - After the bootcamper answers a pending 👉 question, processing that answer is the FIRST
@@ -173,16 +185,45 @@ steering files.)
 - **Pre-response checklist:** if your response contains Senzing SDK method names, attribute
   names, config options, error codes, or entity-resolution technical details, you MUST have
   called an MCP tool this turn to get them. If not, stop and call it first.
-- ⛔ **Two rules, two names, and they are not the same rule.** Both appear throughout the plugin,
+- ⛔ **(INV-273, INV-080) That checklist is a floor, NOT the exhaustive set of claims needing a source.** Its
+  enumeration is technical, and read as a complete list it licenses everything outside it. An
+  assertion about **Senzing the company** — its licensing, its support, its pricing, its internal
+  process, how its customers or employees do things — is subject to the same discipline as an SDK
+  method name. It comes from an MCP tool, from a shipped skill file, or from something measured on
+  this machine. There is no fourth source.
+- ⛔ **(INV-273, INV-080, INV-149) Anything you cannot source is labeled as an inference AT THE POINT it is
+  made, or it is not said.** Label-or-omit, never label-and-proceed: a hedge bolted onto an advisory that should not
+  have been offered is still the advisory. ⚠️ **And at a gate the bootcamper has already answered,
+  the correct action is silence** — an unsourced consideration they did not ask for has no bearing
+  they invited. The labeling half of this rule is for when the bootcamper **asks** something the
+  Power cannot source; it does not authorize volunteering.
+
+  ⚠️ **Recorded because it happened at the worst possible place (2026-08-25).** At the Module 4
+  License Key gate a bootcamper chose *"request a free evaluation license now through the
+  bootcamp"*. Before any value was collected, the guide volunteered that their account email was on
+  the `senzing.com` domain and that *"if you're at Senzing, you very likely have access to a license
+  through internal channels"* — stated flatly, unhedged, arguing against the option they had picked
+  one turn earlier. The one-per-email and 30-day terms in the same breath **were** sourced, from the
+  MCP server; the internal-channels claim was the guide's own inference about how Senzing employees
+  obtain licenses. Their words: *"I don't want assumptions presented as fact."* The sourced and the
+  unsourced arrived in one paragraph, indistinguishable.
+- ⛔ **(INV-274, INV-065) The bootcamper's identifying context is for IDENTIFICATION and for fields a tool
+  requires —
+  never a premise for your reasoning about what they should choose.** Their name, email address and
+  account details are collected to identify them and to satisfy a call that cannot run without them.
+  **Do not infer employer, affiliation, seniority or entitlement from an email domain** or from any
+  other identifying detail, and never use such an inference to steer a decision. An email address
+  supplied to identify someone is not evidence about what options they have.
+- ⛔ **Two rules, two names, and they are not the same rule.** Both appear throughout the Power,
   and left undefined they read as one requirement stated inconsistently — so a guide cannot tell
   whether a result fetched earlier may be presented now. Use these terms:
   - **Presentation freshness — "this turn".** The pre-response checklist above, unchanged: a reply
     that contains a Senzing specific requires an MCP call **on the turn that reply is sent**. This
-    is what makes the turn's attribution line truthful — the plugin may credit the MCP server only
+    is what makes the turn's attribution line truthful — the Power may credit the MCP server only
     for what a tool actually produced this turn (see "Attribution" below), so a turn with no call
     has nothing to attribute and must not present Senzing specifics at all.
   - **Sourcing floor — "from the server, not from this file".** Wherever a step says a value must
-    come from an MCP tool rather than from the literal written in the plugin file, it is setting a
+    come from an MCP tool rather than from the literal written in the Power file, it is setting a
     **floor on provenance**, not a ceiling on caching: the shipped number may be stale, so go ask.
   ⛔ **A sourcing floor never relaxes presentation freshness.** Satisfying the floor once does not
   license presenting the value on a later turn without a call; the floor says *where the value comes
@@ -250,7 +291,7 @@ steering files.)
     therefore permitted here — after the fetch fails, not instead of it — and it costs context,
     because the whole resource then arrives inside the response.
 
-  <!-- MCP-NEGATIVE: the declared schemas of find_examples (query, repo, file_path, list_files, language, max_lines) and generate_scaffold (language, version, workflow) — neither declares an inline parameter, while download_resource's schema does declare it — owner: each tool's declared schema as the server advertises it in the tool manifest is the authority on what that tool accepts, and all three were read there directly rather than inferred from response prose or from a sibling tool (routing negative — the schema is the route, the response's own access_steps prose is not) — server 1.32.9, 2026-08-14 -->
+  <!-- MCP-NEGATIVE: the declared schemas of find_examples (query, repo, file_path, list_files, language, max_lines) and generate_scaffold (language, version, workflow) — neither declares an inline parameter, while download_resource's schema does declare it — owner: each tool's declared schema as the server advertises it in the tool manifest is the authority on what that tool accepts, and all three were read there directly rather than inferred from response prose or from a sibling tool (routing negative — the schema is the route, the response's own access_steps prose is not) — server 1.36.0, 2026-09-02 -->
 
   ⛔ **Read this as a consequence of the schema, never as a ban on the word `inline`.** Stated as
   "never pass `inline`" the rule generalizes wrongly, and a guide that internalized it that way will
@@ -259,6 +300,38 @@ steering files.)
   a prohibition derived from a general rule states the general rule and the property that triggers
   it, never only the forbidden token — so a reader can tell where it applies and where it does not.
   INV-234 is this tool family's case of it.
+
+  ⛔ **(INV-280) A declared schema is authoritative for the parameters a tool ACCEPTS — not for prose
+  describing what it COVERS.** The rule above turns on what the schema declares, and that is right:
+  a parameter the schema does not declare cannot be passed. But a declared description also carries
+  free prose — repository counts, indexed file types, language lists — and that prose is **not**
+  normative and does go stale. For coverage, **`get_capabilities` governs**, and a disagreement is
+  settled by making the call, not by preferring whichever text looks newer.
+
+  ⚠️ **The example this rule was written from has been RESOLVED upstream — which is why the rule is
+  stated as a property and not as that example.** On server 1.33.0 `find_examples`' declared
+  description omitted `.ts`/`.js` and TypeScript and gave a lower repository count than
+  `get_capabilities`; it was reported upstream 2026-08-27, and on **server 1.36.0, 2026-09-02** the
+  two agree on count, extensions and languages. The rule did not go with it: a declared
+  description's coverage prose is still not normative, and still goes stale on the server's
+  schedule rather than the Power's.
+
+  **The live illustration, same server and date:** `search_docs`' declared description says the
+  corpus is *"~2175 chunks"*, while every `search_docs` response carries
+  `metadata.documents_indexed: 14637`. ⚠️ **Those are not necessarily contradictory — they may
+  simply be different units** (a chunk need not be a document), and **the tool documents neither**.
+  That is the point: a reader cannot tell from the declared prose how large the corpus is, or
+  whether the two figures describe the same thing. A coverage figure a caller cannot act on is
+  exactly the kind this rule says not to quote — and the reason holds whether or not any two
+  figures are in outright conflict.
+
+  `generate_scaffold` shows the same split **inside one schema**: its summary line says
+  "Languages: python, java, csharp, rust" and omits `error_handling` from its workflow list, while
+  that schema's own `language` and `workflow` **property** descriptions do list
+  `typescript (or ts, node, nodejs, javascript, js)` and `error_handling`. ⚠️ **The hazard is that
+  the wrong half carries the more official-looking citation**, so an editor applying "the schema is
+  the route" in reverse lands on stale prose with an impeccable-looking source. Reported upstream
+  2026-08-27.
 - Never hand-code Senzing JSON mappings or SDK method names.
 - **MCP failure:** retry once. If it still fails, tell the bootcamper the MCP server is
   unreachable and they must fix the connection before continuing. Never fabricate. If MCP
@@ -270,7 +343,7 @@ steering files.)
 - **Response structures (INV-115).** Flags are only half the lookup. Before writing any code
   that **parses** an SDK response, call
   `get_sdk_reference(topic='response_schemas', filter='<method>')`. **Never infer field names
-  from an example snippet** — including the illustrative payloads in this plugin's own docs.
+  from an example snippet** — including the illustrative payloads in this Power's own docs.
   This matters more than flags do: a wrong flag usually yields a visible error, whereas a wrong
   field name yields `None`, which renders as blank text. The output then looks like "Senzing
   found nothing" instead of a defect, so nobody reports it.
@@ -284,6 +357,34 @@ steering files.)
   server 1.32.2, 2026-07-30) — so check a suspect field name there **first**. The raw dump stays
   the authority for what *this* installation actually returns and for anything the schema does
   not list; an empty or shallow result is coverage, not a failed call (INV-149).
+
+  ⚠️ **(INV-179) For an ABSENT field — as opposed to a wrong value — suspect the FLAGS before
+  the field name.** `response_schemas`' `requires_flags` annotation is **incomplete**, so its absence is
+  **not** evidence that a path is unconditional. Verified on MCP server 1.35.3, 2026-09-01:
+  `RESOLVED_ENTITY.RECORDS[].MATCH_KEY`, `RESOLVED_ENTITY.RECORDS[].ERRULE_CODE`,
+  `RELATED_ENTITIES[].MATCH_KEY` and `RELATED_ENTITIES[].IS_DISCLOSED` carry **no**
+  `requires_flags`, while neighbors in the same arrays do — `RELATED_ENTITIES[].RECORDS[]` →
+  `SZ_ENTITY_INCLUDE_RELATED_RECORD_DATA`, `RELATED_ENTITIES[].MATCH_KEY_DETAILS` →
+  `SZ_INCLUDE_MATCH_KEY_DETAILS`. `topic='flags'` does not close the gap from the other side:
+  `SZ_ENTITY_INCLUDE_RECORD_MATCHING_INFO` and `SZ_ENTITY_INCLUDE_RELATED_MATCHING_INFO` carry
+  no `response_paths` at all. The mapping is recorded in **neither** direction, and it is the
+  *partial* coverage that does the damage — it makes an omission look like information.
+
+  **So do this:** re-issue the same call with the matching `*_MATCHING_INFO` flag added, and
+  compare. A field that appears is a **flag** problem, not absent data. Only after that
+  comparison is "the data is genuinely absent" a supportable conclusion. ⛔ **(INV-179) The broadened
+  call is a diagnostic, not the shipped call** — `get_sdk_reference` cautions that `*_DEFAULT_FLAGS`
+  composites are for getting started rather than production, so narrow back to the flags whose
+  output you actually consume once the question is settled.
+
+  ⚠️ **The gating itself is observation-only (INV-149).** Those four paths were proven
+  flag-gated by paired `get_entity_by_record_id` calls differing only in flags — SDK 4.4.0, a
+  loaded repository, 2026-08-31: without the related-matching-info flag a related entity
+  returned `{ENTITY_ID, ENTITY_NAME}`; with it, `{ENTITY_ID, ENTITY_NAME, ERRULE_CODE,
+  IS_AMBIGUOUS, IS_DISCLOSED, MATCH_KEY, MATCH_LEVEL_CODE}`. Only a live engine can show this,
+  and no MCP route reports it. This cost two wrong answers in one walk — a match-key audit
+  reporting **0** distinct keys against a true 16, and disclosed links reporting **0** against
+  556 — each reached by following the rule above and stopping at the schema.
 - **Parameter shapes, for the bootcamper's binding.** **`get_sdk_reference` answers parameter
   shapes whenever `filter` names a method — under *any* topic**, not only `topic='methods'`. A
   `flags` or `response_schemas` response you already hold therefore carries the signature too,
@@ -383,7 +484,7 @@ steering files.)
 - Project root whitelist ONLY: `.gitignore`, `.env`, `.env.example`, `README.md`,
   `requirements.txt`, `pom.xml`, `*.csproj`, `Cargo.toml`, `package.json`. Never put `.py`,
   `.md` (except README), `.jsonl`, `.csv`, or non-config `.json` in the root.
-- The plugin's PreToolUse write-gate enforces the temp-path and secret rules; file-type
+- The Power's PreToolUse write-gate enforces the temp-path and secret rules; file-type
   placement is your responsibility.
 - ⛔ **On Java, a prescribed `snake_case` filename collides with the class name — declare the class
   package-private rather than renaming either (INV-237).** Every `.[ext]` filename in this bootcamp
@@ -460,17 +561,44 @@ PowerShell form — never a copied `&&`.
 A script the bootcamper is told to `source` runs in **their** interactive shell, so it MUST work in
 the platform's **default** shell — not only in bash. On macOS that shell is **zsh**.
 
-- ⛔ **`${BASH_SOURCE[0]}` is bash-only and expands to *empty* under zsh.** A script that locates
+- ⛔ **`${BASH_SOURCE[0]}` is bash-only and expands to *empty* under zsh (INV-175).** A script that locates
   itself that way resolves its project root to the wrong directory under zsh and carries on, so the
   error surfaces later and elsewhere. Branch on `${ZSH_VERSION}` and use `${(%):-%x}` in the zsh
   branch — the canonical idiom, with the fail-loudly root check that goes with it, is in
   `../module-02-sdk-setup/SKILL.md` under
   [the env script's path resolution](../module-02-sdk-setup/SKILL.md#env-script-path-resolution).
-  Do not restate it; link to it.
-- ⛔ **A sourced script must never `exit` or `set -e`.** It shares the bootcamper's shell, so `exit`
+  Do not restate it; link to it (INV-300).
+- ⛔ **A sourced script must never `exit` or `set -e` (INV-175).** It shares the bootcamper's shell, so `exit`
   closes their terminal and `set -e` leaks into the rest of their session. Use `return`.
 - **Verify the resolved path before using it, and name it when it is wrong.** Silently exporting a
   variable computed from a wrong root is the failure this prevents.
+
+## Running a file you just wrote, when the run happens somewhere else
+
+On the `docker` install path the bootcamper's project is bind-mounted into the container, so files
+are written **host-side** and executed **container-side** — many times per module, from SDK setup
+through query programs. Propagation across that mount is not instantaneous.
+
+- ⛔ **A syntax or parse error in a file you just wrote is retried ONCE before it is believed.** The
+  container can read a partially-synced file and report an error at a line that is well-formed.
+  Re-run the identical command: **if it succeeds, it was propagation lag, not the code** — say so
+  and move on. If it fails identically, it is a real error. One retry, not a backoff loop.
+- **Confirm it with a compile, not by re-reading the source.** Syntax-check the file *inside* the
+  container in the bootcamper's chosen language (INV-090) — `python3 -m py_compile <file>`,
+  `node --check <file>`, `javac`, `tsc --noEmit`. That separates "the container cannot see the whole
+  file yet" from "the code is wrong" in one cheap step, and re-reading the source on the host cannot:
+  the host's copy was always complete.
+- ⚠️ **A host/container language-version split is normal here and is NOT the first explanation.**
+  The container runs whatever its install steps put there and the host runs its own version, so a
+  version story is always available and more satisfying — and usually wrong. A genuine
+  incompatibility **reproduces on retry**, which is what makes the retry a discriminator rather than
+  a way of dodging the question. Observed 2026-08-18 on macOS Docker Desktop: a well-formed file
+  failed once with `SyntaxError: unterminated string literal`, succeeded on an identical re-run, and
+  an in-container `compile()` confirmed it parsed — after a verification round trip spent on a PEP
+  701 f-string hypothesis that was plausible and false.
+- **Do not add a fixed sleep instead.** A wait asserts nothing about whether the file arrived; the
+  retry plus the compile does. Same reason the visualization teardown polls the port rather than
+  sleeping.
 
 ## Markdown files
 
@@ -504,24 +632,24 @@ it is spelled correctly wherever the module is named.
 
 ## Naming the Kiro surface (INV-158)
 
-Whenever output, a question, or a doc tells the bootcamper to do something **in their Claude
+Whenever output, a question, or a doc tells the bootcamper to do something **in their Kiro
 interface** — set a model, change reasoning effort, restart an MCP server, click a control — name
 which interface. The bootcamp runs in more than one, and the names are not interchangeable:
 
 | Say | For |
 | --- | --- |
-| **Kiro** | The desktop application (it runs Kiro inside itself). |
+| **Kiro** | The desktop application. |
 | **Kiro CLI** | Kiro in a terminal, where `/model` and `/effort` exist. |
-| **Kiro on the web** | Kiro at claude.ai/code. |
+| **Kiro on the web** | Kiro in a browser. |
 | **the Kiro IDE** | Kiro in VS Code or a JetBrains IDE. |
 
 - **"Kiro" alone names the product, never an interface.** It is correct for things that are
-  true of the harness everywhere — "the senzing MCP server configured in Kiro", "a Claude
-  Code plugin", "Kiro hooks" — and wrong as a way of saying *the terminal*, because Claude
-  Desktop is Kiro too.
-- **"The Claude app" is retired vocabulary.** It named none of the four interfaces, so a bootcamper
+  true of the harness everywhere — "the senzing MCP server configured in Kiro", "a Kiro
+  Power", "Kiro hooks" — and wrong as a way of saying *the terminal*, because the desktop
+  application is Kiro too.
+- **"The Kiro app" is retired vocabulary.** It named none of the four interfaces, so a bootcamper
   told to use those unnamed "model and effort controls" had to guess which. Name the interface.
-- **Vague is allowed only where the plugin genuinely cannot tell.** When the interface is
+- **Vague is allowed only where the Power genuinely cannot tell.** When the interface is
   undeterminable, "in your Kiro surface" is honest; it is never a shortcut for one you know.
 
 ## Visual deliverables (Senzing brand)
@@ -531,14 +659,14 @@ which interface. The bootcamp runs in more than one, and the names are not inter
   snapshot, the recap PDF, the data-discoveries PDF, Data Quality, Mapping, and Transformation's
   quality/mapping web pages, and any future charts/dashboards/HTML — **MUST** take its palette and
   typography from the **shared brand tokens** shipped at
-  `../../scripts/brand_tokens.py` (colors, typography, data-source node colors), never an ad hoc
+  `scripts/brand_tokens.py` (colors, typography, data-source node colors), never an ad hoc
   palette, and **MUST** render offline (INV-081). This is a MUST, not a preference: the carve-out
   below is about *which artifacts* are bootcamper-facing, never about whether a bootcamper-facing
   one may skip the tokens. The shipped reference generators (`senzing_viz_server.py`, `generate_recap_pdf.py`)
   already consume those tokens; any generator you build — including the chosen-language Truth Set
   visualization server (INV-090) and any one-off HTML page a module offers — MUST too. Key rules: dark backgrounds are
   Obsidian/Deep (never pure black), the accent is the ember family, signal green is reserved for
-  live/resolved states (never decorative), light sections are warm off-white (never cold grey),
+  live/resolved states (never decorative), light sections are warm off-white (never cold gray),
   and rendering stays offline (no web-font/CDN fetch — prefer Roboto with a system fallback,
   INV-081).
 - **The one carve-out: plain functional/dev output stays unbranded.** A progress line, a log file, a
@@ -557,8 +685,8 @@ which interface. The bootcamp runs in more than one, and the names are not inter
 
 - Progress -> `config/bootcamp_progress.json`. Preferences -> `config/bootcamp_preferences.yaml`.
 - **Batch administrative writes and keep them small (INV-012).** Every Write/Edit renders its diff
-  inline to the bootcamper, and no harness setting suppresses that today (see
-  `../../hooks/README.md`), so the only lever is to write **rarely** and **small**. Therefore:
+  inline to the bootcamper, and no Kiro setting suppresses that today, so the only lever is to
+  write **rarely** and **small**. Therefore:
   update config at **step and module boundaries, not on every sub-step**; batch related fields into
   a **single** write instead of one write per field; prefer a **minimal edit** of the changed key
   over a full-file rewrite; and keep the config files small. Administrative writes are not narrated
@@ -583,11 +711,17 @@ which interface. The bootcamp runs in more than one, and the names are not inter
   `docs/progress/recap_checkpoint.md`, refreshed at each step boundary with the module's
   accumulating Information Shared / Questions & Responses / Actions Taken / End-of-Module Summary-so-far, wrapped
   in `<!-- RECAP-CHECKPOINT:START -->` … `<!-- RECAP-CHECKPOINT:END -->` markers. This is what
-  survives a quit, compaction, or new session mid-module: the plugin's `PreCompact`, `SessionEnd`,
-  and `SessionStart` hooks fold it into `docs/bootcamp_recap.md` (append-only, idempotent). It is a
+  survives a quit, compaction, or new session mid-module: it is folded into
+  `docs/bootcamp_recap.md` (append-only, idempotent). **Nothing folds it for you — that is yours
+  to do** — at module completion, at graduation, at session close-out, and whenever you are given
+  any signal that the conversation is about to be compacted or trimmed. Kiro fires no trigger at
+  compaction and none at session end, so there is no hook to fall back on; the
+  `senzing-bootcamp-session-start` hook folds on a *new* session when the optional enforcement
+  hooks are installed, which backs the rule and never replaces it. See
+  `senzing-bootcamp-tier1-recap-folding.md` for the full rule. It is a
   single small file updated at step boundaries (INV-012), not per sub-step, and it is finalized and
   cleared on module completion (see `module-completion.md`).
-  **The plugin creates the file; you write what is in it.** `checkpoint-tick.py`
+  **The Power creates the file; you write what is in it.** `checkpoint-tick.py`
   (`UserPromptSubmit`) lays down an empty scaffold within a turn of the bootcamp starting, so the
   path always exists and you never have to create it — but a scaffold holds no narrative, and the
   fold hooks skip it and say so on stderr. An unfilled checkpoint is therefore the same loss as a
@@ -659,25 +793,40 @@ the 👉 protocol above).
 
 - **Bootcamp feedback:** whenever the bootcamper says "bootcamp feedback", "I have feedback",
   "report an issue", or similar, run the feedback workflow in `feedback.md` and append the entry
-  to `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md`. The workflow opens with a pinned
+  to `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md`. The workflow opens with a pinned
   **BOOTCAMP FEEDBACK** entry banner and closes with a pinned **FEEDBACK SAVED — BACK TO THE
   BOOTCAMP** exit banner (a statement) before the pending 👉 question resumes, so feedback mode is
   visually distinct from the bootcamp. Then return them to exactly where they left off. Feedback
-  is saved locally only, never submitted externally unless they explicitly ask. (The plugin's
+  is saved locally only, never submitted externally unless they explicitly ask. (The Power's
   `UserPromptSubmit` hook surfaces this automatically during a bootcamp.)
+- **Make a note:** whenever the bootcamper says "make a note", "note to self", "jot this down",
+  "remind me", "don't let me forget", "add a to-do", "for my notes", or invokes
+  `/bootcamp-note`, run the note workflow in `notes.md` and append the entry to
+  `docs/bootcamp_notes.md`. The workflow opens with a pinned 📌 **BOOTCAMP NOTE** entry banner
+  and closes with a pinned 📌 **NOTE SAVED — BACK TO THE BOOTCAMP** exit banner (a statement)
+  before the pending 👉 question resumes (INV-254, INV-255). Notes are folded into the recap at
+  graduation and appear in `docs/bootcamp_recap.pdf`. (The Power's `UserPromptSubmit` hook
+  surfaces this automatically during a bootcamp.)
+  - ⛔ **A note is the bootcamper's own thought, not a report about the Power.** It is never
+    routed, never triaged, and never sent anywhere — there is no upstream offer, and
+    `submit_feedback` is unreachable from it. When a message is *both* ("make a note that the
+    bootcamp is broken"), it is **feedback**: naming the bootcamp as the thing at fault makes it
+    an attributed defect report, and routing it to notes would bury it in a private keepsake.
+  - ⛔ **Do not ask what they want to note when they already said it.** "Remind me to check the
+    truth-set counts" *is* the note (INV-006).
 - **Change verbosity:** whenever they ask for more or less detail, update the `verbosity` key in
   `config/bootcamp_preferences.yaml`, confirm the new setting in one sentence, and continue.
 - **Repeat the question:** if they ask to hear the current question again ("repeat that", "what
   was the question"), re-present the current pending 👉 question verbatim. Do not invent a new
   one, and do not advance.
 - **A host control the bootcamper raises — in any form:** whether they **ask about** auto mode,
-  auto-accept edits, permission mode, plan mode, fast mode, background tasks, `/compact`, `/loop` or
-  any other setting belonging to their Claude session rather than to the bootcamp, **or tell you
+  auto-accept edits, permission mode, plan mode, fast mode, background tasks, `/compact`, `/goal` or
+  any other setting belonging to their Kiro session rather than to the bootcamp, **or tell you
   that a prompt for one appeared over the bootcamp**, answer in **one sentence** — it is their
   session setting, the bootcamp neither needs nor recommends a value — and then re-present the
   pending 👉 question verbatim (see below). Do not turn it into a gate, do not offer to change it for
-  them, and do **not** claim the bootcamp can suppress or override a host control: the plugin ships
-  skills, hooks and commands, none of which reach their interface. **Do not name a dismissal
+  them, and do **not** claim the bootcamp can suppress or override a host control: the Power ships
+  skills and hook definitions, none of which reach their interface. **Do not name a dismissal
   affordance either** — not "Don't show again", not any other — because directing them to a control
   that silences a host prompt is directing them to operate a second Kiro-surface control. The
   bootcamp asks them to operate exactly one, the module-start model/effort switch, and never this
@@ -694,7 +843,7 @@ the 👉 protocol above).
     `feedback.md` Step 4 mandates this for the feedback detour specifically; the same rule applies
     to every other interruption.
 
-    ⚠️ **The host-rendered case is the one you may never see.** A prompt the bootcamper's Claude
+    ⚠️ **The host-rendered case is the one you may never see.** A prompt the bootcamper's Kiro
     interface draws over the bootcamp is its UI, not a turn in this conversation — if they dismiss
     it, nothing about it reaches you. So this recovery fires on the evidence you actually get: they
     mention it, or they answer something that does not fit the pending question. Treat either as an
@@ -744,7 +893,7 @@ the 👉 protocol above).
   ⛔ **This is the ONLY Kiro-surface control the bootcamp asks the bootcamper to operate
   (INV-247).** It is an exception, not a precedent: no other session- or host-level setting — auto
   mode, auto-accept edits, permission mode, plan mode, fast mode, background tasks, `/compact`,
-  `/loop` — is ever offered as a bootcamp question, and a new nudge in that shape must not be added
+  `/goal` — is ever offered as a bootcamp question, and a new nudge in that shape must not be added
   here or anywhere else. Read the closed-question-set rule in the 👉 protocol before adding one. This
   limit is stated here because *this* section is what creates the expectation: a bootcamper who has
   just been asked to set `/model` and `/effort` for this module has no way to tell an unsanctioned
@@ -752,14 +901,14 @@ the 👉 protocol above).
 
   Like the step overview and the time estimate, this is module-start apparatus, so
   the apparatus-exempt setup modules (Bootcamp preparation, Module 0) do not present it (INV-063
-  clarification). **Adapt the wording to the Kiro surface in use** (INV-098): on the **Claude
-  Code CLI** present the exact `/model` and `/effort` commands; in **Kiro, the Claude web
-  app, or the Kiro IDE** — or when the interface is unknown — phrase it by intent, naming
+  clarification). **Adapt the wording to the Kiro surface in use** (INV-098): on the **Kiro
+  CLI** present the exact `/model` and `/effort` commands; in **Kiro, Kiro on the
+  web, or the Kiro IDE** — or when the interface is unknown — phrase it by intent, naming
   the recommended model and reasoning-effort level and directing the bootcamper to that interface's
   model/effort controls, without hardcoding a UI label that may drift.
 
-  ⛔ **Name the interface. "The Claude app" is retired vocabulary (INV-158).** This plugin is a
-  Kiro plugin on every one of those interfaces — Kiro runs Kiro too — so
+  ⛔ **Name the interface. "The Kiro app" is retired vocabulary (INV-158).** This Power is the
+  same Power on every one of those interfaces, so
   that phrase left the bootcamper guessing which controls were meant, and "Kiro" on its own
   does not distinguish the terminal from the desktop application. Say **Kiro CLI** for the
   terminal and **Kiro** for the desktop application.
@@ -854,7 +1003,7 @@ the 👉 protocol above).
     > 👉 **Would you like to switch to {Model} at {effort} reasoning effort for this module?** (Recommended for best value; set it with the model and effort controls in {Kiro | Kiro on the web | the Kiro IDE}; reply no to keep your current {dial}.)
 
     Substitute the one interface the bootcamper is actually on. When the interface cannot be
-    determined, say "in your Kiro surface" — vague only where the plugin genuinely does not
+    determined, say "in your Kiro surface" — vague only where the Power genuinely does not
     know, never as a shorthand for an interface it does know (INV-158).
 
     ⛔ **When the recommendation sits *below* the current setting, say so in the question itself.**
@@ -872,8 +1021,8 @@ the 👉 protocol above).
 
     1. **The dial is not yet set** — the ordinary case, unchanged. Open the reply turn with a
        one-line statement telling the bootcamper how to make the change (run the `/model`/`/effort`
-       commands in the Kiro CLI, or use the model and reasoning-effort controls in Claude
-       Desktop / Kiro on the web / the Kiro IDE — naming only the dial that is
+       commands in the Kiro CLI, or use the model and reasoning-effort controls in
+       Kiro / Kiro on the web / the Kiro IDE — naming only the dial that is
        moving), then end the turn on this pinned confirmation gate (its question verbatim,
        INV-056/INV-069 — only the answer hint adapts to the interface) — do NOT show Step 1 yet:
 
@@ -953,8 +1102,8 @@ the 👉 protocol above).
   | Query, Visualize and Discover | Opus 5, high effort | Opus 5 in the model picker · high in the effort picker |
   | Bootcamp graduation | Opus 5, high effort | Opus 5 in the model picker · high in the effort picker |
 
-  The **Recommended** column is interface-neutral. In Kiro, Kiro on the web, or a Claude
-  IDE extension, set the same model and reasoning effort using that interface's model/effort controls;
+  The **Recommended** column is interface-neutral. In Kiro, Kiro on the web, or the Kiro
+  IDE, set the same model and reasoning effort using that interface's model/effort controls;
   the **Where to set it in Kiro** column is the Kiro CLI equivalent (INV-098).
 
   ⚠️ **These effort values are a recommended floor for value, not a ceiling.** The table never goes
@@ -995,5 +1144,5 @@ the 👉 protocol above).
 
 ## Closing questions
 
-- YOU own the closing 👉 question at the end of each yielding turn. The plugin's `Stop` hook is
+- YOU own the closing 👉 question at the end of each yielding turn. The Power's `Stop` hook is
   a safety net that fires only if you forget - do not rely on it.

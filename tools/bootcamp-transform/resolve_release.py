@@ -3,6 +3,7 @@
 
     resolve_release.py [--repo Senzing/senzing-bootcamp-claude-plugin]
                        [--min-version <semver>]   # update path: only newer than this
+                       [--tag <semver>]           # build this exact release
                        --out <dir>                # where to extract the source tree
 
 JSON goes to stdout; human-readable narration goes to stderr. The maintainer
@@ -23,16 +24,38 @@ Behavior
 5. Emit a ``ResolvedRelease`` record so every later step and generated artifact
    references the exact resolved tag *(R1 AC5)*.
 
+Naming a release instead of taking the maximum
+----------------------------------------------
+``--tag`` replaces step 3 — and only step 3 — with "the release you named". The
+eligibility filter of step 2 still applies, so a draft, a prerelease, or a tag
+that is not bare semver is refused rather than built; and steps 4 and 5 are
+unchanged, so a named build is byte-identical to what the same release would
+have produced when it *was* the maximum.
+
+It exists because the maximum is not always the release a Maintainer needs.
+Stepping upstream one release at a time keeps each Bootcamp_Power version paired
+with a Template_Release that actually exists, rather than skipping the releases
+that happened between two update runs; and rebuilding an older release is how a
+past Power is reproduced.
+
+``--tag`` and ``--min-version`` are mutually exclusive, because they answer
+different questions: ``--min-version`` asks "is there anything newer than what I
+have?", which is the update path's question, while ``--tag`` asks for one named
+release and has already been answered. In particular ``--tag`` never reports
+``E_ALREADY_CURRENT``: naming a release the Power already carries, or an older
+one, is a deliberate rebuild and is resolved as asked.
+
 Outcomes
 --------
-============================================ ==================== ====
-Condition                                    ``error``            exit
-============================================ ==================== ====
-Resolved                                     (absent)             0
-Zero releases survive the filter             ``E_NO_RELEASE``     1
-No result within 30 s after 3 attempts       ``E_RESOLVE_FAILED`` 1
+============================================ ===================== ====
+Condition                                    ``error``             exit
+============================================ ===================== ====
+Resolved                                     (absent)              0
+Zero releases survive the filter             ``E_NO_RELEASE``      1
+``--tag`` names no selectable release        ``E_TAG_NOT_FOUND``   1
+No result within 30 s after 3 attempts       ``E_RESOLVE_FAILED``  1
 Resolved max <= ``--min-version``            ``E_ALREADY_CURRENT`` 0
-============================================ ==================== ====
+============================================ ===================== ====
 
 Both failure codes exit non-zero and produce **no** build artifact — nothing is
 fetched and nothing is written. ``E_ALREADY_CURRENT`` is informational rather
@@ -80,6 +103,7 @@ __all__ = [
     "E_ALREADY_CURRENT",
     "E_NO_RELEASE",
     "E_RESOLVE_FAILED",
+    "E_TAG_NOT_FOUND",
     "ResolutionError",
     # Budget facts from R1 AC6.
     "MAX_ATTEMPTS",
@@ -89,6 +113,8 @@ __all__ = [
     "DEFAULT_REPO",
     # Pure selection logic (Property 1).
     "eligible_releases",
+    "find_release",
+    "ineligibility_reason",
     "is_eligible",
     "is_newer",
     "is_published",
@@ -142,6 +168,12 @@ REST_MAX_PAGES = 5
 E_NO_RELEASE = "E_NO_RELEASE"
 E_RESOLVE_FAILED = "E_RESOLVE_FAILED"
 E_ALREADY_CURRENT = "E_ALREADY_CURRENT"
+#: `--tag` named a release that is not selectable: absent upstream, or present and
+#: ineligible. Distinct from `E_NO_RELEASE`, which says the repository offers no
+#: versioned release at all — a different fault with a different response. Here
+#: upstream is healthy and the *request* cannot be honored, so the message names
+#: the tag, the reason, and what is available instead.
+E_TAG_NOT_FOUND = "E_TAG_NOT_FOUND"
 
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
@@ -222,17 +254,53 @@ def is_published(record: Mapping[str, Any]) -> bool:
     return published_at is not None and str(published_at).strip() != ""
 
 
+def ineligibility_reason(record: Mapping[str, Any]) -> str | None:
+    """Why `record` cannot be selected, or `None` when it can *(R1 AC1, AC2)*.
+
+    The eligibility rules live here, in the order the filter applies them, and
+    `is_eligible` is this function's boolean. One rule set, two callers: the
+    filter that drops a record silently, and `--tag`'s refusal, which has to say
+    *why* the release a Maintainer named was not built. A second copy of these
+    rules would eventually refuse for one reason and report another.
+
+    The returned string is a fragment naming the disqualifying condition, meant to
+    be read after the tag: "0.6.0-rc1 is a prerelease".
+    """
+    if bool(record.get("isDraft", False)):
+        return "is a draft"
+    if bool(record.get("isPrerelease", False)):
+        return "is a prerelease"
+    if not is_published(record):
+        return "is not published"
+    if parse_semver(record.get("tagName", "")) is None:
+        return "does not carry a bare semver tag"
+    return None
+
+
 def is_eligible(record: Mapping[str, Any]) -> bool:
     """Whether a release record can be selected *(R1 AC1, AC2)*.
 
     Eligible means published, not a draft, not a prerelease, and carrying a tag
-    that parses as bare semver.
+    that parses as bare semver — the conditions `ineligibility_reason` states.
     """
-    if bool(record.get("isDraft", False)) or bool(record.get("isPrerelease", False)):
-        return False
-    if not is_published(record):
-        return False
-    return parse_semver(record.get("tagName", "")) is not None
+    return ineligibility_reason(record) is None
+
+
+def find_release(
+    records: Iterable[Mapping[str, Any]], tag: str
+) -> Mapping[str, Any] | None:
+    """The record whose `tagName` is exactly `tag`, eligible or not, else `None`.
+
+    Exactly, not by semver equality: `0.05.1` and `0.5.1` are the same version but
+    different tags, and only one of them is a ref that upstream can be fetched at.
+    Ineligible records are returned rather than filtered out, because a
+    Maintainer who named a draft needs to be told it is a draft — not told that no
+    such release exists. Selection remains `select_release`'s job; this is lookup.
+    """
+    for record in records:
+        if record.get("tagName") == tag:
+            return record
+    return None
 
 
 def eligible_releases(
@@ -717,24 +785,67 @@ def contract_template(
 # ---------------------------------------------------------------------------
 
 
+def _require_named_release(
+    records: Sequence[Mapping[str, Any]],
+    eligible: Sequence[Mapping[str, Any]],
+    tag: str,
+    repository: str,
+    attempts: int,
+) -> Mapping[str, Any]:
+    """The eligible release named `tag`, or `E_TAG_NOT_FOUND` saying why not.
+
+    Three distinct answers, because they call for three different Maintainer
+    responses: the tag is selectable and is returned; the tag exists upstream but
+    is disqualified, and the message names the disqualifying condition; or the tag
+    is not there at all, and the message lists what is, so a typo or a
+    misremembered version is obvious at a glance.
+    """
+    named = find_release(records, tag)
+    if named is not None:
+        reason = ineligibility_reason(named)
+        if reason is None:
+            return named
+        raise ResolutionError(
+            E_TAG_NOT_FOUND,
+            f"{repository} release {tag} cannot be built: it {reason}. Only "
+            "published, non-draft, non-prerelease releases carrying a bare semver "
+            "tag are selectable",
+            attempts,
+        )
+
+    available = ", ".join(record["tagName"] for record in eligible) or "none"
+    raise ResolutionError(
+        E_TAG_NOT_FOUND,
+        f"{repository} has no release tagged {tag}. Selectable releases: "
+        f"{available}",
+        attempts,
+    )
+
+
 def resolve(
     *,
     out_dir: str | os.PathLike[str],
     repository: str | None = None,
     min_version: str | None = None,
+    tag: str | None = None,
     plugin_root: str | None = None,
     lister: Callable[[float], Iterable[Mapping[str, Any]]] | None = None,
     fetcher: Callable[[float], Path] | None = None,
     clock: Callable[[], float] = time.monotonic,
     sleeper: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:
-    """Resolve the latest Template_Release and return the record to emit.
+    """Resolve a Template_Release and return the record to emit.
 
-    Returns the `ResolvedRelease` record on success, or the informational
-    `E_ALREADY_CURRENT` record when `min_version` is already at or above the
-    resolved maximum *(R5 AC2)* — in which case nothing is fetched. Raises
-    `ResolutionError` for `E_NO_RELEASE` and `E_RESOLVE_FAILED`, both of which
-    halt the build with no artifact *(R1 AC4, AC6)*.
+    With neither `min_version` nor `tag`, resolves the semver maximum *(R1 AC1)*.
+    With `min_version`, the same, but reports the informational
+    `E_ALREADY_CURRENT` record when the maximum is not greater than it *(R5 AC2)*
+    — in which case nothing is fetched. With `tag`, resolves that exact release
+    and never reports `E_ALREADY_CURRENT`: naming a release is a decision already
+    made, including the decision to rebuild one the Power already carries.
+
+    Raises `ResolutionError` for `E_NO_RELEASE`, `E_TAG_NOT_FOUND`, and
+    `E_RESOLVE_FAILED`, all of which halt the build with no artifact
+    *(R1 AC4, AC6)*.
 
     `lister`, `fetcher`, `clock`, and `sleeper` exist so tests can drive the
     resolver without a network or a wall clock.
@@ -742,8 +853,17 @@ def resolve(
     contract_repository, contract_plugin_root = contract_template()
     repository = _require_repo(repository or contract_repository)
     plugin_root = plugin_root or contract_plugin_root
+    if min_version is not None and tag is not None:
+        # Refused rather than given a precedence, because a precedence would make
+        # one of the two arguments silently ineffective.
+        raise ValueError(
+            "min_version and tag are mutually exclusive: min_version asks for the "
+            "newest release above a floor, tag asks for one named release"
+        )
     if min_version is not None and parse_semver(min_version) is None:
         raise ValueError(f"not a bare semver version: {min_version!r}")
+    if tag is not None and parse_semver(tag) is None:
+        raise ValueError(f"not a bare semver version: {tag!r}")
 
     budget = _Budget(deadline=clock() + RESOLUTION_BUDGET_SECONDS, clock=clock)
     query = lister or (
@@ -768,14 +888,19 @@ def resolve(
             attempts,
         )
 
-    selected = select_release(eligible)
-    if selected is None:  # pragma: no cover - eligible is non-empty here
-        raise ResolutionError(
-            E_NO_RELEASE, "no versioned release is available", attempts
-        )
+    if tag is not None:
+        selected = _require_named_release(records, eligible, tag, repository, attempts)
+    else:
+        selected = select_release(eligible)
+        if selected is None:  # pragma: no cover - eligible is non-empty here
+            raise ResolutionError(
+                E_NO_RELEASE, "no versioned release is available", attempts
+            )
     tag = selected["tagName"]
     _narrate(f"resolved Template_Release {tag} ({source_ref(tag)})")
 
+    # Only the maximum can be "already current". A named release was asked for by
+    # name, so there is no newer-than question left to answer.
     if min_version is not None and not is_newer(tag, min_version):
         _narrate(
             f"{tag} is not greater than --min-version {min_version}; "
@@ -826,9 +951,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="resolve_release.py",
         description=(
-            "Resolve the latest published, non-draft, non-prerelease "
-            "Template_Release by semver precedence and extract its source tree "
-            "at that tag. JSON on stdout, narration on stderr."
+            "Resolve a published, non-draft, non-prerelease Template_Release and "
+            "extract its source tree at that tag: the semver maximum by default, "
+            "or the exact release named by --tag. JSON on stdout, narration on "
+            "stderr."
         ),
     )
     parser.add_argument(
@@ -839,7 +965,10 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="OWNER/NAME",
         help="template repository to resolve (default: %(default)s)",
     )
-    parser.add_argument(
+    # Mutually exclusive at the argparse level, so passing both is a usage error
+    # (exit 2) rather than something the resolver has to pick a winner for.
+    target = parser.add_mutually_exclusive_group()
+    target.add_argument(
         "--min-version",
         dest="min_version",
         type=_semver_argument,
@@ -848,6 +977,19 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "update path: report E_ALREADY_CURRENT and fetch nothing unless the "
             "resolved maximum is greater than this bare semver version"
+        ),
+    )
+    target.add_argument(
+        "--tag",
+        dest="tag",
+        type=_semver_argument,
+        default=None,
+        metavar="SEMVER",
+        help=(
+            "resolve this exact release instead of the semver maximum, so releases "
+            "can be stepped one at a time or an older one rebuilt; still refuses a "
+            "draft, a prerelease, or a non-semver tag (E_TAG_NOT_FOUND), and never "
+            "reports E_ALREADY_CURRENT"
         ),
     )
     parser.add_argument(
@@ -868,6 +1010,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             out_dir=args.out_dir,
             repository=args.repository,
             min_version=args.min_version,
+            tag=args.tag,
         )
     except ResolutionError as exc:
         print(json.dumps(exc.payload(), indent=2), flush=True)

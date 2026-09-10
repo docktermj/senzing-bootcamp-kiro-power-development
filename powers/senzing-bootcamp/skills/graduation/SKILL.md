@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.1
-  templateRelease: 0.5.1
+  version: 0.5.3
+  templateRelease: 0.5.3
   templateSkill: graduation
 ---
 
@@ -122,8 +122,8 @@ edge case. Three shapes, decided by the live setting rather than by the yes alon
 
 1. **The dial is not yet set** — preface the reply turn with a one-line statement telling the
    bootcamper how to make the change (run the `/model`/`/effort` commands in the Kiro CLI, or
-   use the model and reasoning-effort controls in Kiro / Kiro on the web / their Claude
-   IDE extension), then end the turn on this pinned confirmation gate (its question verbatim,
+   use the model and reasoning-effort controls in Kiro / Kiro on the web / the Kiro
+   IDE), then end the turn on this pinned confirmation gate (its question verbatim,
    INV-056/INV-069 — only the answer hint adapts) — do NOT start the graduation work yet:
 
    > 👉 **Are you done modifying the model and effort?** (Reply yes once you've set your model and effort; reply no if you need more time.)
@@ -202,7 +202,7 @@ Gather context before any step. Do this silently.
      language and database type with one 👉 question at a time; use sensible defaults for the rest
      (path unknown, data sources none).
    - **A file is present but a key is absent** → do **not** announce it and do **not** ask. An
-     absent `database_type` means SDK setup Step 7 did not record the choice — a **plugin defect**,
+     absent `database_type` means SDK setup Step 7 did not record the choice — a **Power defect**,
      not a bootcamper outcome — so note it internally so it surfaces in the Step 0 retrospective,
      exactly as Data collection does for the same key
      (`../module-04-data-collection/SKILL.md` → the SQLite volume warning), and carry on with the
@@ -277,11 +277,11 @@ Gather context before any step. Do this silently.
 
 ## Step 0: Session retrospective (self-observed feedback)
 
-Run this **before** Step 1 renders the recap PDF. Every feedback entry the plugin has ever
+Run this **before** Step 1 renders the recap PDF. Every feedback entry the Power has ever
 collected exists because the *bootcamper* noticed something and said so. That sensor is blind to
 the most valuable class of defect: **the kind that looks like it worked** — a wrong field name that
 renders blank, a tool that behaves differently than documented, a workaround you applied so
-smoothly nobody registered it as friction. This step is the plugin's second sensor, and it does not
+smoothly nobody registered it as friction. This step is the Power's second sensor, and it does not
 depend on the bootcamper noticing anything.
 
 Review **this session** for four categories:
@@ -290,7 +290,7 @@ Review **this session** for four categories:
 - **Errors** — commands, compiles, or tool calls that failed and had to be retried differently.
 - **Course corrections** — a stated plan or hypothesis that measurement disproved.
 - **Learnings** — anything you discovered about the environment, the SDK, or the MCP tools that is
-  not in the plugin's documentation.
+  not in the Power's documentation.
 
 ⛔ **The inclusion test is recurrence, not embarrassment: "would this happen to another
 bootcamper?"** A one-off typo is noise. A documented tool that behaves differently than documented
@@ -318,7 +318,7 @@ entries first and skip any finding already recorded; add to an entry only if you
 it lacked.
 
 For each finding, append a `## Improvement:` entry to
-`docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` using the **exact template** in
+`docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` using the **exact template** in
 `../bootcamp-onboarding/feedback.md` Step 3 (append only — never rewrite the file), with:
 
 - **`Source:` `self-observed (assistant retrospective)`** — not `bootcamper-reported` (INV-116).
@@ -332,7 +332,10 @@ For each finding, append a `## Improvement:` entry to
   `../bootcamp-onboarding/feedback.md` Step 3c: show the exact message, strip anything identifying
   (INV-065), and send only on a yes. Batch the offer — one question covering all such findings, not
   one per finding, so the retrospective stays a single non-blocking step. On decline or failure,
-  record it and continue; every entry is saved locally regardless (INV-015).
+  record it and continue; every entry is saved locally regardless (INV-015). ⚠️ **(INV-281) A session forbidden to
+  send** — a maintainer `/dry-run` — still presents the offer, then records
+  `submission blocked: <reason>`, **never** `offered, declined` (Step 3): a yes that could not be
+  acted on is not a refusal.
 - The same **Context when reported** block, describing what *you* hit rather than what the
   bootcamper saw.
 
@@ -345,7 +348,7 @@ Constraints:
 - **Non-blocking.** A retrospective that fails, finds nothing, or cannot review the session must
   never hold up graduation. Report and continue.
 - **Not a gate.** Announce it in one line — "📝 Filed N self-observed notes to
-  `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md`." — and continue in the same turn. This is
+  `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md`." — and continue in the same turn. This is
   not a 👉 question, and the bootcamper is never asked to author or approve it.
 - **No feedback-flow banners.** The entry/exit banners in `../bootcamp-onboarding/feedback.md`
   mark the boundary of the *bootcamper-driven* feedback flow (INV-074). This is a graduation step,
@@ -359,7 +362,7 @@ Constraints:
 The recap is the crown-jewel deliverable. Produce it before the `production/`
 project so the recap PDF always exists.
 
-A finished-recap sample ships with the plugin at
+A finished-recap sample ships with the Power at
 `${PLUGIN_ROOT}/docs/examples/bootcamp_recap.example.pdf` (skill-relative
 fallback: `../../docs/examples/bootcamp_recap.example.pdf`). You may point the
 bootcamper to it so they see what theirs is about to look like — a non-blocking
@@ -428,7 +431,7 @@ and the hardware/software it ran on. Add these header meta lines (in the preambl
   `../bootcamp-onboarding/onboarding-flow.md` step 0 specifies —
   `${PLUGIN_ROOT}/plugin.json`, else
   `<this-skill-dir>/../../plugin.json`, else "Unknown" — and ⛔ never by searching
-  the filesystem, which on a machine carrying two plugin checkouts records the wrong version in
+  the filesystem, which on a machine carrying two Power checkouts records the wrong version in
   the keepsake (INV-252). Record the version only, never the path it resolved from: an absolute
   path carries a username and this block is PII-free (INV-065).
 - `**Operating system:**` — OS + architecture, reused from the detected/persisted values in
@@ -517,8 +520,60 @@ none of these are covered by it:
      shortfall, naming the missing tab slugs; if `--check` reported
      `SKIPPED: tab-coverage check`, no manifest was found and this check has **not** run — say so
      rather than treating it as passed (INV-163).
+
+     ⚠️ **`--check` also reports a manifest that *undercounts*** — one recording fewer captured tabs
+     than there are `<name>-*.png` files beside it — as `the manifest undercounts`. Read that as the
+     coverage check above having measured against too small a denominator, not as a missing image.
+     The usual cause is a **targeted re-capture**: re-running capture for one tab used to rewrite the
+     manifest from scratch, leaving `captured_count: 1` where six tabs had been captured, after which
+     coverage passed on a 1-of-1 denominator and would have passed just as cheerfully with five of
+     the six images lost. `write_manifest` now merges instead of replacing, so this should not recur;
+     the count against the PNGs is what notices if that merge is ever bypassed. Fix the manifest (or
+     re-run the full capture) and re-check rather than reading the coverage line as a pass.
    - **Fallback — the PNGs on disk.** Count `docs/visualizations/<name>-*.png` for that
      visualization's base name and compare against the section's image lines.
+
+   ⛔ **(INV-271) The manifest check is PER-NAME, and its denominator is the manifests that exist — so ask
+   separately whether a manifest is MISSING (INV-193, INV-265).** "Did every captured tab reach the
+   recap?" is answered for each manifest found; it cannot answer "should there have been another
+   manifest?" A module that captured nothing contributes no manifest, no denominator, and no
+   shortfall the check can see, and the `SKIPPED: tab-coverage check` branch fires only when **no**
+   manifest exists at all — so with one present it stays silent.
+
+   **The expected-visualization denominator closes it, and it does not come from the manifests.**
+   `--check` derives the set of **expected visualizations** from `modules_completed` in
+   `config/bootcamp_progress.json`, mapped to the visualization each producing module is specified to
+   build — `truthset_verification` for the Truth Set module, `results_visualization` for Module 7 —
+   and reports, by name, any expected visualization with no manifest:
+
+   ```text
+   SKIPPED: tab-coverage check for 'results_visualization' — the 'query_visualize_discover'
+   module ran (it is in modules_completed) … Coverage for it has NOT been measured — this is
+   not a pass …
+   ```
+
+   When that fires, `--check` **withholds the coverage figure entirely** and prints
+   `Tab coverage NOT reported: N expected visualization(s) have no manifest` instead. Relay that as
+   an **unrun** check naming the visualization and the module that owed it — never as a pass, and
+   never alongside a coverage percentage.
+
+   ⚠️ **This is why it matters, in the artifact that leaves with them.** On a 2026-08-25 run the
+   check reported *"6 of 6 captured tabs reached the recap"* — a clean pass — while the entire
+   Module 7 application, built over the Bootcamper's **own** resolved data, had been captured not at
+   all. The recap PDF illustrated the bootcamp with six pictures of the demo Truth Set, and the
+   Bootcamper's cross-source entities and fraud leads appeared only as prose. The sentence was true
+   of the manifests that existed and false of the bootcamp.
+
+   ⛔ **(INV-048, INV-193) Offer the remedy — it is cheap while the artifacts are still on disk.** Re-start the app and
+   re-run the capture against it (`capture_screenshots.py --url http://localhost:<port> --name
+   <name>`), then re-embed via the backfill path, rather than proceeding with a recap that pictures
+   the sample dataset in place of the Bootcamper's results.
+
+   ⚠️ **None of this is blocking.** The recap PDF is produced unconditionally (INV-048) and a missing
+   manifest does **not** fail `--check`; the requirement is that graduation **states** the shortfall,
+   not that it refuses to graduate. Do not re-state Module 7's capture instruction either — it is
+   already explicit, and a fourth copy is the state-it-once violation (INV-183, INV-300). What was missing was
+   the silence afterward, and that is what this closes.
 
    ⛔ **Do not use the generator's `embedded N of M images` figure for this.** Its denominator is
    the count of `![](…)` links in the recap it is measuring, so a section that embedded four of six
@@ -536,19 +591,46 @@ none of these are covered by it:
 3. **Captions that cannot be checked.** If an embedded filename carries no recognized tab slug, warn
    that its caption cannot be verified against a tab and should be confirmed by opening the image.
 
-**Normalize the Markdown (once, before rendering).** Now — after reconcile and **before** the
-Step 1b render — make a single best-effort CommonMark pass over `docs/*.md`, including
+**Fold the Bootcamper's notes into the recap (after reconcile, before normalize and render).**
+If `docs/bootcamp_notes.md` exists and carries at least one `### ` note, append its notes to
+`docs/bootcamp_recap.md` **after the last module section**, fenced exactly like this
+(INV-258):
+
+```markdown
+<!-- BOOTCAMP-NOTES:START -->
+## Notes, Ideas and Questions
+
+{the note entries, in capture order, exactly as written in docs/bootcamp_notes.md}
+<!-- BOOTCAMP-NOTES:END -->
+```
+
+⛔ **The fence is what makes this safe, not the heading text.** Every `## ` heading in the recap
+is parsed as a module, so a notes section recognized by its *title* would be one renamed module
+away from being mis-parsed — and a Bootcamper's private note one heading away from being printed
+on their Certificate of Completion (INV-100). The generator lifts this block out **before** module
+parsing begins, so nothing inside it can become a module.
+
+- **Append-only and idempotent (INV-085).** Re-running graduation must not duplicate the section:
+  if the fence is already present, replace its contents rather than appending a second block. It
+  never touches a module section.
+- ⛔ **With no notes, write nothing** — no fence, no heading, no "(none)" page. An empty notes
+  section on a keepsake is worse than an absent one.
+- **`docs/bootcamp_notes.md` itself survives graduation intact.** The fold copies; it never moves,
+  empties or deletes the bootcamper's notes file.
+
+**Normalize the Markdown (once, before rendering).** Now — after reconcile and the notes fold, and
+**before** the Step 1b render — make a single best-effort CommonMark pass over `docs/*.md`, including
 `docs/bootcamp_recap.md`. Scope it to top-level `docs/*.md` only: **never recurse into
 `docs/feedback/`, and never rewrite, empty, or delete the bootcamper's feedback file**
-(`docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` must survive graduation intact — INV-015).
+(`docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` must survive graduation intact — INV-015).
 During the bootcamp these files were written plain (see
 `../bootcamp-onboarding/ground-rules.md` → "Markdown files"); this is where they get prettified.
 **Run the bundled normalizer** rather than reformatting by hand — it enforces the house rules and,
 more importantly, enforces the content guard below in code:
 
 ```bash
-python3 "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/normalize_docs_markdown.py"
-# or, if CLAUDE_PLUGIN_ROOT is unset: python3 <this-skill-dir>/../../../bootcamp-onboarding/scripts/normalize_docs_markdown.py
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/normalize_docs_markdown.py"
+# or, if PLUGIN_ROOT is unset: python3 <this-skill-dir>/../bootcamp-onboarding/scripts/normalize_docs_markdown.py
 ```
 
 It applies blank lines around headings (MD022), fenced blocks (MD031) and lists (MD032); a language
@@ -609,14 +691,14 @@ verifying the render, below. `poppler`'s `pdftoppm` is the tool to reach for; `p
 where it happens to be installed. Neither is required — but a check that does not run MUST be
 reported as skipped rather than degrading silently, per "Say what you could not verify" below.)
 
-Locate and run the bundled script (it ships with this plugin). Use the venv's Python
+Locate and run the bundled script (it ships with this Power). Use the venv's Python
 if you created one above; otherwise `python3`:
 
 ```bash
 # fpdf2 already importable, or using the stdlib fallback:
-python3 "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/generate_recap_pdf.py"
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_pdf.py"
 # Or, when you installed fpdf2 into the project-local venv above:
-data/temp/recap-venv/bin/python "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/generate_recap_pdf.py"
+data/temp/recap-venv/bin/python "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_pdf.py"
 ```
 
 If `${PLUGIN_ROOT}` is not set in the current context, resolve the script
@@ -624,7 +706,7 @@ relative to this skill's directory instead (this skill lives at
 `skills/graduation/`, so the generator is two levels up under `../bootcamp-onboarding/scripts/`):
 
 ```bash
-python3 <this-skill-dir>/../../../bootcamp-onboarding/scripts/generate_recap_pdf.py
+python3 <this-skill-dir>/../bootcamp-onboarding/scripts/generate_recap_pdf.py
 ```
 
 The script reads `docs/bootcamp_recap.md` and writes `docs/bootcamp_recap.pdf`.
@@ -634,6 +716,15 @@ The script reads `docs/bootcamp_recap.md` and writes `docs/bootcamp_recap.pdf`.
 - **`WARNING: … some sections are incomplete` with exit 0** means the recap was recognizable but a section is missing a subsection. The PDF was still written and is still valid — backfill per 1a and re-render if you can, but this never blocks graduation.
 - **`ERROR: refusing to render …` with a non-zero exit means NO PDF was written.** The generator refuses when the input is not a bootcamp recap (no `## {Module name}` sections, or no section carrying its `### ` subsections) or when most of the content would be dropped — because an empty-looking-but-valid PDF is worse than none. Do **not** announce a PDF. Say plainly that the recap PDF could not be generated and why, then fix the cause: confirm `docs/bootcamp_recap.md` really is the recap (not some other Markdown file) and that its sections carry the four subsections, then re-render. If it cannot be fixed, fall back to the inline render below — never leave graduation with the bootcamper believing a PDF exists when it does not.
 - **Content check (optional, non-blocking):** run the script with `--check --expect-modules "<semicolon-separated display names of the modules reconciled in Step 1a>"` — this confirms each present section carries the four required subsections, that every **End-of-Module Summary** carries its three labeled blocks (What you accomplished / Files produced / Why it matters — backfill per 1a if it reports any missing), flags any `![](…)` image target that resolves to no file (reported as `embedded image not found: …`, so a lost screenshot surfaces here rather than in the finished PDF), **and** flags any completed module missing its section entirely. Separate the names with **semicolons**, not commas, since some names contain commas (e.g. "Query, Visualize and Discover" and "Data Quality, Mapping, and Transformation" — the latter contains two). (The names are the same ones Step 1a ensured have sections, so pass them directly; whole-module presence is primarily guaranteed by that reconcile.) If it reports gaps, backfill per 1a and re-render. A gap never blocks graduation.
+
+  ⚠️ **This is no longer the first time `--check` runs, and its findings should normally be empty.**
+  `../bootcamp-onboarding/module-completion.md` Step 2c runs the same check after every module's
+  append, so a structural fault — most importantly a subsection written as a bold label rather than
+  an `###` heading, which renders identically to a human and drops the whole section from the PDF —
+  is caught at the module that wrote it. A finding **here** therefore means something Step 2c could
+  not see: a section damaged after its module closed, a module whose Step 2c check could not run, or
+  a whole-file property (image targets, tab coverage, `--expect-modules`) that only exists at
+  graduation. Treat a structural finding at this point as a signal worth reading, not routine.
 - **If the bundled script cannot be located or run:** do not stop. Generate the PDF inline instead: parse `docs/bootcamp_recap.md` and render a cover page plus one page per module (each with Information Shared, Questions & Responses, Actions Taken, End-of-Module Summary) using `fpdf2` if importable, else a minimal valid PDF. The recap Markdown at `docs/bootcamp_recap.md` is always the source of truth, so content is never lost.
 
 ⛔ **Verify the artifact, not the exit code.** A `PDF generated:` line, a zero exit, and a high
@@ -780,8 +871,12 @@ Create `production/database/.gitkeep` as an empty placeholder (never copy the
 eval database itself).
 
 **Exclude (never copy):** `config/bootcamp_progress.json`,
-`config/bootcamp_preferences.yaml`, `docs/bootcamp_recap.md`, `data/samples/`,
-`data/raw/`, `logs/`, `backups/`, and `docs/feedback/`.
+`config/bootcamp_preferences.yaml`, `docs/bootcamp_recap.md`, `docs/bootcamp_notes.md`,
+`data/samples/`, `data/raw/`, `logs/`, `backups/`, and `docs/feedback/`.
+
+⛔ **`docs/bootcamp_notes.md` is a bootcamp artifact, not production content** — exactly as
+`docs/bootcamp_recap.md` and `docs/feedback/` are. It holds the bootcamper's own ideas and
+reminders about learning the tool; it has no place in a project they hand to their team.
 
 ⛔ **`data/raw/` is excluded, so a CORD fast-pathed source's input is not carried over.** A
 fast-pathed source loads straight from `data/raw/` with no mapping (INV-040/INV-041), so its loader
@@ -831,7 +926,14 @@ the files are exactly as they were before this paragraph.
 - **`production/MIGRATION_CHECKLIST.md`:** `- [ ]` checkboxes under six sections (Database, Security, Licensing, Performance, Data, Deployment). Because the bootcamp does not include dedicated performance/security/monitoring/deployment modules, add a note at the top: "⚠️ Some production topics (performance, security, monitoring, deployment) are not covered in depth during the bootcamp: complete these items before deploying," and mark those items with ⚠️.
   - **The Performance section MUST carry the DEFAULT-flags item** — ⚠️ *"Replace `*_DEFAULT_FLAGS`
     composites in `production/src/` with the explicit `SZ_*` flags whose output your code actually
-    consumes."* Give the reason, because it is what makes the item non-obvious: the server states
+    consumes — **except the export call**, where `SZ_ENTITY_DEFAULT_FLAGS` is the documented
+    choice and hand-assembling `SZ_ENTITY_INCLUDE_*` members has been observed to drop
+    `RELATED_ENTITIES` entirely, with no error."*
+    ⛔ **(INV-287) Ship the exception with the item, never the item alone.** The bare
+    instruction points at the one call where following it silently loses every relationship
+    (`../module-06-data-processing/phaseD-validation.md`), and a checklist a Bootcamper works
+    through unattended is exactly where an unqualified rule does that damage.
+    Give the reason, because it is what makes the item non-obvious: the server states
     that DEFAULT composites are for getting started and exploration rather than production, that
     their **membership may change between Senzing versions**, and that pinned code can therefore
     *"silently change what it returns after an upgrade — no error is raised"*; they also over-fetch,
@@ -869,8 +971,8 @@ best-effort CommonMark pass over them that Step 1a made over `docs/*.md` — INV
 pass over **both** sets, and the `production/` half is why this step exists:
 
 ```bash
-python3 "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/normalize_docs_markdown.py" --docs-dir production
-# or, if CLAUDE_PLUGIN_ROOT is unset: python3 <this-skill-dir>/../../../bootcamp-onboarding/scripts/normalize_docs_markdown.py --docs-dir production
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/normalize_docs_markdown.py" --docs-dir production
+# or, if PLUGIN_ROOT is unset: python3 <this-skill-dir>/../bootcamp-onboarding/scripts/normalize_docs_markdown.py --docs-dir production
 ```
 
 It applies the same rules as in Step 1a and globs top-level `production/*.md` only, never
@@ -906,11 +1008,11 @@ Render each with the bundled general renderer, resolved the same way as every ot
 script and never as a bare `../bootcamp-onboarding/scripts/…` path (INV-185):
 
 ```bash
-python3 "${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/generate_document_pdf.py" \
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_document_pdf.py" \
     --input docs/business_problem.md --output docs/business_problem.pdf \
     --require-sections "<this document's own H2 headings, semicolon-separated>" \
     --subtitle "The problem this bootcamp set out to solve"
-# or, if CLAUDE_PLUGIN_ROOT is unset: python3 <this-skill-dir>/../../../bootcamp-onboarding/scripts/generate_document_pdf.py …
+# or, if PLUGIN_ROOT is unset: python3 <this-skill-dir>/../bootcamp-onboarding/scripts/generate_document_pdf.py …
 ```
 
 ⛔ **Pass `--subtitle`.** The cover's subtitle defaults to the discoveries line, "What Senzing
@@ -950,6 +1052,21 @@ Character handling is unchanged from the discoveries path — the renderer repor
 had to drop (INV-143/INV-159). This step must not become a route that bypasses that report: if it
 names dropped characters, repeat them in the warning rather than only in the PDF.
 
+⚠️ **One exception, and it needs no action: the generated-scenario marker's ROBOT FACE.** When
+`docs/business_problem.md` carries `> 🤖 Bootcamp-generated business case` — Module 1 Step 11
+writes it on every run that accepts the Business Case Offer, which is the common Core path — the
+emoji cannot be set in the PDF's Latin-1 core fonts and is dropped from that line. **That loss is
+expected and harmless.** The marker is a machine-readable flag for the Power's own branches
+(Module 4 Step 2, Module 6 Phase C step 15, Module 6 Phase D step 25a), every one of which reads it from
+the **Markdown**; nothing reads it from the PDF. So do not substitute a name, do not add an ASCII
+description, and above all do not edit the marker out of the Markdown to quiet the renderer — four
+files match that exact string and changing it breaks them silently.
+
+⛔ **This exemption is the marker line and nothing else (INV-266).** The renderer suppresses only the tally
+entry whose passage *is* that line; a ROBOT FACE anywhere else in the document, and every other
+unrenderable character, still warns and still needs the warning's own guidance. If the warning
+names a dropped character and you cannot place it on the marker line, treat it as a real finding.
+
 ## Step 6: Save the revisit/resume bundle
 
 Silently preserve everything a returning bootcamper needs to pick the bootcamp back up — so
@@ -969,27 +1086,14 @@ overwriting it (neutral lead + numbered list, INV-051/INV-056); otherwise create
 
 ### 6a. Database backup
 
-Back up the resolved repository so it can be restored later. Read **`database_type`**
-(`sqlite`/`postgresql`) from pre-checks and the connection from `config/engine_config.json`.
-⛔ When `database_type` is indeterminate, **do not guess a branch** — determine the engine from
-`config/engine_config.json`'s connection string instead (and note the missing key per pre-check 3).
-Picking the wrong branch here means either no backup or `pg_dump` against a SQLite file, and the
-backup is the whole point of the bundle — INV-094 requires exactly one of the two branches below to
-have run.
+⛔ **Follow `database-backup.md` — it is the one implementation of this procedure, and behavior here
+is unchanged by the factoring.** It carries the `database_type` lookup, the do-not-guess rule for an
+indeterminate value, both engine branches, the warn-and-continue rule, and the restore commands Step
+6c records in the return guide. INV-094 requires exactly one of its two branches to have run.
 
-- **SQLite:** copy the repository file into `backups/revisit/database/` (e.g.
-  `cp database/G2C.db backups/revisit/database/G2C.db`).
-- **PostgreSQL:** run `pg_dump` of the Senzing database to
-  `backups/revisit/database/senzing.dump`. When the database runs in a Docker container, dump
-  through the container (e.g.
-  `docker exec <container> pg_dump -U <user> -d <db> -Fc > backups/revisit/database/senzing.dump`).
-  Confirm the exact user / database / container from `config/engine_config.json` (and the recorded
-  container, when container-lifecycle tracking is present); never invent credentials.
-
-Record the exact **restore** command in the return guide (Step 6c): SQLite = copy the file back to
-`database/`; PostgreSQL = `pg_restore` (or `psql <` for a plain dump) into a fresh database. If the
-backup cannot be produced (tool missing, database unreachable), warn and continue — the rest of the
-bundle still saves.
+The second caller is `../bootcamp-onboarding/packaging.md`: the `transfer` package profile needs a
+database backup, and when `backups/revisit/` does not exist yet it runs **that same file's**
+procedure rather than growing a second SQLite-vs-PostgreSQL branch.
 
 ### 6b. RESUME_STATE manifest
 
@@ -1020,7 +1124,7 @@ Cover:
   `config/data_sources.yaml`.
 - **Restore the database** — the exact SQLite copy-back or PostgreSQL `pg_restore` / `psql` command
   recorded in Step 6a.
-- **Re-initialize and re-run** — how to re-source `src/../bootcamp-onboarding/scripts/senzing-env.sh` (if present) and
+- **Re-initialize and re-run** — how to re-source `src/scripts/senzing-env.sh` (if present) and
   re-init the engine, then re-run the loader, queries, and visualization.
 - **License** — where the license lives (`licenses/g2.lic` when custom, else the built-in
   evaluation license) and any expiry.
@@ -1031,7 +1135,7 @@ Then present a one-line summary of what the bundle saved and where, and continue
 
 ## Step 7: Feedback reminder
 
-If `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` exists and contains at
+If `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md` exists and contains at
 least one real feedback entry, remind the bootcamper it is there and offer to
 help them share it (see `../bootcamp-onboarding/feedback.md`). Do not send email
 or open issues automatically: wait for explicit confirmation. Otherwise, add one
@@ -1043,6 +1147,16 @@ This runs exactly once, after the report, before graduation is reported finished
 
 1. **Guarantee the recap PDF exists.** Confirm `docs/bootcamp_recap.pdf` exists and is non-empty. If it is missing, re-run Step 1b (or the inline fallback) once so a valid PDF exists before you announce it. Never announce an artifact you have not confirmed exists at its path.
 2. **Emit one closing announcement** naming only the artifacts confirmed to exist. State that the recap PDF at `docs/bootcamp_recap.pdf` opens with a summary page and then walks through every completed module, capturing that module's Information Shared, Questions & Responses, Actions Taken, and End-of-Module Summary, and that the source lives at `docs/bootcamp_recap.md`. Name the `production/` project and its `GRADUATION_REPORT.md` and `MIGRATION_CHECKLIST.md`. Frame the PDF as a keepsake to revisit and share with their team.
+
+   **Add exactly one line** offering `/package-bootcamp`, which gathers the recap, the keepsake
+   documents, the visualizations and `production/` into a single zip under `backups/packages/` they
+   can archive, move to another machine, or hand to a colleague.
+
+   ⛔ **That line is a statement, not a question, and it names no output path (INV-251).** No new 👉
+   gate belongs here — the single closing question is untouched — and graduation does **not** run the
+   packager, so there is no archive yet whose path could be named. (`tests/test_graduation_announces_what_it_produces.py`
+   requires a path to be announced when a graduation bash block writes one; this design deliberately
+   writes none.)
 
    **Also name the two keepsake documents Step 5b rendered — each only if it exists:**
    `docs/business_problem.pdf` (the problem this bootcamp set out to solve — the document a
@@ -1069,7 +1183,7 @@ Then stop and wait. This is the single closing question for the whole bootcamp.
 
    - **Wants to keep exploring** (asks a question, names a topic, or otherwise continues): help them, then offer the closing question again when they are ready. Do **not** show the terminal banner yet — it must never pre-empt continued exploration.
    - **Declines** ("no", "I'm done", "that's all", "nothing else"): the bootcamp is complete. Do these two things, in order:
-     1. **Stand down the Stop-hook nudge, silently.** Set a top-level `bootcamp_complete: true` key in `config/bootcamp_preferences.yaml` (a single minimal edit; do not narrate it). The `Stop` hook (`../../../bootcamp-onboarding/scripts/stop-nudge.py`) reads this key and will not nudge for a closing 👉 question once the bootcamp is over — so the terminal banner, which ends the turn with no 👉, is not re-opened.
+     1. **Stand down the Stop-hook nudge, silently.** Set a top-level `bootcamp_complete: true` key in `config/bootcamp_preferences.yaml` (a single minimal edit; do not narrate it). The `Stop` hook (`../bootcamp-onboarding/scripts/stop-nudge.py`) reads this key and will not nudge for a closing 👉 question once the bootcamp is over — so the terminal banner, which ends the turn with no 👉, is not re-opened.
      2. **Render the terminal banner, verbatim, exactly once** as the final output. It bookends the WELCOME banner that opened the bootcamp (start) and the GRADUATION banner (finish) with a clear end-of-bootcamp marker. No 👉 question follows it; the turn simply ends.
 
      ```text

@@ -4,3 +4,17 @@ __pycache__/
 .hypothesis/
 *.egg-info/
 .history/
+
+# A bootcamper's feedback file, dropped here for triage by `/feedback-to-specs`.
+# Transient by design: the skill archives it under `docs/feedback/` (Step 9), and the
+# archive IS tracked — the negation below is what keeps it so. Ignoring the candidate
+# stops a half-triaged copy from being committed at the root, where the next drop would
+# overwrite it.
+#
+# SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md is deliberately absent: that name belongs to the
+# Senzing Bootcamp Claude plugin, the skill refuses it by name, and ignoring it here would
+# hide a misdirected file instead of surfacing it.
+/SENZING_BOOTCAMP_POWER_FEEDBACK.md
+/docs/SENZING_BOOTCAMP_POWER_FEEDBACK.md
+*_DUPLICATE.md
+!/docs/feedback/**

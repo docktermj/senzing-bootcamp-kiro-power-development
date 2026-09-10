@@ -33,7 +33,7 @@ otherwise. Preserves **INV-200**.
   Bootcamper is expected to keep.
 - The bootcamp's own state files are project-relative by definition:
   `config/bootcamp_progress.json`, the recap checkpoint, and
-  `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md`.
+  `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md`.
 - If a step seems to require writing outside the project, stop and ask before writing. A
   blocked write is a recoverable annoyance; a write into the wrong tree is silent data loss.
 

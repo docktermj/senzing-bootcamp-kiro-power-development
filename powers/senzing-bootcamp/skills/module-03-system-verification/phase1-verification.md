@@ -93,10 +93,10 @@ The following rules are mandatory for the agent executing this module:
 Verify MCP server connectivity before code generation operations.
 
 1. Call `get_capabilities` with a 10-second timeout. ⛔ A reachability probe must **not** be a
-   document search: this step discards the content and keeps only "did the server answer", so a
+   document search (INV-204): this step discards the content and keeps only "did the server answer", so a
    `search_docs` query pays for retrieval it throws away. See
    [`../bootcamp-onboarding/onboarding-flow.md`](../bootcamp-onboarding/onboarding-flow.md) →
-   "MCP health check", which states the reasoning; do not restate it here, and do not restore a
+   "MCP health check", which states the reasoning; do not restate it here (INV-300), and do not restore a
    `search_docs` probe.
 2. **If a response is received** (including empty results): MCP connectivity confirmed. Proceed
    silently; do not display connectivity status to the bootcamper.
@@ -188,7 +188,7 @@ names/addresses).
    attribute names, confirm them via the MCP server (`search_docs` / `mapping_workflow`) — never
    guess (INV-080). Design them so resolution is deterministic and known in advance:
    - **A merge cluster:** 2–3 records for the **same** synthetic person, designed to resolve into
-     **one** entity. ⛔ **Make this unambiguous by construction, not by judgement** — "enough
+     **one** entity. ⛔ **Make this unambiguous by construction, not by judgment** — "enough
      features, with only trivial variation" is exactly the phrase that produced a false verification
      failure, because two reasonable readings of it give opposite verdicts.
 
@@ -248,7 +248,7 @@ Verify the Senzing SDK initializes correctly and connects to the database.
    bootcamper's chosen language.
 2. **Fetch the snippet, then** save it to `src/system_verification/verify_init.[ext]` where `[ext]`
    matches the chosen-language file extension (`.py`, `.java`, `.cs`, `.rs`, `.ts`).
-   <!-- MCP-NEGATIVE: generate_scaffold(language='python', workflow='initialize') — its snippets[] carry file_path, source_url, repo, raw_url, size_bytes and line_count with no content field at all — owner: generate_scaffold IS the route that would return source text, and it returns a listing plus an ordered access_steps (fetch raw_url, else git clone) instead, so fetching raw_url is the documented route (routing negative) — server 1.32.9, 2026-08-13 -->
+   <!-- MCP-NEGATIVE: generate_scaffold(language='python', workflow='initialize') — its snippets[] carry file_path, source_url, repo, raw_url, size_bytes and line_count with no content field at all — owner: generate_scaffold IS the route that would return source text, and it returns a listing plus an ordered access_steps (fetch raw_url, else git clone) instead, so fetching raw_url is the documented route (routing negative) — server 1.36.0, 2026-09-02 -->
    ⛔ `generate_scaffold` returns a **listing**, not code — `file_path`, `source_url`, `raw_url`,
    `size_bytes`, `line_count` per snippet, with no source text. Follow its own `access_steps` step
    1 and fetch each `raw_url`; use step 2's `git clone` if the fetch is blocked. **Never pass
@@ -299,7 +299,7 @@ Verify the MCP server can generate a full pipeline script in the chosen language
      demo whose records are hardcoded in the source. For Python those are
      `loading/add_records_loop.py` (reads `INPUT_FILE`) versus `loading/add_records.py`
      (hardcoded records, no file input); every language's set has the same pair, so match on the
-     **shape** — does it open a data file? — never on position in the list.
+     **shape** — does it open a data file? — never on position in the list (INV-267).
    - **The server states this as its own anti-pattern for this workflow**, at severity `error`:
      *"Hardcoded John Doe / TEST / 1001 records"* → *"Records read line-by-line from JSONL"*, and
      *"/opt/senzing/er/testdata/truth-sets/..."* → *"User's input_file"* (returned inline in the
@@ -326,8 +326,33 @@ Verify the MCP server can generate a full pipeline script in the chosen language
    - ⛔ **Confirm it reads its records from an external file** — the check that actually
      distinguishes the right snippet from the wrong one. The three checks above are satisfied by
      *any* file in the returned set, which is why they never caught this.
-5. **If validation passes:** report pass for code generation.
-6. **If the generator returns an empty response, an error, or does not respond within 30
+5. ⛔ **(INV-279) Check the saved file's imports for a package outside the standard library BEFORE
+   Step 5
+   compiles it — resolve it here, not from a raw compiler error.** The full procedure is stated
+   once in `../module-02-sdk-setup/SKILL.md` → **"MCP Java scaffolds may need a JSON library the
+   install does not provide"**; follow it there rather than a copy here (INV-183, INV-300). Two things are
+   restated at this step deliberately, because a bootcamper hitting this is reading *this* file:
+
+   - ⛔ **Replacing the JSON library is safe. Altering the Senzing SDK calls is not.** Keep
+     `SzRecordKey.of`, `engine.addRecord` and every flag constant exactly as the scaffold returned
+     them, and substitute only the JSON-**extraction** lines. Rewriting the SDK calls to clear an
+     import error is the failure `generate_scaffold` exists to prevent.
+   - ⛔ **Record the substitution in the saved file's header** — what was replaced and why — so
+     `verify_pipeline.[ext]` self-documents its one departure from the authoritative scaffold
+     rather than silently diverging. Never just strip the import.
+
+   ⚠️ **On Java this is the expected path, not an edge case, and there is no sibling to escape
+   to.** Every `loading/` snippet in this workflow's response that reads an input file imports
+   `javax.json` — `LoadViaLoop`, `LoadViaFutures`, `LoadWithInfoViaFutures`, `LoadViaQueue`,
+   `LoadWithStatsViaLoop`, `LoadTruthSetWithInfoViaLoop` (all six fetched and checked on server
+   **1.33.0**, 2026-08-28). The only one that does not is `LoadRecords.java`, which hardcodes its
+   records — the file item 2 above forbids picking. So the selection rule routes *toward* the
+   dependency by design. `javax.json` (JSON-P) is not in Java SE, and the stock
+   `senzingsdk-runtime` install does not supply it: no jar under `/opt/senzing` contains a
+   `javax/json` class (checked 2026-08-28 against `sz-sdk.jar` and its siblings; environment
+   observation, INV-080/INV-149). Verify per install rather than assuming.
+6. **If validation passes:** report pass for code generation.
+7. **If the generator returns an empty response, an error, or does not respond within 30
    seconds:** report fail with a Fix_Instruction advising a check of MCP connectivity to
    `mcp.senzing.com:443`, then retry.
 
@@ -359,14 +384,18 @@ all build commands.
 ⛔ **On Java, keep `verify_pipeline.java` and declare the top-level class package-private** — the
 filename is `snake_case` and the idiomatic class name is not, and only a `public` top-level class is
 filename-bound. The rule, its reason and the C# difference are in `../bootcamp-onboarding/ground-rules.md`
-→ "File placement" (INV-237); do not restate them here and do not rename the file, which this table's
+→ "File placement" (INV-237); do not restate them here (INV-300) and do not rename the file, which this table's
 own tests pin.
 
 1. Execute the build command for the chosen language.
 2. **If the build exits with code 0:** report pass.
 3. **If the build fails** (non-zero exit code): report fail including the first 50 lines of
    compiler error output. Generate a Fix_Instruction identifying common causes (missing SDK
-   libraries, incorrect PATH, missing build tools).
+   libraries, incorrect PATH, missing build tools) — and ⛔ **name a missing *non-SDK* dependency
+   as its own cause, separately from the SDK ones.** An unresolved `javax.json` import reads as an
+   install problem in the module that just finished verifying the install, which sends the
+   bootcamper to re-check a working install. Step 4 item 5 should have caught it before this
+   point; if it reaches here, resolve it there rather than reporting an install fault.
 4. **If the build does not complete within 120 seconds:** terminate the process. Report fail
    with a timeout Fix_Instruction suggesting a check for dependency-resolution issues or
    network-dependent build steps.
@@ -407,8 +436,26 @@ first — so without this step every Module 3 run hits SENZ2207 on the first loa
    - Set the updated configuration as the new default, so `verify_pipeline` and every
      later SDK session see the codes. Use the exact config classes/methods returned by
      `sdk_guide`/`generate_scaffold` — never hardcode SDK names from memory.
-   - Be **idempotent:** a code that is already registered is treated as success,
-     not an error, so re-running Module 3 or resuming mid-module still passes.
+   - Be **safe to re-run:** the whole sequence — load, register each code, export,
+     register the config, replace the default config ID — must tolerate a second run,
+     so re-running Module 3 or resuming mid-module still passes. ⛔ **Build that in;
+     do not make it depend on catching an error (INV-263).** Registering an identical
+     configuration returns the existing config ID rather than failing (Senzing release
+     notes: *"Fix `G2ConfigMgr.addConfig` function to return success and the ConfigID
+     if the configuration already exists"*), so re-runnability comes from the sequence,
+     one call later than the per-code registration. **No route documents a raised error
+     for re-registering a code, in any binding** —
+     `get_sdk_reference(topic='parameters', filter='register_data_source',
+     language='python')` returns the signature with no error condition (server
+     **1.33.0, 2026-08-21**) — so a per-code catch is a permitted fallback, never the
+     mechanism, and no binding's exception type is a contract (INV-002). The full
+     reasoning, including the community-versus-official `search_docs` hazard, is stated
+     once at `../module-06-data-processing/phaseA-build-loading.md` step 4a item 2
+     (INV-183, INV-300); do not restate it here.
+   - ⛔ **Pass `data_sources` so the registration snippet is primary, then substitute
+     your codes into it** — the parameter selects the snippet and fills in nothing, so
+     the returned code still carries the sample tuple. Locate it by `source_path`. Same
+     step 4a item 2 for the detail and the citation.
 3. **Build the registration code if the language requires it** (compiled languages
    — Java, C#, Rust, TypeScript), using the same per-language build command as
    Step 5. Enforce a 120-second build timeout.

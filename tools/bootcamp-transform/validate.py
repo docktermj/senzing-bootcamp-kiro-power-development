@@ -74,7 +74,13 @@ from agent_plugins_schemas import (
 # register the reconciliation report compares for text drift are the same section
 # of the same contract (R15 AC10, AC11), so one rename must not be able to leave
 # the two tools reading different documents.
+#
+# `CHANGELOG_FILENAME` comes from the same module for the same reason, and it is
+# the module that *writes* the file: the update appends the entry R5 AC8 requires
+# to `<staging>/CHANGELOG.md`, and this gate is what decides whether that file is
+# drift or content. See `MANIFEST_UNRECORDED`.
 from reconcile import (
+    CHANGELOG_FILENAME,
     DISCOUNT_INVARIANT_FIELD,
     DISCOUNT_REGISTER_KEY,
     discount_invariant_ids,
@@ -1587,7 +1593,7 @@ def check_mcp_schema(context: ValidationContext) -> CheckResult:
 #   description against the phrase the *source* declared is R8 AC6 read
 #   literally: a transformation that dropped or reworded the clause fails here.
 #   This needs the resolved release tree (`--source`).
-# * For a **`kiro-owned`** skill — the three command-derived skills and the
+# * For a **`kiro-owned`** skill — the command-derived skills and the
 #   enforcement-setup skill, which the contract declares as content with no
 #   template source — the produced `SKILL.md` *is* the declaring document, and
 #   the rule that bites is that a description declaring no phrase at all fails.
@@ -4843,8 +4849,34 @@ LINE_ENDING_DECLARATION = "* text=auto eol=lf"
 NORMALIZATION_EXEMPT_PATTERNS: tuple[str, ...] = ("*.png", "*.min.js")
 
 #: Paths a produced Power carries that the `Build_Manifest` legitimately does
-#: not record. Exactly one: the manifest cannot record its own hash.
-MANIFEST_UNRECORDED: tuple[str, ...] = (BUILD_MANIFEST,)
+#: not record. Two, and they are unrecorded for the same underlying reason: each
+#: is a document *about* builds rather than a product of one, so no single build
+#: can state its bytes.
+#:
+#: * `.build-manifest.json` — the manifest cannot record its own hash.
+#: * `CHANGELOG.md` — R5 AC8 requires a successful update to record one entry
+#:   naming its source Template_Release, and `reconcile.record_update_in_staging`
+#:   appends it to the staged file *after* `transform` has already written the
+#:   manifest. Its content is therefore the **accumulation of every update so
+#:   far**, which is a function of the Power's history and not of the release
+#:   being built: a fresh create-path build of the same release produces no
+#:   changelog at all.
+#:
+#: RECORDING THE CHANGELOG WOULD DESTROY IT, WHICH IS WHY THIS IS AN ALLOWANCE
+#: AND NOT A GAP. Suppose a hash for `CHANGELOG.md` were added to the manifest at
+#: the end of an update. The next update reads that hash as the baseline, finds
+#: the same bytes on disk, and finds no `CHANGELOG.md` in the freshly transformed
+#: staging tree — because the transform does not produce one. That is the
+#: reconciler's `previous == on-disk`, `staging absent` row: `removed`, action
+#: `remove`. `apply_to_staging` would delete the accumulated changelog and
+#: `--changelog` would then append the new entry to an empty file, silently
+#: dropping every prior entry. Left unrecorded, the same file classifies as
+#: `local-only-no-template-source` and is preserved forward, entry after entry.
+#: See `reconcile`'s module docstring on why the manifest is carried verbatim.
+#:
+#: The allowance is exactly these two names and is not a prefix or a pattern: any
+#: *other* unrecorded file in the tree is still drift and still reported.
+MANIFEST_UNRECORDED: tuple[str, ...] = (BUILD_MANIFEST, CHANGELOG_FILENAME)
 
 #: `mismatches[].kind` — how a tree and a manifest disagreed. The catalog code
 #: is the same for all of them, because the Maintainer response is the same;
@@ -5206,7 +5238,8 @@ def _unrecorded_finding(path: str, actual: str) -> Finding:
             f"{path} is present in the produced Power, hashing to {actual}, but "
             "the Build_Manifest records no hash for it, so its content cannot be "
             "compared against what the build wrote; the manifest records every "
-            f"file a build writes except itself ({BUILD_MANIFEST}), so an "
+            "file a build writes except the two that describe builds rather than "
+            f"result from one ({', '.join(MANIFEST_UNRECORDED)}), so any other "
             "unrecorded file is drift between the checkout and the manifest"
         ),
         target=path,
@@ -5372,7 +5405,7 @@ def check_manifest_hashes(context: ValidationContext) -> CheckResult:
 #   so the correspondence is a declaration, and one-to-one is a property of it;
 # * every **remaining** skill must be declared `kiro-owned` by the contract. That
 #   residue rule is R7 AC2's exclusivity clause as defects D1 and D5 resolved it:
-#   the three command-derived skills answer to R9 and the enforcement-setup skill
+#   the command-derived skills answer to R9 and the enforcement-setup skill
 #   to the hook-parity criteria, and both groups are compliant *because* the
 #   contract says they exist only in the Power, not because the check overlooks
 #   them.

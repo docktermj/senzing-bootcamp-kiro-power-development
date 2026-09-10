@@ -34,18 +34,18 @@ Read the plugin version from the plugin manifest (`plugin.json`, the `version`
 field) and hold it to display with the WELCOME banner (step 3) and to record in the recap.
 **Resolve the manifest in this order and stop at the first that reads (INV-252):**
 
-1. `${PLUGIN_ROOT}/plugin.json`, when `CLAUDE_PLUGIN_ROOT` is set **and
+1. `${PLUGIN_ROOT}/plugin.json`, when `PLUGIN_ROOT` is set **and
    non-empty**.
 2. `<this-skill-dir>/../../plugin.json` — this skill's own directory, two levels
    up. The harness supplies that directory at invocation, so by construction it belongs to the
-   plugin whose files are running. This is the same skill-relative fallback INV-185 documents for
+   Power whose files are running. This is the same skill-relative fallback INV-185 documents for
    bundled scripts.
 3. "Unknown" — reported as the version, never replaced by a guess.
 
 ⛔ **Never search the filesystem for a `plugin.json`, and never read one outside the resolved
-plugin root.** Two plugin roots on one machine is a normal state, not a broken one — an installed
-plugin plus a clone, or an upgrade whose old copy was never removed — so the first match a search
-reaches is not the plugin serving this run. With `CLAUDE_PLUGIN_ROOT` empty, a search made the
+Power root.** Two Power roots on one machine is a normal state, not a broken one — an installed
+Power plus a clone, or an upgrade whose old copy was never removed — so the first match a search
+reaches is not the Power serving this run. With `PLUGIN_ROOT` empty, a search made the
 banner report `v0.5.0` from a second checkout while `0.5.1` was running, and a version line that
 can be wrong is worse than none: its whole job is provenance.
 
@@ -79,7 +79,7 @@ code in the chosen language, looks up Senzing facts, and provides working exampl
   Troubleshooting:
   1. Verify internet connectivity.
   2. Confirm the "senzing" MCP server is configured and enabled in Kiro
-     (it ships with this plugin's .mcp.json, pointing at https://mcp.senzing.com/mcp).
+     (it ships with this Power's mcp.json, pointing at https://mcp.senzing.com/mcp).
   3. If behind a corporate proxy, allowlist mcp.senzing.com.
 
   After fixing the connection, say "retry".
@@ -115,8 +115,9 @@ Do this silently:
    is what makes Step 12 an **update** rather than an instruction to edit a file that does not
    exist — the file is written silently, like the rest of this step (INV-012).
 
-(The Kiro Power installed Agent Hooks here via `createHook`. In the Claude plugin, hooks ship
-with the plugin in `hooks/hooks.json` and are already active - there is no hook-install step.)
+(No hook-install step belongs here. The bootcamp's rules are always in force as instructions
+(Tier 1); installing Kiro hook definitions into `.kiro/hooks/` is optional, separate, and consented
+to through the `bootcamp-enforcement-setup` skill.)
 
 ## 2. Prerequisite check
 
@@ -124,7 +125,7 @@ Verify the basics for the bootcamper's platform: a working shell, Python 3 (for 
 scripts), and internet access to the MCP server. Report anything missing and let them fix it.
 If the Senzing SDK is not yet installed, note that SDK setup covers installation - do not block.
 
-(A full preflight script is a later porting phase; keep this check lightweight for now.)
+(There is no preflight script; keep this check lightweight.)
 
 ## 3. Welcome and overview (preface item 1)
 
@@ -157,11 +158,11 @@ so there is no bullet whose behavior under a preset is left to guesswork:
 |---|---|
 | `minimal` | the **module list** plus the **how-long-it-takes** bullet, and nothing else — orientation only |
 | `concise` | all bullets except *guided discovery* and *unfamiliar terms*, each trimmed to one line |
-| `standard` / `detailed` | all ten, as written |
+| `standard` / `detailed` | every bullet below, as written |
 
 The split is orientation versus encouragement: the module list and the resume-and-time facts are
 what a bootcamper needs to navigate, and the rest is framing an expert moving fast does not. On a
-**fresh** bootcamp no preset exists yet, so all ten are shown and that is correct rather than an
+**fresh** bootcamp no preset exists yet, so every bullet is shown and that is correct rather than an
 oversight (INV-075/INV-133) — the reduced forms are reachable only on a resumed run or a pre-seeded
 file.
 
@@ -196,6 +197,18 @@ file.
   notice it:** start a message with **"bootcamp feedback:"** and I will capture it. You do not lose
   your place — the note is saved under `docs/feedback/`, then the bootcamp question you were on
   comes straight back and we carry on. No need to save it for the end.
+- **Had an idea of your own? Say "make a note" and I'll write it down for you.** Ideas, questions,
+  reminders and to-dos about *your* work — "remind me to check these counts", "note to self: try
+  `dba_name` as a second name". They are saved in your own words to `docs/bootcamp_notes.md`, they
+  go into the recap you keep at the end, and they are never sent anywhere. You keep your place here
+  too.
+
+**The note bullet is verbosity-aware on the same terms as the feedback bullet** (INV-011/INV-012):
+suppress it under `minimal`; one line under `concise` ("Say \"make a note\" any time — it is saved
+in your words and goes into your recap."); otherwise the full bullet. ⛔ **State it; never pose it
+as a 👉 question**, and do not repeat it at every module start — it is an always-available
+control (INV-254), and once, here, is the point. An any-time control nobody is told about is an
+any-time control nobody uses.
 
 **The feedback-trigger bullet above is required here** (INV-196: the trigger phrase is named in
 bootcamper-facing text before the first content module, as a statement and never a 👉 question,
@@ -228,7 +241,7 @@ overview, and NEVER invent a total.** Say what is true: the bootcamp is module-s
 states its own estimate at its start, the total depends on the Core-vs-Customized choice they have
 not made yet and on install/download speed, and progress is saved so it can be done across
 sittings. ⛔ **Do not offer a figure like "about 4-6 hours."** No per-module estimates exist in this
-plugin to sum — the modules state the *requirement* to give an estimate, not values — so any total
+Power to sum — the modules state the *requirement* to give an estimate, not values — so any total
 would be fabricated, which is exactly what INV-096 exists to prevent. A number invented here is
 worse than no number: it sets an expectation the rest of the bootcamp did not agree to.
 

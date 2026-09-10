@@ -107,7 +107,7 @@ The original R7 AC1's exclusivity clause forbade any bootcamp skill lacking a Te
 ### Repository layout
 
 ```
-senzing-bootcamp-kiro-powers-development/
+senzing-bootcamp-kiro-power-development/
 ├── .gitattributes                           # LF normalization on every platform (R16 AC8)
 ├── LICENSE                                  # Apache-2.0 (R14 AC3)
 ├── README.md
@@ -175,7 +175,7 @@ flowchart TB
 
     subgraph A["Artifact A — Bootcamp_Power (powers/senzing-bootcamp)"]
         PJ["plugin.json + mcp.json"]
-        SK["16 skills"]
+        SK["skills/ (ported + kiro-owned)"]
         SC["scripts/ + assets/"]
         BM[".build-manifest.json"]
     end
@@ -498,18 +498,22 @@ Pre-flight *(R4 AC5–AC7, R14 AC4, AC5)*: if `powers/senzing-bootcamp/` exists 
 
 Trigger phrase: *"update the senzing bootcamp power"*. Orchestrates: read current version + manifest → resolve newer → (no newer ⇒ report current, change nothing) → transform → reconcile → present report → validate → atomic swap → append changelog entry naming the source Template_Release *(R5 AC1–AC8)*.
 
-### Bootcamp_Power skill inventory (16 skills)
+### Bootcamp_Power skill inventory
 
-| Group | Count | Skills | Requirement |
+**The counts below describe a release; the inventory is derived from one.** Both the ported group and the command-derived group are bijections with what the resolved `Template_Release` carries *(R7 AC1, R9 AC1)*, so a release that adds a module or a command changes these numbers without changing the design. The table therefore reads as "at release `0.5.3`", and the numbers in it are recorded nowhere the build or the gate consults — that is design defect D1's resolution, applied to commands as well as to skills.
+
+| Group | Count at `0.5.3` | Skills | Requirement |
 |---|---|---|---|
 | Ported bootcamp skills | 12 | `bootcamp-onboarding`, `bootcamp-preparation`, `module-00-…` through `module-07-…` (9, incl. `module-03b-truthset-visualization`), `graduation` | R7 AC1, AC2 (D1) |
-| Command-derived skills | 3 | `start-bootcamp`, `graduate-bootcamp`, `bootcamp-feedback` | R9 |
+| Command-derived skills | 5 | `start-bootcamp`, `graduate-bootcamp`, `bootcamp-feedback`, `bootcamp-note`, `package-bootcamp` | R9 |
 | Client-adaptation skill | 1 | `bootcamp-enforcement-setup` — implements the `Hook_Installer` | R7 AC4–AC14 (D2) |
 
-**Commands → skills decision** *(R9)*. The template's three commands are thin wrappers that invoke `bootcamp-onboarding`. Two options were considered:
+> Release `0.5.1` carried three command-derived skills. `0.5.3` added `bootcamp-note` and `package-bootcamp`, and the way that arrived is worth recording: because the contract's `commands-superseded` rule globs `commands/*.md`, a new upstream command does **not** raise `E_UNMATCHED_FILE`. It surfaces one gate later, as `E_INVENTORY_MISMATCH` (`template-command-unrepresented`) naming the command file. Adding one is then a `dest` on the contract's `command-skills` rule plus an authored skill under `templates/kiro-owned/skills/`.
 
-- *Fold the trigger phrases into existing skills' descriptions* — fewer skills, but three unrelated trigger phrases would share one description, R9 AC2 ("exactly one trigger phrase in the description of each command-derived skill") becomes unsatisfiable as written, and R9 AC3's distinctness property becomes untestable.
-- **Recommended: three thin command-derived skills.** Each mirrors its template command one-to-one *(R9 AC1)*, carries exactly one trigger phrase *(R9 AC2)*, and delegates to the ported skill. Distinctness is then a checkable property of three separate descriptions *(R9 AC3)*, and activation is directly testable *(R9 AC4, AC5, R6 AC5)*.
+**Commands → skills decision** *(R9)*. The template's commands are thin wrappers that invoke a workflow document inside `bootcamp-onboarding`. Two options were considered:
+
+- *Fold the trigger phrases into existing skills' descriptions* — fewer skills, but several unrelated trigger phrases would share one description, R9 AC2 ("exactly one trigger phrase in the description of each command-derived skill") becomes unsatisfiable as written, and R9 AC3's distinctness property becomes untestable.
+- **Recommended: one thin command-derived skill per command.** Each mirrors its template command one-to-one *(R9 AC1)*, carries exactly one trigger phrase *(R9 AC2)*, and delegates to the ported skill. Distinctness is then a checkable property of separate descriptions *(R9 AC3)*, and activation is directly testable *(R9 AC4, AC5, R6 AC5)*.
 
 Trigger phrases, chosen to be lexically disjoint so no single statement matches two *(R9 AC3)*:
 
@@ -532,7 +536,7 @@ An ordered set of discrete steps, each with one observable pass/fail outcome *(R
 | 3 | Power loads in a **fresh chat session** (no prior conversation history) | R6 AC1 |
 | 4 | Senzing MCP server connects | R6 AC4, R11 |
 | 5 | A Senzing MCP tool call returns a successful response | R6 AC4 |
-| 6 | For **each** of the 16 skills, stating its trigger phrase activates that skill | R6 AC5, R9 AC4 |
+| 6 | For **each** skill in the built Power's inventory, stating its trigger phrase activates that skill | R6 AC5, R9 AC4 |
 | 7 | A statement matching no command trigger phrase activates none of the command-derived skills | R9 AC5 |
 | 8 | Onboarding → module 00 → module 03b → graduation progression follows template order | R7 AC3 |
 | 9 | **A1 check:** with `dev.kiro/hooks/` present and nothing installed into the workspace, observe whether any bundled hook fires. Record the answer. | R6 AC7, A1 |
@@ -725,7 +729,7 @@ rules:
   "author": { "name": "Senzing", "url": "https://senzing.com" },
   "license": "Apache-2.0",
   "homepage": "https://github.com/Senzing/senzing-bootcamp-claude-plugin",
-  "repository": "https://github.com/docktermj/senzing-bootcamp-kiro-powers-development",
+  "repository": "https://github.com/docktermj/senzing-bootcamp-kiro-power-development",
   "keywords": ["senzing", "entity-resolution", "bootcamp", "training", "onboarding", "data-quality"],
   "extensions": {
     "com.senzing.bootcamp": {
@@ -1155,7 +1159,8 @@ Kept deliberately few — the properties carry input coverage. `tools/bootcamp-t
 `tools/bootcamp-transform/tests/test_integration.py`, 1–3 examples each — these touch the network or the real upstream repository, so iteration count buys nothing:
 
 - Resolve the real latest release from `Senzing/senzing-bootcamp-claude-plugin`; assert a bare-semver tag with no `v` prefix *(R1)*
-- Full end-to-end build from the real `0.5.1` release; assert 16 skills, 12 of them ported, and a `passed` validation report
+- Full end-to-end build from the real release the committed Power records; assert the ported skill set equals that release's skill directories and the rest equals the contract's `kiro-owned` declarations — sets, not counts — and a `passed` validation report
+- The **update path** end to end, twice over: transform with `--carry-forward`, reconcile with `--apply --changelog`, validate, swap, then update again — so the changelog entry R5 AC8 requires is shown both to pass validation *(R16 AC9)* and to survive the next update rather than being classified `removed`
 - Golden-tree comparison: the committed `powers/senzing-bootcamp/` equals a fresh build from its recorded `templateRelease`, which is a standing regression check on Properties 3 and 4
 - One live call to `https://mcp.senzing.com/mcp` confirming a successful tool response *(R6 AC4)*
 - Run a generated Hook_Command_String in a subprocess with `python3` removed from `PATH`; the script still executes, because the command names an absolute interpreter *(R16 AC2)*

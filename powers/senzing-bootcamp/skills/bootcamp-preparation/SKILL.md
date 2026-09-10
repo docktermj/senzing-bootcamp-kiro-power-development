@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.1
-  templateRelease: 0.5.1
+  version: 0.5.3
+  templateRelease: 0.5.3
   templateSkill: bootcamp-preparation
 ---
 
@@ -229,7 +229,7 @@ would suppress the switch question through the whole opening of a Core run — f
 bootcamper who is already running something stronger, which is the common case rather than an edge
 case. `../bootcamp-onboarding/ground-rules.md` → "Best-value model/effort prompt" is
 **authoritative** for the comparison, including the per-dial rule for a value that cannot be read;
-do not restate that procedure here — two copies is how this drifted in the first place.
+do not restate that procedure here — two copies is how this drifted in the first place (INV-300).
 
 This step number is kept so the surrounding step numbering and every cross-reference to Steps 4-7
 stay stable. Skip straight from Step 3 to Step 4.
@@ -276,7 +276,7 @@ questions.
   decision tree rather than a language one — `needs_input.parameter` is `platform`, offering five
   operating systems (both halves re-checked live, same server and date, `platform='linux_apt'` and
   no-platform).
-  <!-- MCP-NEGATIVE: sdk_guide(topic='install', platform=…) — returns no language list at all — owner: get_capabilities carries the language set (routing negative — the fact exists, go there) — server 1.32.9, 2026-08-13 -->
+  <!-- MCP-NEGATIVE: sdk_guide(topic='install', platform=…) — returns no language list at all — owner: get_capabilities carries the language set (routing negative — the fact exists, go there) — server 1.36.0, 2026-09-02 -->
   The one
   genuine platform↔language constraint the server does state — the Python SDK is supported on Linux
   only, with Docker or WSL2 as the route on macOS/Windows — is carried in the annotation rules
@@ -305,8 +305,26 @@ questions.
     Java / C# — native." (routing rules 1 and 3)
   - **macOS Intel:** platform-wide — every language runs via Docker; there is no native Intel-Mac
     install. (rule 2) Say it once, above the 👉.
-  - **Windows:** per-option — Python runs via Docker; other languages need Scoop, else Docker.
+  - **Windows:** per-option — for Python, name the **cost**, not just the mechanism: choosing it
+    here means installing and running a Linux environment (Docker Desktop **or** WSL2), which needs
+    administrator rights and, for WSL2, a reboot. Other languages need Scoop, else Docker.
     (rules 1 and 4)
+  - ⛔ **On Windows and macOS the Python annotation states the price, not the routing.** "Runs via
+    Docker" is true and is not what the choice needs: it names a mechanism where the Bootcamper needs
+    to know they are agreeing to a system-level install. A Bootcamper who picks Python here and meets
+    that two modules later, at SDK setup, has paid for a reversible decision at the one point where
+    reversing it was free — reported 2026-08-18 by a Windows 11 Bootcamper who lost the time to a
+    WSL2 install and a reboot mid-bootcamp.
+  - ⛔ **Relay every environment route the server returns, not just Docker.** Take them from
+    `sdk_guide(topic='install', platform=<detected>, language='python')` at gate time rather than
+    from this file (INV-080): on **server 1.33.0, 2026-08-21** its `compatibility_notes` give **two**
+    — *"Pick a different environment — use Docker or WSL2 to run Python inside a Linux container"* —
+    alongside two language alternatives (*"Java and C# are officially supported on macOS and
+    Windows; Rust and TypeScript are community-supported on all platforms"*). The Bootcamper above
+    chose WSL2, which is the server's own second option and which this gate did not offer.
+    ⚠️ **On macOS, suppress the WSL2 half:** the `platform='macos_arm'` response carries the same
+    sentence, and WSL2 does not exist on macOS. Reported upstream as a bug 2026-08-21; until it is
+    corrected, do not relay that clause on a Mac.
   - **Linux:** platform-wide — the rules distinguish nothing per language, so all supported
     languages install natively via the platform's package manager (rule 5). Say that once above the
     👉 rather than annotating each option with the same thing, and do **not** invent per-language
@@ -334,7 +352,7 @@ questions.
   ```
 
   On macOS Apple Silicon and Windows the same shape holds, with the routing note on the option it
-  applies to — `1. Python — runs via Docker (the SDK is Linux-only)` — and nothing platform-wide
+  applies to — on Windows, `1. Python — needs a Linux environment: Docker Desktop or WSL2 (admin rights; WSL2 also a reboot)`, and on macOS the same without the WSL2 half — and nothing platform-wide
   hoisted above except the detected-platform line.
 
   👉 **Which programming language would you like to use for the bootcamp? Reply with a number:**

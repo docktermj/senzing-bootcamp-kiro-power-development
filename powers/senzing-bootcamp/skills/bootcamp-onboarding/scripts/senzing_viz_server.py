@@ -44,9 +44,23 @@ Dashboard tab either — the entity-size distribution is the Merge Statistics hi
 (``/api/stats``), not a separate view. Their ids stay reserved rather than reused; see the
 ``TABS`` note in ``capture_screenshots.py``.
 
-Data source: ``get_entity_by_record_id`` with ``SZ_ENTITY_DEFAULT_FLAGS`` (which
-includes ``SZ_ENTITY_INCLUDE_ALL_RELATIONS``), so nodes and edges come from one
-call per loaded record. No direct SQL is ever run against the database.
+Data source: TWO build paths, chosen by whether ``--records`` is given. Both read the
+engine through the SDK; no direct SQL is ever run against the database on either.
+
+    --records given    one ``get_entity_by_record_id`` per record, with
+                       ``SZ_ENTITY_DEFAULT_FLAGS``. Correct for the TRUTH SET, whose
+                       record file is the authority on what was loaded.
+    --records omitted  the export stream, one pass over every resolved entity. This is
+                       the path Module 7 REQUIRES for a bootcamper's own datastore: the
+                       per-record build costs one round trip per record, and it can only
+                       see entities that have a record in the file it was handed, so an
+                       embedded-master record the mapper emitted into no input file is
+                       invisible to it.
+
+The export path passes ``SZ_ENTITY_DEFAULT_FLAGS`` rather than a hand-assembled set of
+``SZ_ENTITY_INCLUDE_*`` members, which is the opposite of the usual advice and is the
+one call where the usual advice has been observed to fail; the reason is stated at the
+call in ``build_model`` rather than repeated here.
 
 Usage:
     # Serve the live web app (Python reference; run directly only when the chosen language is Python — INV-090):
@@ -55,6 +69,10 @@ Usage:
     # Also write a persistent standalone snapshot (no server needed to view):
     python3 senzing_viz_server.py --records data/senzing-ready/*.jsonl \\
         --snapshot docs/visualizations/results.html
+
+    # Build from the export stream instead — every resolved entity, one pass. Preferred
+    # for a bootcamper's own datastore (Module 7); note there is no --records argument:
+    python3 senzing_viz_server.py --snapshot docs/visualizations/results.html
 
     # Just build the snapshot and exit (no server), used by the completion gate:
     python3 senzing_viz_server.py --records src/system_verification/truthset_data.jsonl \\
@@ -94,8 +112,77 @@ import glob
 import json
 import os
 import sys
+import urllib.request
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
+
+#: The loopback address this server binds, never the wildcard.
+#:
+#: ⛔ A wildcard bind does NOT collide with an existing loopback listener on the same port:
+#: both binds succeed, two processes listen, and either may answer a localhost request.
+#: Observed 2026-08-17 on macOS with an unrelated three-week-old server holding
+#: 127.0.0.1:8080 — this one bound *:8080 happily, and only luck decided which answered.
+#: Widening this to "" or "0.0.0.0" reintroduces a defect whose symptom is a stranger's
+#: data rendered under the Bootcamper's project title, with nothing indicating anything is
+#: wrong. See the any-language contract's "Binding the port (required)".
+BIND_HOST = "127.0.0.1"
+
+#: Joins an entity's sorted source codes into the single key its color is chosen by.
+#: Mirrored in the page's `srcKeyOf()`; the any-language contract states it as behavior.
+SOURCE_KEY_SEP = "|"
+
+#: Nodes the graph endpoint will emit before it caps and says so. Above this the payload
+#: (and the self-contained snapshot embedding it) carries every entity — 5,678 of them on
+#: one real run, 3,692 unconnected singletons — which is a size and portability problem
+#: rather than a legibility one; the client already defaults to the relationship subgraph
+#: above GRAPH_SUBGRAPH_DEFAULT_ABOVE.
+GRAPH_NODE_CAP = 1500
+
+#: Unique to this process, exposed on /api/stats so a caller can confirm the server that
+#: answered is the one it started. See `confirm_server_identity` below.
+SERVER_NONCE = uuid.uuid4().hex
+
+
+def confirm_server_identity(port, host=BIND_HOST, timeout=5.0):
+    """True when `/api/stats` on `port` is answered by THIS process.
+
+    ⛔ A successful bind is not proof the port was free. A foreign **wildcard**-bound
+    listener coexists with our loopback bind, both succeed, and either process may answer
+    a localhost request — so the only way to know whose data the Bootcamper is about to
+    see is to ask the port which server is there.
+
+    ⚠️ Compares a per-process **nonce**, deliberately not the record count: two runs of the
+    same project agree on the count, which is exactly the case where the stale listener is
+    the Bootcamper's own earlier server.
+
+    Prints the conflict and returns False on disagreement. A probe that cannot complete
+    (timeout, connection error, unparseable body) is also a failure: this gate exists
+    because the failure mode looks like success, so an unanswerable question is not
+    permission to proceed.
+    """
+    url = f"http://{host}:{port}/api/stats"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            answered = json.loads(response.read().decode("utf-8")).get("server_nonce")
+    except Exception as exc:  # noqa: BLE001 - any failure here must stop the handover
+        sys.stderr.write(
+            f"ERROR: could not confirm which server is answering {url} ({exc}).\n"
+            "Not handing over the URL: if another process holds this port, the page "
+            "would show its data under this project's title.\n"
+        )
+        return False
+    if answered == SERVER_NONCE:
+        return True
+    sys.stderr.write(
+        f"ERROR: port {port} is answered by a DIFFERENT server.\n"
+        f"  this process: {SERVER_NONCE}\n"
+        f"  answered by:  {answered or '(no server_nonce in the response)'}\n"
+        "Two processes are listening on this port — a wildcard bind does not collide "
+        "with a loopback one. The page would show the other server's data under this "
+        "project's title. Stop the other server, or use --port for a free port.\n"
+    )
+    return False
 
 # Brand tokens ship in this same directory. Import them so the visualization shares
 # the Senzing style guide's palette with the recap PDF; fall back to an inlined copy
@@ -238,6 +325,15 @@ class Model:
         }
 
     def build(self, engine, flags, record_keys):
+        """Build from a records file: one ``get_entity_by_record_id`` per record.
+
+        ⚠️ Correct and fast at the Truth Set's 84 entities, and **this is the Truth Set
+        path**. It does not scale to a Bootcamper's own data — 19,584 records is 19,584
+        round trips to build one page (observed 2026-08-26) — and it is also *incomplete*
+        there: it can only see entities that have a record in the file it was handed, so an
+        embedded-master record the mapper emitted into no input file is invisible. For a
+        Bootcamper datastore use :meth:`build_from_export`.
+        """
         get = engine.get_entity_by_record_id
         for ds, rid in record_keys:
             self.records_total += 1
@@ -245,44 +341,114 @@ class Model:
                 resp = json.loads(get(ds, rid, flags))
             except Exception:
                 continue
-            re_ = resp.get("RESOLVED_ENTITY", {})
-            eid = re_.get("ENTITY_ID")
-            if eid is None:
-                continue
-            if eid not in self.entities:
-                records = re_.get("RECORDS", [])
-                sources = sorted({r.get("DATA_SOURCE", "?") for r in records})
-                self.entities[eid] = {
-                    "entity_id": eid,
-                    "entity_name": re_.get("ENTITY_NAME") or f"Entity {eid}",
-                    "record_count": len(records),
-                    "data_sources": sources,
-                    "records": [
-                        {
-                            "data_source": r.get("DATA_SOURCE", "?"),
-                            "record_id": str(r.get("RECORD_ID", "?")),
-                            # Per-record match key (how this record joined the
-                            # entity); the seed record is typically empty. Drives
-                            # the Match Keys tab. Present with the default entity
-                            # flags' record-matching-info; falls back to "".
-                            "match_key": r.get("MATCH_KEY", "") or "",
-                        }
-                        for r in records
-                    ],
-                }
-            for rel in resp.get("RELATED_ENTITIES", []):
-                tid = rel.get("ENTITY_ID")
-                if tid is None:
-                    continue
-                key = (min(eid, tid), max(eid, tid))
-                if key not in self.edges:
-                    self.edges[key] = {
-                        "match_key": rel.get("MATCH_KEY", ""),
-                        "relationship_type": rel.get("MATCH_LEVEL_CODE")
-                        or rel.get("ERRULE_CODE")
-                        or "RELATED",
-                    }
+            self._absorb(resp)
         return self
+
+    def build_from_export(self, engine, flags):
+        """Build from the export stream: every resolved entity, in one pass.
+
+        Each export row carries the same shape a ``get_entity`` response does, so the
+        absorb step is shared with :meth:`build` unchanged — that is what makes this cheap.
+        Measured ~15 seconds for a model that took 19,584 round trips to build per-record
+        (observation, 2026-08-26; not re-measured here).
+
+        ⛔ **The three method names and their argument types differ by binding** — verified
+        against `get_sdk_reference(topic='parameters', …, language='python')`, server
+        1.35.3, 2026-09-01:
+
+            export_json_entity_report(flags: int = SZ_EXPORT_DEFAULT_FLAGS) -> int
+            fetch_next(export_handle: int) -> str
+            close_export_report(export_handle: int) -> None
+
+        Java is ``exportJsonEntityReport`` / ``fetchNext`` / ``closeExportReport`` taking a
+        ``long`` handle, C# ``ExportJsonEntityReport`` taking ``IntPtr``. A port of this
+        file MUST take the signature from the server for its own binding rather than
+        translating these (INV-002/INV-080). ⚠️ ``close_export_report`` is the V4 name;
+        ``close_export`` is a documented confabulation.
+        """
+        handle = engine.export_json_entity_report(flags)
+        try:
+            while True:
+                line = engine.fetch_next(handle)
+                if not line:
+                    break                      # end of stream
+                try:
+                    resp = json.loads(line)
+                except ValueError:
+                    continue                   # a row we cannot parse is not fatal
+                before = len(self.entities)
+                self._absorb(resp)
+                if len(self.entities) > before:
+                    eid = resp.get("RESOLVED_ENTITY", {}).get("ENTITY_ID")
+                    entity = self.entities.get(eid)
+                    if entity:
+                        # An export row is one ENTITY; `records_total` counts RECORDS, so
+                        # take the count from the entity rather than incrementing per row.
+                        self.records_total += entity.get("record_count", 0)
+        finally:
+            # Always close the handle, including on an exception mid-stream: an unclosed
+            # export handle holds engine resources for the life of the process.
+            try:
+                engine.close_export_report(handle)
+            except Exception:
+                pass
+        return self
+
+    def _absorb(self, resp):
+        """Fold one entity document into the model.
+
+        Shared verbatim by both build paths: an export row and a ``get_entity`` response
+        carry the same shape, which is why the export path needed no new absorb logic.
+
+        ⛔ **(INV-179) READING A NEW FIELD HERE MEANS CHECKING IT AGAINST ``export_flags``
+        IN ``build_model``.** Both paths now pass ``SZ_ENTITY_DEFAULT_FLAGS``, so a field
+        inside that composite's ``response_paths`` works on both; a field OUTSIDE them
+        needs its own flag added, and until it is there it comes back **absent** and
+        renders blank — no error, no warning. INV-179 names that as one of the three
+        causes of a blank field, and the one nothing warns about. The Truth Set would look
+        fine and a Bootcamper's own datastore would not.
+
+        ⚠️ ``tests/test_visualization_model_build_scales.py`` fails when a field read here
+        is not accounted for in its field-to-flag map, which is what turns this comment
+        into something that fires rather than something that is read.
+        """
+        re_ = resp.get("RESOLVED_ENTITY", {})
+        eid = re_.get("ENTITY_ID")
+        if eid is None:
+            return
+        if eid not in self.entities:
+            records = re_.get("RECORDS", [])
+            sources = sorted({r.get("DATA_SOURCE", "?") for r in records})
+            self.entities[eid] = {
+                "entity_id": eid,
+                "entity_name": re_.get("ENTITY_NAME") or f"Entity {eid}",
+                "record_count": len(records),
+                "data_sources": sources,
+                "records": [
+                    {
+                        "data_source": r.get("DATA_SOURCE", "?"),
+                        "record_id": str(r.get("RECORD_ID", "?")),
+                        # Per-record match key (how this record joined the
+                        # entity); the seed record is typically empty. Drives
+                        # the Match Keys tab. Present with the default entity
+                        # flags' record-matching-info; falls back to "".
+                        "match_key": r.get("MATCH_KEY", "") or "",
+                    }
+                    for r in records
+                ],
+            }
+        for rel in resp.get("RELATED_ENTITIES", []):
+            tid = rel.get("ENTITY_ID")
+            if tid is None:
+                continue
+            key = (min(eid, tid), max(eid, tid))
+            if key not in self.edges:
+                self.edges[key] = {
+                    "match_key": rel.get("MATCH_KEY", ""),
+                    "relationship_type": rel.get("MATCH_LEVEL_CODE")
+                    or rel.get("ERRULE_CODE")
+                    or "RELATED",
+                }
 
     def data_sources(self):
         """Every data-source code present in the model, sorted.
@@ -334,6 +500,11 @@ class Model:
             # counts and histogram duplicated this payload (contract:
             # "De-duplication (required)"). Rendered beneath the histogram.
             "sample_entities": self._sample_entities(),
+            # Identifies THIS process, so a caller can confirm the server answering a
+            # localhost request is the one it just started. A record count cannot do
+            # that job: two runs of the same project agree on it, which is exactly the
+            # case where the stale listener is the Bootcamper's own earlier server.
+            "server_nonce": SERVER_NONCE,
         }
 
     def _sample_entities(self, cap=10):
@@ -469,9 +640,55 @@ class Model:
         compute_feature_dist). Safe before computation — returns the empty default."""
         return self.feature_dist
 
-    def graph(self):
+    def color_keys(self):
+        """Every key the graph colors by: each source, plus each source COMBINATION seen.
+
+        ⛔ **One list, allocated in one pass.** A node is colored by the identity of its
+        whole source set, so a cross-source entity must be visually distinct from every
+        single-source entity — otherwise 1,951 cross-source vendors render in the
+        single-source `GLEIF` color, under a legend positively implying they are
+        GLEIF-only, and the bootcamp's headline result is invisible in the tab built to
+        show it.
+
+        ⚠️ Allocating individuals and combinations in **two** calls restarts each at the
+        top of the palette and reproduces exactly the collision this fixes — the error
+        made while repairing it by hand. Returning one list is what makes the single-pass
+        allocation the only convenient thing to do.
+        """
+        singles = set(self.data_sources())
+        combos = set()
+        for entity in self.entities.values():
+            sources = sorted(set(entity.get("data_sources") or []))
+            if len(sources) >= 2:
+                combos.add(SOURCE_KEY_SEP.join(sources))
+        return sorted(singles) + sorted(combos)
+
+    def graph(self, cap=None):
         node_ids = set(self.entities)
         nodes = list(self.entities.values())
+        total = len(nodes)
+        capped = False
+        if cap is not None and total > cap:
+            # Rank by SOURCE SPAN first: an entity spanning several sources is the one
+            # worth seeing, and it is precisely what a truncation ordered by id or by
+            # insertion would drop at random. Connectivity breaks ties, then record
+            # count, then entity_id so the selection is deterministic across rebuilds
+            # (a re-rendered snapshot must not disagree with the recap describing it).
+            degree = {}
+            for a, b in self.edges:
+                degree[a] = degree.get(a, 0) + 1
+                degree[b] = degree.get(b, 0) + 1
+            nodes = sorted(
+                nodes,
+                key=lambda e: (
+                    -len(set(e.get("data_sources") or [])),
+                    -degree.get(e["entity_id"], 0),
+                    -e.get("record_count", 0),
+                    e["entity_id"],
+                ),
+            )[:cap]
+            node_ids = {e["entity_id"] for e in nodes}
+            capped = True
         edges = []
         for (a, b), meta in self.edges.items():
             if a in node_ids and b in node_ids:
@@ -483,7 +700,52 @@ class Model:
                         "relationship_type": meta["relationship_type"],
                     }
                 )
-        return {"nodes": nodes, "edges": edges}
+        # `total` and `capped` travel with the payload so the UI can state what it is
+        # showing rather than implying it is everything.
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "total": total,
+            "capped": capped,
+            "encoding_check": self._encoding_check(nodes),
+        }
+
+    @staticmethod
+    def _encoding_check(nodes):
+        """Self-check for the source-set encoding required by INV-259.
+
+        Counts the distinct **sorted source-set keys** over the nodes being emitted --
+        the same keys ``srcKeyOf()`` computes client-side to color them. The build step
+        compares this against the number of color keys the legend names; first-source
+        coloring collapses every combination onto a single-source key, so the legend key
+        count drops below this number exactly when the misencoding is present.
+
+        ⚠️ Reports ``not_exercised`` -- never ``ok`` -- when fewer than two distinct keys
+        are present (INV-265: an empty or trivial match is an unrun check, not agreement).
+        With a single registered data source every key is that source and the comparison
+        cannot fail, which is precisely why the Truth Set could not catch this defect.
+        """
+        keys = set()
+        for entity in nodes or []:
+            sources = sorted(set(entity.get("data_sources") or []))
+            if sources:
+                keys.add(SOURCE_KEY_SEP.join(sources))
+        combos = sorted(k for k in keys if SOURCE_KEY_SEP in k)
+        status = "ok" if len(keys) >= 2 else "not_exercised"
+        return {
+            "distinct_source_set_keys": len(keys),
+            "source_set_keys": sorted(keys),
+            "combination_keys": combos,
+            "status": status,
+            "detail": (
+                "Compare distinct_source_set_keys against the number of color keys the "
+                "legend names; they MUST be equal (INV-259). Fewer legend keys means nodes "
+                "are colored by one member of their source set."
+                if status == "ok" else
+                "Fewer than two distinct source-set keys are present, so this check cannot "
+                "fail and has NOT been exercised (INV-265). It is not a pass."
+            ),
+        }
 
     def merges(self):
         out = [e for e in self.entities.values() if e["record_count"] > 1]
@@ -687,11 +949,17 @@ main{padding:0}
 .legend .row{display:flex;align-items:center;gap:6px;margin:2px 0}
 .legend .dot{width:12px;height:12px;border-radius:50%}
 .node circle{stroke:#fff;stroke-width:1.5px;cursor:pointer}
-.node text{font-size:10px;fill:var(--ink);pointer-events:none}
+.node text,.node-labels text{font-size:10px;fill:var(--ink);pointer-events:none}
 /* Label visibility is driven by a class on the container, set explicitly at
    init -- an unchecked checkbox fires no change event, so the initial state
    cannot be left to the handler (contract: "Init-state note"). */
-.hide-node-labels .node text{display:none}
+.hide-node-labels .node text,.hide-node-labels .node-labels text{display:none}
+/* ⛔ `.node-labels` is listed in BOTH rules above deliberately. Node labels moved out of
+   the per-datum `.node` group on 2026-09-02 so no circle can paint over a neighbor's
+   text; a selector left matching only `.node text` would have silently un-hidden every
+   label at production scale, regressing `visualization-legibility-at-production-scale`
+   -- the auto-off at LABEL_AUTO_OFF works by adding `hide-node-labels` to the container
+   and letting it descend. Keep both selectors in step. */
 .hide-edge-labels .edge text{display:none}
 .gctl{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;z-index:2}
 .gctl label{display:flex;align-items:center;gap:6px;margin:2px 0;cursor:pointer}
@@ -801,6 +1069,15 @@ function srcStroke(src){return srcStyle(src).stroke;}
 // reach the canvas, and keying on it capped the rendered encoding space at 24 sources while
 // the assigned map went on looking collision-free past that.
 function srcStrokeW(src){return srcStyle(src).stroke_width||0;}
+// The key a NODE is colored by: its whole source set, joined, not one member of it.
+// Coloring by data_sources[0] made every cross-source entity render as whichever of its
+// sources sorted first, so 1,951 cross-source vendors appeared to be GLEIF-only. Fill,
+// stroke and stroke width must all read THIS, or a partial version of the same
+// misencoding survives. Single-source entities degenerate to their own source code, which
+// is why their appearance is unchanged.
+function srcKeyOf(d){var s=(d&&d.data_sources)||[];return s.length?s.slice().sort().join("|"):"";}
+function isCombo(k){return k.indexOf("|")>=0;}
+function comboLabel(k){return k.split("|").join(" + ");}
 const CSSV=getComputedStyle(document.documentElement);
 function cssv(n,f){var v=CSSV.getPropertyValue(n).trim();return v||f;}
 const C_BLUE=cssv('--blue','#F57826'),C_GOLD=cssv('--gold','#FF4E1F'),C_GREEN=cssv('--green','#1D9E75'),C_MUTED=cssv('--muted','#4A4640');
@@ -830,6 +1107,18 @@ let graphModeAutoSet=false;
 // the previous simulation would otherwise keep ticking against DOM nodes that have been
 // removed — wasted work and a source of jank. Stopped before each redraw.
 let graphSim=null;
+// ⛔ (INV-298) The settled signal, on the document element so any driver in any language can
+// wait on it -- `document.documentElement.getAttribute("data-graph-settled")==="1"`. An
+// attribute rather than a JS global on purpose: `graphSim` is a top-level `let`, which never
+// reaches `window`, so nothing outside this script could observe it (found 2026-09-03 by an
+// injected probe that read nothing). Removing the attribute rather than setting "0" keeps
+// "not settled" and "no animated view on this page" the same observable state, so a waiter
+// cannot mistake a static tab for an unsettled one.
+function graphSettled(done){
+  const el=document.documentElement;
+  if(done){el.setAttribute("data-graph-settled","1");}
+  else{el.removeAttribute("data-graph-settled");}
+}
 function drawFor(id){
   if(id==="graph")drawGraph();
   else if(id==="stats")drawHist();
@@ -865,6 +1154,14 @@ async function drawGraph(){
   d3.select("#graph-container .legend").remove();
   d3.select("#graph-container .empty-note").remove();
   if(graphSim){graphSim.stop();graphSim=null;}
+  // ⛔ (INV-298) The capture waits on this signal instead of a time budget. Cleared as a
+  // layout BEGINS and set when it reaches its final positions, so a screenshot is never a
+  // picture of a still-moving graph. A deadline cannot express this: measured 2026-09-03 on
+  // the 85-entity Truth Set, five captures at 30s and five at 120s produced the SAME image
+  // while five at 300s produced TWO -- the deadline does not select the layout, and
+  // lengthening it made reproducibility worse. `graphSettled(false)` here covers the redraw
+  // paths too (mode switch, and a drag that restarts the simulation).
+  graphSettled(false);
   const links0=g.edges.map(function(e){return {source:e.source_entity_id,target:e.target_entity_id,match_key:e.match_key,rtype:e.relationship_type||"RELATED"};});
   // Scale-aware default, applied once: above the threshold, open on the relationship
   // subgraph rather than the full population. Only when a subgraph actually exists,
@@ -874,6 +1171,14 @@ async function drawGraph(){
     if(g.nodes.length>GRAPH_SUBGRAPH_DEFAULT_ABOVE&&links0.length){graphMode="network";}
   }
   const network=graphMode==="network";
+  // ⛔ (INV-298/INV-299) A capture-oriented render: settle the layout synchronously, fit it
+  // to the viewport, and drop labels above CAPTURE_LABEL_MAX. Requested with `?capture=1`,
+  // which `capture_screenshots.py` appends.
+  // ⚠️ Scoped to the CAPTURE deliberately -- the interactive artifact is NOT affected. The
+  // tick starvation this works around is specific to headless virtual time: a real browser
+  // advances requestAnimationFrame normally, so a bootcamper opening the standalone snapshot
+  // already gets a properly settled layout and keeps its animation, its labels and its zoom.
+  const capture=/[?&]capture=1/.test(location.search);
   // In network mode, keep only entities that a relationship actually connects -- the
   // subgraph the removed Relationship Network tab showed.
   let nodes;
@@ -887,6 +1192,10 @@ async function drawGraph(){
     box.append("div").attr("class","muted empty-note").style("padding","14px")
        .text(network?"No relationships between entities were found in this data.":"No entities to graph.");
     addGraphControls("graph-container",0);
+    // (INV-298) Nothing to lay out is already settled -- without this a waiter on an empty
+    // graph has no signal to wait for and falls back to its timeout, which is the fixed
+    // deadline this replaces.
+    graphSettled(true);
     return;
   }
   // EDGE-KEY MAPPING: forceLink resolves against id via source/target; map before use.
@@ -896,31 +1205,10 @@ async function drawGraph(){
   const rcolor=d3.scaleOrdinal().domain(rtypes).range([C_BLUE,C_GOLD,C_GREEN,"#8b5cf6","#ec4899","#0ea5e9"]);
   const svg=box.append("svg").attr("width",W).attr("height",H).attr("viewBox",[0,0,W,H]);
   const root=svg.append("g");
-  svg.call(d3.zoom().scaleExtent([0.2,4]).on("zoom",function(ev){root.attr("transform",ev.transform);}));
-  const sim=graphSim=d3.forceSimulation(nodes)
-    .force("link",d3.forceLink(links).id(function(d){return d.id;}).distance(network?100:90))
-    .force("charge",d3.forceManyBody().strength(network?-180:-160))
-    .force("center",d3.forceCenter(W/2,H/2))
-    .force("collide",d3.forceCollide().radius(function(d){return radius(d)+6;}));
-  const edge=root.append("g").selectAll("g").data(links).join("g").attr("class","edge");
-  const line=edge.append("line");
-  // Relationship-type color plus a dash pattern, so the types stay distinguishable in a
-  // monochrome screenshot (contract: pair color with a non-color distinction).
-  if(network){
-    line.attr("stroke",function(d){return rcolor(d.rtype);}).attr("stroke-width",2)
-        .attr("stroke-dasharray",function(d){return rdash(d.rtype);});
-  }
-  edge.append("text").text(function(d){return d.match_key||"";});
-  const node=root.append("g").selectAll("g").data(nodes).join("g").attr("class","node")
-    .call(d3.drag().on("start",dstart).on("drag",dragged).on("end",dend))
-    .on("click",function(ev,d){openModal(d);})
-    .on("mousemove",function(ev,d){const tt=d3.select("#tt");
-      tt.style("opacity",1).style("left",(ev.offsetX+14)+"px").style("top",(ev.offsetY+8)+"px")
-        .html("<b>"+esc(d.entity_name)+"</b><br>ID "+d.entity_id+" · "+d.record_count+" record(s)<br>"+d.data_sources.join(", "));})
-    .on("mouseout",function(){d3.select("#tt").style("opacity",0);});
-  node.append("circle").attr("r",radius).attr("fill",function(d){return color(d.data_sources[0]);})
-    .attr("stroke",function(d){return srcStrokeW(d.data_sources[0])?srcStroke(d.data_sources[0]):null;})
-    .attr("stroke-width",function(d){return srcStrokeW(d.data_sources[0])||null;});
+  // scaleExtent's floor is lowered for the capture fit: a settled 85-entity layout needs
+  // well under 0.2 to fit, and clamping there would leave nodes off-canvas.
+  const zoomB=d3.zoom().scaleExtent([0.05,4]).on("zoom",function(ev){root.attr("transform",ev.transform);});
+  svg.call(zoomB);
   // Node labels are truncated to fit, so the distinctness rule applies here exactly as it
   // does to match keys (contract: "Defaults at production scale" item 1). Two entities whose
   // names share the first 19 characters -- ACME HOLDINGS INTERNATIONAL LLC vs ...INC, routine
@@ -941,19 +1229,114 @@ async function drawGraph(){
       taken[lab]=full;
       nodeLabel[n.entity_id]=lab;
     });})();
-  node.append("text").attr("dy",function(d){return radius(d)+11;}).attr("text-anchor","middle")
-      .text(function(d){return nodeLabel[d.entity_id];})
-      .append("title").text(function(d){return d.entity_name||"";});
-  sim.on("tick",function(){
+  const sim=graphSim=d3.forceSimulation(nodes)
+    .force("link",d3.forceLink(links).id(function(d){return d.id;}).distance(network?100:90))
+    .force("charge",d3.forceManyBody().strength(network?-180:-160))
+    .force("center",d3.forceCenter(W/2,H/2))
+    // ⛔ Collide accounts for the LABEL's extent, not just the circle -- but only while
+    // labels are actually shown. Above LABEL_AUTO_OFF they default off, and inflating the
+    // collision radius for text nobody renders would over-separate the very production-scale
+    // layout `visualization-legibility-at-production-scale` tuned. ~2.9px per character at
+    // font-size 10 is a deliberate estimate: SVG text has no measurable width before layout,
+    // and a estimate that is close is worth more here than exactness.
+    .force("collide",d3.forceCollide().radius(function(d){
+      const r=radius(d)+6;
+      if(nodes.length>LABEL_AUTO_OFF)return r;
+      const lab=nodeLabel[d.entity_id]||"";
+      return Math.max(r,lab.length*2.9);}));
+  const edge=root.append("g").selectAll("g").data(links).join("g").attr("class","edge");
+  const line=edge.append("line");
+  // Relationship-type color plus a dash pattern, so the types stay distinguishable in a
+  // monochrome screenshot (contract: pair color with a non-color distinction).
+  if(network){
+    line.attr("stroke",function(d){return rcolor(d.rtype);}).attr("stroke-width",2)
+        .attr("stroke-dasharray",function(d){return rdash(d.rtype);});
+  }
+  edge.append("text").text(function(d){return d.match_key||"";});
+  const node=root.append("g").selectAll("g").data(nodes).join("g").attr("class","node")
+    .call(d3.drag().on("start",dstart).on("drag",dragged).on("end",dend))
+    .on("click",function(ev,d){openModal(d);})
+    .on("mousemove",function(ev,d){const tt=d3.select("#tt");
+      tt.style("opacity",1).style("left",(ev.offsetX+14)+"px").style("top",(ev.offsetY+8)+"px")
+        .html("<b>"+esc(d.entity_name)+"</b><br>ID "+d.entity_id+" · "+d.record_count+" record(s)<br>"+d.data_sources.join(", "));})
+    .on("mouseout",function(){d3.select("#tt").style("opacity",0);});
+  node.append("circle").attr("r",radius).attr("fill",function(d){return color(srcKeyOf(d));})
+    .attr("stroke",function(d){var k=srcKeyOf(d);return srcStrokeW(k)?srcStroke(k):null;})
+    .attr("stroke-width",function(d){return srcStrokeW(srcKeyOf(d))||null;});
+  // ⛔ Labels live in their OWN group, appended after the node group, so paint order can never
+  // put a circle over text. They used to be a text child of each per-datum node group, which
+  // paints node1-circle, node1-text, node2-circle, node2-text -- so node 2's disc covered
+  // ⚠️ Do NOT write the node group's class attribute literally in this comment: the JS is inlined
+  // into the served page, so `test_viz_tab_consolidation` counting rendered nodes in the DOM
+  // counts the comment too. It did, and reported 10 nodes for a 9-entity fixture.
+  // node 1's label. Observed at N=2, the smallest possible graph: "Aurelia B Quorndon" rendered
+  // as "relia B Quorndon" with the leading "Au" behind the neighboring circle, and byte-identical
+  // across an 8s and a 30s virtual-time budget, so it was the settled state and not a
+  // layout-settling artifact. The per-node `dy` was already radius-scaled and was never the cause.
+  // (INV-299) A dense capture keeps the structure and drops the names. Applied through the
+  // app's OWN auto-off mechanism below rather than a bespoke `display:none` here, so that
+  // BOTH label sets go (entity names and match keys — the interactive threshold governs both)
+  // and the on-screen checkboxes agree with what was actually drawn.
+  const captureLabels=!(capture&&nodes.length>CAPTURE_LABEL_MAX);
+  const labelLayer=root.append("g").attr("class","node-labels");
+  const label=labelLayer.selectAll("text").data(nodes).join("text").attr("text-anchor","middle")
+      .text(function(d){return nodeLabel[d.entity_id];});
+  label.append("title").text(function(d){return d.entity_name||"";});
+  function place(){
     edge.select("line").attr("x1",function(d){return d.source.x;}).attr("y1",function(d){return d.source.y;})
       .attr("x2",function(d){return d.target.x;}).attr("y2",function(d){return d.target.y;});
     edge.select("text").attr("x",function(d){return (d.source.x+d.target.x)/2;}).attr("y",function(d){return (d.source.y+d.target.y)/2;});
     node.attr("transform",function(d){return "translate("+d.x+","+d.y+")";});
-  });
+    // Same offset the `<text>` child used to get from `dy`: the node's OWN radius plus a
+    // constant, so a data-scaled disc cannot swallow its own label.
+    label.attr("x",function(d){return d.x;})
+         .attr("y",function(d){return d.y+radius(d)+11;});
+  }
+  sim.on("tick",place);
+  // ⛔ (INV-298/INV-299) PRESETTLE: drive the layout to completion, then place once.
+  // `simulation.tick()` advances the physics WITHOUT dispatching events, which is why
+  // `place` is a named function called explicitly here.
+  // ⚠️ This is not an optimization — it is the only way a headless capture ever sees a
+  // finished layout. Measured 2026-09-03 through `capture_screenshots.py` on the 85-entity
+  // Truth Set: the animation path ran **5 of the ~300 ticks the layout needs**, at every
+  // virtual-time budget from 5s to 300s, because d3's timer is driven by
+  // requestAnimationFrame and headless virtual time does not advance it. The nodes sat near
+  // their initial phyllotaxis positions, which look plausibly spread out — which is why it
+  // went unnoticed.
+  if(capture){
+    sim.stop();
+    const need=Math.ceil(Math.log(sim.alphaMin())/Math.log(1-sim.alphaDecay()));
+    for(let i=0;i<need;i++){sim.tick();}
+    place();
+    fitToExtent();
+    graphSettled(true);
+  }
+  // ⛔ (INV-299) A SETTLED layout must still be a VISIBLE one. `forceCenter` centers the
+  // centroid and bounds nothing, so the finished 85-entity layout spreads well outside
+  // 1440x900: presettling alone put most nodes off-canvas and lost more of the graph than the
+  // unsettled clump it replaced. The near-initial layout was accidentally masking this.
+  function fitToExtent(){
+    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    nodes.forEach(function(d){
+      const r=radius(d)+14;
+      x0=Math.min(x0,d.x-r);x1=Math.max(x1,d.x+r);
+      // the label sits BELOW the node, so the extent is asymmetric -- but only when the
+      // labels are actually drawn, or the fit reserves space for text nobody renders.
+      y0=Math.min(y0,d.y-r);y1=Math.max(y1,d.y+r+(captureLabels?18:0));
+    });
+    if(!isFinite(x0))return;
+    const w=Math.max(1,x1-x0),h=Math.max(1,y1-y0);
+    const k=Math.min(4,Math.max(0.05,0.94*Math.min(W/w,H/h)));
+    svg.call(zoomB.transform,
+      d3.zoomIdentity.translate((W-k*(x0+x1))/2,(H-k*(y0+y1))/2).scale(k));
+  }
   if(network){drawRelationshipLegend(box,links,rtypes,rcolor,edge);}
   else{drawLegend(nodes);}
-  addGraphControls("graph-container",nodes.length);
-  function dstart(ev,d){if(!ev.active)sim.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;}
+  addGraphControls("graph-container",nodes.length,!captureLabels);
+  // (INV-298) d3 fires "end" when alpha decays below alphaMin -- the layout's own definition
+  // of finished, rather than an outside guess at how long that takes.
+  sim.on("end",function(){graphSettled(true);});
+  function dstart(ev,d){if(!ev.active){graphSettled(false);sim.alphaTarget(0.3).restart();}d.fx=d.x;d.fy=d.y;}
   function dragged(ev,d){d.fx=ev.x;d.fy=ev.y;}
   function dend(ev,d){if(!ev.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}
 }
@@ -980,15 +1363,26 @@ function radius(d){return Math.min(Math.max(8+d.record_count*4,8),40);}
 // the same app was reused for production-scale data in Module 7 (contract:
 // "Scale principle"). Toggles stay available either way.
 const LABEL_AUTO_OFF=150;
+// ⛔ (INV-299) A CAPTURE is not an interactive view, and needs a lower label ceiling.
+// Interactive labels stay on to 150 because the reader can zoom, pan and toggle them; a
+// still image offers none of that, and a settled layout fitted into 1440x900 renders a 10px
+// label at the fit scale -- about 2-3px at 85 entities, which is a smudge rather than a name.
+// The recap carries the entity names as text beside the image, so the captured graph's job
+// there is STRUCTURE. Above this count a capture drops the labels and keeps the structure
+// legible; below it, it keeps both. Measured 2026-09-03 on the 85-entity Truth Set.
+const CAPTURE_LABEL_MAX=40;
 // Non-color encoding companion to the relationship-type color, so the types
 // stay distinguishable in a monochrome recap screenshot and for color-vision
 // deficiency (contract: "Pair color with a non-color distinction").
 const R_DASH={possibly_same:"",possibly_related:"6,4",disclosed:"2,3",ambiguous:"10,3,2,3"};
 function rdash(ty){return R_DASH[String(ty||"").toLowerCase()]||"6,4";}
-function addGraphControls(containerId,nodeCount){
+function addGraphControls(containerId,nodeCount,forceLabelsOff){
   const c=d3.select("#"+containerId);
   c.select(".gctl").remove();
-  const auto=nodeCount>LABEL_AUTO_OFF;
+  // (INV-299) `forceLabelsOff` is the capture ceiling asserting itself over the interactive
+  // one. An explicit parameter rather than a faked `nodeCount`, so the reason is legible at
+  // the call site and this function keeps telling the truth about the graph it was given.
+  const auto=!!forceLabelsOff||nodeCount>LABEL_AUTO_OFF;
   // Apply the initial state to the container explicitly -- do NOT rely on the
   // checkbox change event, which does not fire for an unchecked box at load.
   const el=document.getElementById(containerId);
@@ -1027,10 +1421,50 @@ function addGraphControls(containerId,nodeCount){
 // Clicking an entry filters the view and toggles back.
 function drawLegend(nodes){d3.select("#graph-container .legend").remove();
   const counts={};(nodes||[]).forEach(function(n){(n.data_sources||[]).forEach(function(s){counts[s]=(counts[s]||0)+1;});});
+  // Combination entries, counted over the nodes that actually carry them, so a
+  // cross-source color on screen always has a row naming what it means. A color a viewer
+  // cannot name is not an improvement over the wrong color.
+  const comboCounts={};
+  (nodes||[]).forEach(function(n){const k=srcKeyOf(n);if(isCombo(k))comboCounts[k]=(comboCounts[k]||0)+1;});
   const srcs=Object.keys(counts).sort();
+  const combos=Object.keys(comboCounts).sort();
   if(!srcs.length)return;
   const off={};
   const l=d3.select("#graph-container").append("div").attr("class","legend");
+  if(combos.length){
+    l.append("div").attr("class","why").style("margin","0 0 4px")
+      .text("Entities in more than one source have their own color:");
+    combos.forEach(function(k){const r=l.append("div").attr("class","row");
+      r.append("span").attr("class","dot").style("background",color(k))
+        .style("box-shadow",srcStrokeW(k)?("inset 0 0 0 "+srcStrokeW(k)+"px "+srcStroke(k)):null);
+      r.append("span").text(comboLabel(k));
+      r.append("span").attr("class","cnt").text(comboCounts[k]);
+      r.attr("title","Entities appearing in "+comboLabel(k));});
+  }
+  // "Entities per source", NOT "Single-source": these counts are PARTICIPATION -- every
+  // entity drawing on that source, cross-source entities included -- because `counts`
+  // above increments once per source per node. The label is a claim about a denominator,
+  // and single-source was never the denominator in use. On a two-source run this block
+  // read `CRM_CUSTOMERS 65` / `WEBSTORE_ACCOUNTS 70` against 121 entities with 14 spanning
+  // both (65 + 70 - 14 = 121, inclusion-exclusion); the true single-source figures were 51
+  // and 56, and nothing on screen contradicted the misreading because each figure agreed
+  // with every other total in the app.
+  //
+  // The rows are participation-shaped throughout, which is why relabeling is the fix and
+  // recomputing is not: the tooltip filters the SOURCE, the click handler keeps a node when
+  // ANY of its sources is on, and the swatch is the per-source color while a cross-source
+  // entity is drawn in its own combination color. Changing the counts would put the label
+  // in agreement with the heading and out of agreement with all three.
+  //
+  // Emitted unconditionally -- it sat inside `if(combos.length)` and so vanished on
+  // single-source runs, where the label happens to be correct. That hid the defect from
+  // the simple case and showed it only on the runs this module exists to demonstrate.
+  l.append("div").attr("class","why").style("margin",combos.length?"6px 0 4px":"0 0 4px")
+    .text("Entities per source:");
+  if(combos.length){
+    l.append("div").attr("class","why").style("margin","0 0 4px").style("font-style","italic")
+      .text("An entity in more than one source is counted in each of its sources below.");
+  }
   srcs.forEach(function(s){const r=l.append("div").attr("class","row");
     r.append("span").attr("class","dot").style("background",color(s))
       // Same expression as the node's stroke, so the swatch and the node cannot disagree
@@ -1177,9 +1611,18 @@ async function drawHist(){const s=await getJSON("/api/stats");const box=d3.selec
   const W=Math.min(720,box.node().clientWidth),H=300,m={t:20,r:10,b:40,l:44};
   const svg=box.append("svg").attr("width",W).attr("height",H);
   const x=d3.scaleBand().domain(data.map(function(d){return d.label;})).range([m.l,W-m.r]).padding(0.25);
-  const y=d3.scaleLinear().domain([0,d3.max(data,function(d){return d.n;})||1]).nice().range([H-m.b,m.t]);
+  const maxN=d3.max(data,function(d){return d.n;})||1;
+  const y=d3.scaleLinear().domain([0,maxN]).nice().range([H-m.b,m.t]);
   svg.append("g").attr("transform","translate(0,"+(H-m.b)+")").call(d3.axisBottom(x));
-  svg.append("g").attr("transform","translate("+m.l+",0)").call(d3.axisLeft(y).ticks(5));
+  // This axis counts ENTITIES, which are whole. d3's .ticks(n) asks for "about n
+  // ticks" and picks whatever step fits, so a domain of [0,1] is labeled in fifths
+  // — "0.4 entities". Small maxima are the NORMAL bootcamp shape (the built-in
+  // evaluation license caps ingestion at 500 DSRs), so pick integer tick VALUES.
+  // .tickFormat("d") alone is not enough: it rounds the labels while leaving the
+  // fractional positions, yielding duplicates like 0,0,0,1,1,1.
+  const yStep=Math.max(1,Math.ceil(maxN/5));
+  svg.append("g").attr("transform","translate("+m.l+",0)")
+    .call(d3.axisLeft(y).tickValues(d3.range(0,maxN+1,yStep)).tickFormat(d3.format("d")));
   svg.selectAll("rect").data(data).join("rect").attr("x",function(d){return x(d.label);}).attr("y",function(d){return y(d.n);})
     .attr("width",x.bandwidth()).attr("height",function(d){return y(0)-y(d.n);}).attr("rx",4).style("cursor","pointer")
     .attr("fill",function(d,i){return i===0?"__ACCENT__":"__ACCENT_HOT__";})
@@ -1472,13 +1915,13 @@ def make_handler(model, engine, flags, sz, title):
                 if path in ("/", "/index.html"):
                     return self._send(
                         200,
-                        render_page(title, sources=model.data_sources()),
+                        render_page(title, sources=model.color_keys()),
                         "text/html; charset=utf-8",
                     )
                 if path == "/api/stats":
                     return self._send(200, json.dumps(model.stats()))
                 if path == "/api/graph":
-                    return self._send(200, json.dumps(model.graph()))
+                    return self._send(200, json.dumps(model.graph(cap=GRAPH_NODE_CAP)))
                 if path == "/api/merges":
                     return self._send(200, json.dumps(model.merges()))
                 if path == "/api/overlap":
@@ -1516,7 +1959,49 @@ def build_model(settings, patterns):
     factory = SzAbstractFactoryCore("bootcamp_viz", settings, verbose_logging=False)
     engine = factory.create_engine()
     flags = SzEngineFlags.SZ_ENTITY_DEFAULT_FLAGS
-    model = Model().build(engine, flags, _iter_record_keys(patterns))
+    if patterns:
+        # The Truth Set path: a known, small record set, and the file is the source of truth
+        # for which records were loaded.
+        model = Model().build(engine, flags, _iter_record_keys(patterns))
+    else:
+        # ⛔ No records file — build from the export stream. This is the path Module 7
+        # mandates for a Bootcamper's own datastore: one pass instead of one round trip per
+        # record, and it yields EVERY resolved entity, including embedded-master records the
+        # mapper emitted into no input file, which the per-record build cannot reach.
+        #
+        # ⛔ (INV-179) This call is coupled to `Model._absorb`, ~1,450 lines above: the
+        # flag set must cover every field it reads, and a field it reads that the export
+        # did not return comes back **absent** — no error, no warning, a blank cell.
+        # The coupling is enforced by the field-to-flag map in
+        # `tests/test_visualization_model_build_scales.py`.
+        #
+        # ⛔ Pass `SZ_ENTITY_DEFAULT_FLAGS`, NOT a hand-assembled set of
+        # `SZ_ENTITY_INCLUDE_*` members. This is the one call where the usual
+        # "request exactly the flags you consume" advice is wrong, and it is wrong in a
+        # way that has been OBSERVED rather than reasoned about:
+        #
+        #   - `../skills/module-06-data-processing/phaseD-validation.md` records a
+        #     bootcamp session that assembled export flags from `SZ_ENTITY_INCLUDE_*`
+        #     members and got rows with **no `RELATED_ENTITIES` key at all, and no
+        #     error**. For this model that is a graph with nodes and no edges.
+        #   - The documentation agrees: the relationship-detail flags do not list the
+        #     export methods in their `applies_to`, while `SZ_ENTITY_DEFAULT_FLAGS` does
+        #     and carries `response_paths` covering exactly what `_absorb` reads —
+        #     `RELATED_ENTITIES[]`, `RESOLVED_ENTITY.ENTITY_ID`, `.ENTITY_NAME`,
+        #     `.RECORDS[]` (`get_sdk_reference(topic='flags',
+        #     filter='SZ_ENTITY_DEFAULT_FLAGS')`, server 1.35.4, 2026-09-01).
+        #
+        # The server's DEFAULT-composite caution (membership can shift between versions
+        # with no error) still applies and is not waived here — it is carried where it
+        # bites, as the Performance item in `production/MIGRATION_CHECKLIST.md`, because
+        # that is about the code the Bootcamper ships rather than this reference.
+        #
+        # MCP-NEGATIVE: get_sdk_reference(topic='flags', filter='SZ_ENTITY_INCLUDE_ALL_RELATIONS') — the SZ_ENTITY_INCLUDE_* relationship and record flags do not list export_json_entity_report in applies_to — owner: get_sdk_reference(topic='flags', filter='SZ_ENTITY_DEFAULT_FLAGS') IS the route that owns entity content on the export family: its applies_to includes export_json_entity_report and export_csv_entity_report, and its response_paths are RELATED_ENTITIES[] / RESOLVED_ENTITY.ENTITY_ID / .ENTITY_NAME / .RECORDS[] / .RECORD_SUMMARY[], so the composite is where the reader must go rather than concluding the export cannot return relationships (routing negative) — server 1.36.0, 2026-09-02
+        export_flags = (
+            SzEngineFlags.SZ_EXPORT_INCLUDE_ALL_ENTITIES
+            | SzEngineFlags.SZ_ENTITY_DEFAULT_FLAGS
+        )
+        model = Model().build_from_export(engine, export_flags)
     # Pre-compute the (capped) feature-score distribution so the Feature Scores tab
     # works in the live app and the offline snapshot. Guarded so a why failure or a
     # single-record-only data set never blocks the model/snapshot build (INV-077).
@@ -1697,7 +2182,7 @@ def write_snapshot(model, engine, flags, title, out_path, port=8080, dataset="")
     renders with no server and no network access."""
     payload = {
         "stats": model.stats(),
-        "graph": model.graph(),
+        "graph": model.graph(cap=GRAPH_NODE_CAP),
         "merges": model.merges(),
         # No "records" key: /api/records is per-entity, and graph.nodes already
         # carries every entity with its constituent records, so the shim below
@@ -1736,7 +2221,7 @@ def write_snapshot(model, engine, flags, title, out_path, port=8080, dataset="")
         title,
         data_shim=shim,
         probe_body=_snapshot_probe_html(model, engine, flags, port=port, dataset=dataset),
-        sources=model.data_sources(),
+        sources=model.color_keys(),
     )
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as fh:
@@ -1841,8 +2326,16 @@ def resolve_settings(path, env_value, log):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--settings", default="config/engine_config.json")
-    ap.add_argument("--records", nargs="+", required=True,
-                    help="JSONL file(s)/glob(s) of the records that were loaded")
+    # ⛔ Optional on purpose. With records, the model is built per record — correct for the
+    # Truth Set, which is what this reference serves. WITHOUT them it is built from the
+    # export stream, which is the path Module 7 mandates for a Bootcamper's own datastore
+    # and which this file would otherwise only describe rather than demonstrate. Existing
+    # invocations are unaffected: passing --records keeps the behavior they had.
+    ap.add_argument("--records", nargs="+", default=None,
+                    help="JSONL file(s)/glob(s) of the records that were loaded. Omit to "
+                         "build the model from the export stream instead (every resolved "
+                         "entity, one pass) — preferred for a datastore larger than the "
+                         "Truth Set")
     ap.add_argument("--port", type=int, default=8080)
     ap.add_argument("--title", default="Senzing Entity Resolution")
     ap.add_argument("--dataset", default="",
@@ -1885,14 +2378,40 @@ def main(argv=None):
         return 0
 
     handler = make_handler(model, engine, flags, sz, args.title)
-    httpd = ThreadingHTTPServer(("127.0.0.1", args.port), handler)
+    try:
+        httpd = ThreadingHTTPServer((BIND_HOST, args.port), handler)
+    except OSError as exc:
+        sys.stderr.write(
+            f"ERROR: could not bind {BIND_HOST}:{args.port} ({exc}).\n"
+            "Another server already holds that port on the loopback interface. Stop it, "
+            "or start this one on a different port with --port.\n"
+        )
+        return 1
+
+    # ⛔ Serve in the background just long enough to ask WHICH server answers this port,
+    # before the URL is printed for anyone to open. A successful bind is not proof the
+    # port was free: a foreign WILDCARD listener coexists with this loopback bind, and
+    # then either process may answer. The loopback bind above covers the opposite case
+    # (a colliding loopback listener fails cleanly); only this probe covers both.
+    import threading
+
+    serving = threading.Thread(target=httpd.serve_forever, daemon=True)
+    serving.start()
+    if not confirm_server_identity(args.port):
+        httpd.shutdown()
+        httpd.server_close()
+        return 1
+
     print(f"Visualization running: http://localhost:{args.port}")
     print("Press Ctrl+C to stop.")
     try:
-        httpd.serve_forever()
+        serving.join()
     except KeyboardInterrupt:
         print("\nStopping server.")
     finally:
+        # `shutdown` stops the serve_forever loop in the worker thread; without it
+        # `server_close` releases the socket while that loop is still running.
+        httpd.shutdown()
         httpd.server_close()
     return 0
 

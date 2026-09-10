@@ -5,7 +5,7 @@
 **Completed:** 2026-07-30
 **Programming language:** Python
 **Path:** Core
-**Plugin version:** 0.5.1
+**Plugin version:** 0.5.3
 **Operating system:** Ubuntu 24.04.4 LTS (x86_64)
 **Python version:** 3.12.3
 **Language runtime:** Python 3.12.3
@@ -413,7 +413,7 @@
 
 ### Information Shared
 
-- The loader's architecture follows the *production* volume target, not the bootcamp dataset: `sdk_guide` switches template at a 500-record cutover, and a medium-tier target selects the threaded pattern while labelling the single-threaded one "demo-only".
+- The loader's architecture follows the *production* volume target, not the bootcamp dataset: `sdk_guide` switches template at a 500-record cutover, and a medium-tier target selects the threaded pattern while labeling the single-threaded one "demo-only".
 - Sorted or grouped input costs 2-10x throughput through lock contention, rated `error` severity by Senzing's own anti-pattern list. This project's files were grouped (matched pairs written first during collection), so shuffling before load genuinely mattered.
 - Redo must be drained by looping on `get_redo_record()` returning empty. Using `count_redo_records()` as the loop sentinel is a documented anti-pattern: it table-scans per call, and because redo generates more redo, a count-driven loop is O(n squared).
 - In a match key, `+` means the feature contributed and `-` means it detracted. A feature detracting on many cross-source comparisons can mean two source fields measuring different things were mapped to the same feature, silently suppressing legitimate merges.
@@ -539,3 +539,39 @@
 **Why it matters:** You can now answer "who is who across these two systems?" with evidence for every claim — and just as importantly, explain precisely why 128 pairs *cannot* be answered yet, which is the difference between a result you can act on and a number you have to trust.
 
 ---
+
+<!-- BOOTCAMP-NOTES:START -->
+## Notes, Ideas and Questions
+
+### Idea: map dba_name as a second NAME rather than payload
+
+**Captured:** 2026-07-15T11:42:00-05:00
+**Module:** Data Quality, Mapping, and Transformation
+**Type:** idea
+
+The ENFORMION file has a `dba_name` column I mapped to payload. Trading names are how
+half these businesses are actually known, so a second NAME_ORG might resolve the ATLAS
+FOODS ambiguity without touching anything else.
+
+**Context:** Data Quality, Mapping, and Transformation, step 4; pending question was "Ready to map the remaining columns?"
+
+### Question: does whyEntities need a flag I have not set?
+
+**Captured:** 2026-07-15T15:08:00-05:00
+**Module:** Query, Visualize and Discover
+**Type:** question
+
+The why output does not show record-level detail. Am I missing a flag, or is that
+detail simply not in this response?
+
+**Elaboration:** The default flag set omits record data; a flags argument controls how much of the record payload the response carries.
+
+### Reminder: check the counts against the source system before trusting them
+
+**Captured:** 2026-07-15T16:20:00-05:00
+**Module:** Query, Visualize and Discover
+**Type:** reminder
+
+4,971 entities from 5,241 records is a plausible number, not a verified one. Reconcile
+against the source system's own customer count before quoting it to anyone.
+<!-- BOOTCAMP-NOTES:END -->

@@ -50,6 +50,9 @@ from typing import Any, Callable, Mapping, Sequence
 import yaml
 from hypothesis import strategies as st
 
+from transform import KIRO_OWNED_ROOT
+from validate import declared_trigger_phrase
+
 __all__ = [
     # Generators (the thirteen the design names).
     "release_list",
@@ -132,11 +135,44 @@ MCP_TRANSPORT_TYPE = "streamable-http"
 MCP_SCHEMA_URL = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
 
 #: Command-derived skills and their lexically disjoint trigger phrases (R9).
-TRIGGER_PHRASES: Mapping[str, str] = {
-    "start-bootcamp": "start the senzing bootcamp",
-    "graduate-bootcamp": "graduate the senzing bootcamp",
-    "bootcamp-feedback": "give senzing bootcamp feedback",
-}
+#:
+#: DERIVED FROM THE AUTHORED SKILLS, NOT LISTED HERE. Each command-derived skill is
+#: authored under `templates/kiro-owned/skills/`, declares the template command it
+#: represents in `metadata.templateCommand`, and states its own trigger phrase in
+#: its `description` — so this mapping is read off those documents through the same
+#: extractor the gate uses (`validate.declared_trigger_phrase`). A hand-written list
+#: here would be a second place to declare a phrase, and the property that matters
+#: most about these phrases — that no one Bootcamper statement matches two skills
+#: *(R9 AC3, Property 19)* — is exactly the property a stale second copy would stop
+#: testing. Release 0.5.3 added `bootcamp-note` and `package-bootcamp`; nothing in
+#: this file needed editing for them, which is the point.
+def _authored_command_trigger_phrases() -> Mapping[str, str]:
+    """Skill name → declared trigger phrase, for every authored command skill."""
+    phrases: dict[str, str] = {}
+    for path in sorted(KIRO_OWNED_ROOT.glob("skills/*/SKILL.md")):
+        document = path.read_text(encoding="utf-8")
+        if not document.startswith("---"):
+            continue
+        _, _, remainder = document.partition("---")
+        block, separator, _ = remainder.partition("\n---")
+        if not separator:
+            continue
+        fields = yaml.safe_load(block) or {}
+        if not isinstance(fields, Mapping):
+            continue
+        metadata = fields.get("metadata")
+        command = (
+            metadata.get("templateCommand") if isinstance(metadata, Mapping) else None
+        )
+        if not isinstance(command, str) or not command.strip():
+            continue
+        phrase = declared_trigger_phrase(fields.get("description"))
+        if phrase:
+            phrases[path.parent.name] = phrase
+    return phrases
+
+
+TRIGGER_PHRASES: Mapping[str, str] = _authored_command_trigger_phrases()
 COMMAND_DERIVED_SKILLS = tuple(TRIGGER_PHRASES)
 
 #: `INV-052` is honored, not discounted, so it must never appear in the register

@@ -134,7 +134,7 @@
       "templateEvent": "UserPromptSubmit",
       "templateMatcher": null,
       "script": "feedback-capture.py",
-      "behavior": "Watch each Bootcamper prompt for feedback about the bootcamp and run the feedback capture workflow, appending to docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md.",
+      "behavior": "Watch each Bootcamper prompt for feedback about the bootcamp and run the feedback capture workflow, appending to docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md.",
       "kiroMechanism": {
         "type": "trigger",
         "trigger": "UserPromptSubmit",

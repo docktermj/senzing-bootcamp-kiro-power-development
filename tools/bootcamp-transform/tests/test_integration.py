@@ -21,6 +21,7 @@ Sections below are ordered by the task that owns them:
 3. Golden tree and manifest hashes (R3 AC5, R16 AC9) ....... task 14.2
 4. Live Senzing MCP tool call (R6 AC4) ..................... task 14.2
 5. Hook command with `python3` absent from PATH (R16 AC2) ... task 14.2
+6. The update path, end to end (R5 AC5, AC7, AC8, R16 AC9) .. blocker 1
 """
 
 from __future__ import annotations
@@ -41,6 +42,7 @@ from typing import Any, Iterable, Mapping
 import pytest
 
 from conftest import REPO_ROOT
+from reconcile import CHANGELOG_FILENAME
 from resolve_release import (
     E_NO_RELEASE,
     E_RESOLVE_FAILED,
@@ -51,7 +53,8 @@ from resolve_release import (
     source_ref,
 )
 from strategies import SENZING_MCP_URL, TEMPLATE_PLUGIN_ROOT
-from transform import MANIFEST_FILENAME, SKILL_ENTRY_POINT
+from transform import MANIFEST_FILENAME, SKILL_ENTRY_POINT, swap_into_place
+from validate import kiro_owned_skill_names, load_contract
 
 pytestmark = pytest.mark.integration
 
@@ -72,11 +75,19 @@ COMMITTED_POWER = REPO_ROOT / "powers" / "senzing-bootcamp"
 EXPECTED_TEMPLATE_REPOSITORY = "Senzing/senzing-bootcamp-claude-plugin"
 TEMPLATE_REPOSITORY, CONTRACT_PLUGIN_ROOT = contract_template()
 
-#: The 16-skill inventory: 12 ported bootcamp skills plus 4 `kiro-owned` ones
-#: (3 command-derived + `bootcamp-enforcement-setup`).
-SKILL_COUNT = 16
-PORTED_SKILL_COUNT = 12
-KIRO_OWNED_SKILL_COUNT = SKILL_COUNT - PORTED_SKILL_COUNT
+#: NO SKILL COUNT IS WRITTEN DOWN HERE, deliberately — the same reasoning as
+#: design defect D1, which took the count out of R7 AC1. This test has the resolved
+#: release tree in hand, so both halves of the inventory are *derived*: the ported
+#: half from the release's own skill directories, the rest from the `kiro-owned`
+#: skills the contract declares. A release that adds a module or a command then
+#: moves this test forward with the deliverable, instead of failing on a number
+#: that describes the release before it.
+#:
+#: The derivations call the same functions the gate calls, so a test and a gate
+#: cannot come to different views of what the inventory is. See
+#: `_release_skill_names` and `_contract_kiro_owned_skill_names` below.
+#: The contract, at the path the maintainer skills invoke.
+CONTRACT_PATH = ENGINE / "contract.yaml"
 
 #: The Hook_Installer, inside the Power rather than on `sys.path`.
 INSTALLER_RELATIVE_PATH = Path(
@@ -100,6 +111,15 @@ MCP_TOOL = "get_capabilities"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _next_patch(tag: str) -> str:
+    """The bare-semver tag one patch above `tag`.
+
+    Used only as changelog entry text by section 6, never resolved or fetched.
+    """
+    major, minor, patch = parse_semver(tag)
+    return f"{major}.{minor}.{patch + 1}"
 
 
 def _tail(text: str, lines: int = 15) -> str:
@@ -182,12 +202,48 @@ def _recorded_template_release() -> str:
     return tag
 
 
-def _tree_contents(root: Path) -> dict[str, bytes]:
+def _release_skill_names(source: Path) -> tuple[str, ...]:
+    """The bootcamp skill directory names the resolved release carries, sorted.
+
+    The ported half of the inventory, read off the release rather than counted
+    here, so `skills/module-08-…/` arriving upstream needs no edit in this file.
+    """
+    skills = source / TEMPLATE_PLUGIN_ROOT / "skills"
+    return tuple(
+        sorted(path.parent.name for path in skills.glob(f"*/{SKILL_ENTRY_POINT}"))
+    )
+
+
+def _contract_kiro_owned_skill_names(release_skills: Iterable[str]) -> tuple[str, ...]:
+    """The skills the contract creates that the release does not carry, sorted.
+
+    The rest of the inventory, derived through the gate's own function so that
+    adding a `kiro-owned` skill to the contract — a new command-derived skill, say
+    — is a one-place change this test follows automatically.
+
+    `release_skills` is subtracted because `kiro_owned_skill_names` answers a
+    slightly wider question than this one: a `kiro-owned` destination *inside* a
+    ported skill (`skills/bootcamp-onboarding/scripts/optional_runtime.py`, the Tier
+    2 hook assets) names that skill as well, and `bootcamp-onboarding` is a ported
+    skill that merely also carries Kiro-only files. Its own docstring says the set
+    is only ever consulted for names the template bijection did not account for, so
+    the subtraction here is that same residue rule rather than a correction to it.
+    """
+    declared = kiro_owned_skill_names(load_contract(CONTRACT_PATH))
+    return tuple(sorted(set(declared) - set(release_skills)))
+
+
+def _tree_contents(root: Path, *, exclude: Iterable[str] = ()) -> dict[str, bytes]:
     """Every file under `root`, keyed by its POSIX-spelled relative path."""
+    excluded = set(exclude)
     return {
-        path.relative_to(root).as_posix(): path.read_bytes()
-        for path in sorted(root.rglob("*"))
-        if path.is_file()
+        relative: path.read_bytes()
+        for path, relative in (
+            (path, path.relative_to(root).as_posix())
+            for path in sorted(root.rglob("*"))
+            if path.is_file()
+        )
+        if relative not in excluded
     }
 
 
@@ -508,31 +564,40 @@ def test_the_real_latest_release_resolves_to_a_bare_semver_tag(
 # ===========================================================================
 
 
-def test_the_end_to_end_build_produces_16_skills_and_passes_validation(
+def test_the_end_to_end_build_reproduces_the_release_inventory_and_validates(
     fresh_build: _Build,
 ) -> None:
     """Resolve → transform → validate against the real release, with no fixtures.
 
-    The build target is the Template_Release the committed Power records — `0.5.1`
-    as of task 14.1 — read from the Build_Manifest rather than pinned here, so a
-    later update run moves this test forward with the deliverable.
+    The build target is the Template_Release the committed Power records, read from
+    the Build_Manifest rather than pinned here, so a later update run moves this
+    test forward with the deliverable.
+
+    The inventory is asserted as two **sets**, not as a count. R7 AC1 is a
+    bijection with the release's skill directories, so the expected ported set is
+    read off the release; R7 AC2's residue is whatever the contract declares
+    `kiro-owned`, so that set is read off the contract. Comparing sets rather than
+    lengths also means a failure names the skill that went missing instead of
+    reporting that two numbers differ.
     """
     owners = _skill_owners(fresh_build.manifest)
-    assert len(owners) == SKILL_COUNT, (
-        f"the build produced {len(owners)} skills, expected {SKILL_COUNT} "
-        f"({PORTED_SKILL_COUNT} ported + {KIRO_OWNED_SKILL_COUNT} kiro-owned): "
-        f"{sorted(owners)}"
-    )
-
     ported = sorted(name for name, owner in owners.items() if owner == "template")
     kiro_owned = sorted(name for name, owner in owners.items() if owner == "kiro")
-    assert len(ported) == PORTED_SKILL_COUNT, (
-        f"{len(ported)} skills are ported from the template, expected "
-        f"{PORTED_SKILL_COUNT}: {ported}"
+
+    expected_ported = list(_release_skill_names(fresh_build.source))
+    assert ported == expected_ported, (
+        f"the ported skills and the {fresh_build.tag} release's skill directories "
+        f"are not the same set (R7 AC1): only in the build "
+        f"{sorted(set(ported) - set(expected_ported))}, only in the release "
+        f"{sorted(set(expected_ported) - set(ported))}"
     )
-    assert len(kiro_owned) == KIRO_OWNED_SKILL_COUNT, (
-        f"{len(kiro_owned)} skills are kiro-owned, expected "
-        f"{KIRO_OWNED_SKILL_COUNT}: {kiro_owned}"
+
+    expected_kiro_owned = list(_contract_kiro_owned_skill_names(expected_ported))
+    assert kiro_owned == expected_kiro_owned, (
+        "the kiro-owned skills in the build and the kiro-owned skills the contract "
+        f"declares are not the same set (R7 AC2): only in the build "
+        f"{sorted(set(kiro_owned) - set(expected_kiro_owned))}, only in the "
+        f"contract {sorted(set(expected_kiro_owned) - set(kiro_owned))}"
     )
 
     # Every skill directory on disk is accounted for by the manifest.
@@ -571,9 +636,19 @@ def test_the_committed_power_equals_a_fresh_build_of_its_recorded_release(
 
     A difference here means the committed tree and the engine have drifted apart:
     either the engine changed without a rebuild, or the tree was hand-edited.
+
+    `CHANGELOG.md` is compared out, and for the one reason that makes it not an
+    exception to the check: it is the **only** file in the Power whose content is a
+    function of the Power's history rather than of the release being built. R5 AC8
+    has each successful update append one entry, so a Power that has been updated
+    twice carries two entries that no *single* build of the current release can
+    produce — the create path this fixture runs produces no changelog at all. Its
+    presence is therefore not drift, and the same reasoning puts it in
+    `validate.MANIFEST_UNRECORDED`; the name comes from there rather than being
+    spelled again here. Every other path is still compared byte-for-byte.
     """
-    committed = _tree_contents(COMMITTED_POWER)
-    fresh = _tree_contents(fresh_build.staging)
+    committed = _tree_contents(COMMITTED_POWER, exclude=[CHANGELOG_FILENAME])
+    fresh = _tree_contents(fresh_build.staging, exclude=[CHANGELOG_FILENAME])
 
     only_committed = sorted(set(committed) - set(fresh))
     only_fresh = sorted(set(fresh) - set(committed))
@@ -793,3 +868,235 @@ def test_a_generated_hook_command_runs_with_python3_absent_from_path(
             f"{definition.name}:{name} exited {completed.returncode} with python3 "
             f"absent from PATH:\n{_tail(completed.stderr)}"
         )
+
+
+# ===========================================================================
+# 6. The update path, end to end — R5 AC5, AC7, AC8, R13 AC5, R16 AC9
+# ===========================================================================
+#
+# THE PATH THIS SECTION COVERS HAD NO TEST, AND THAT IS HOW IT SHIPPED BROKEN.
+# Sections 2 and 3 build through the *create* path: transform, validate, compare.
+# The update path adds two steps between those two — reconcile, and the changelog
+# entry R5 AC8 requires — and running them turned out to produce a Power the
+# Schema_Validator refused: `reconcile` writes `<staging>/CHANGELOG.md` after
+# `transform` has emitted the Build_Manifest and carries that manifest forward
+# verbatim, so `manifest-hashes` reported the changelog as an unrecorded file and
+# `tagAllowed` could never be true. Every property covering the pieces passed; no
+# test ran them in the order a Maintainer runs them.
+#
+# So this section runs the Update_Skill's own sequence against the real release,
+# twice, and asserts the two things the pieces cannot assert about each other:
+#
+#   1. an update whose staging tree carries the required changelog entry still
+#      validates `passed` with `tagAllowed` true;
+#   2. a *second* update preserves the first update's entry instead of dropping
+#      it — the classification the R16 AC9 allowance depends on.
+#
+# The second point is why one update is not enough. The reconciler's verdict for
+# the changelog is `local-only-no-template-source`, which holds precisely because
+# no manifest records it; were it recorded, the same file would classify as
+# `removed` and `--apply` would delete the accumulated history while every check
+# still passed. One update cannot tell those two worlds apart. Two can.
+#
+# Everything runs inside `tmp_path` against a copy of the release tree the
+# committed Power records. The committed Power is read once, to seed the first
+# temporary Power, and is never written.
+
+
+@dataclass(frozen=True)
+class _Update:
+    """One update run: where it staged, and what reconcile and validate said.
+
+    `staged_changelog` is a snapshot taken while staging still exists rather than a
+    property that reads it on demand: the swap *consumes* the staging tree, so a
+    lazy read after publishing would quietly answer "" instead of failing.
+    """
+
+    tag: str
+    staging: Path
+    staged_changelog: str
+    reconciliation: Mapping[str, Any]
+    report: Mapping[str, Any]
+    validate_status: int
+
+
+def _update(
+    *,
+    power: Path,
+    source: Path,
+    tag: str,
+    staging: Path,
+    from_release: str,
+    to_release: str,
+    reports: Path,
+) -> _Update:
+    """Run steps 4, 5 and 7 of the Update_Skill against `power`.
+
+    The same commands `update-bootcamp-power/SKILL.md` gives a Maintainer, in the
+    order it gives them: transform with `--carry-forward`, reconcile with
+    `--apply --changelog`, then validate the staged tree. The swap is the caller's,
+    so a test can inspect staging before it is published.
+    """
+    transform = _engine(
+        "transform.py",
+        "--source",
+        str(source),
+        "--tag",
+        tag,
+        "--staging",
+        str(staging),
+        "--carry-forward",
+        str(power),
+    )
+    assert transform.status == 0, (
+        f"transform.py exited {transform.status} ({transform.code}) staging the "
+        f"update to {tag}:\n{_tail(transform.stderr)}"
+    )
+
+    reconcile = _engine(
+        "reconcile.py",
+        "--power",
+        str(power),
+        "--staging",
+        str(staging),
+        "--to-release",
+        to_release,
+        "--from-release",
+        from_release,
+        "--report",
+        str(reports / f"reconciliation-{to_release}.json"),
+        "--apply",
+        "--changelog",
+    )
+    assert reconcile.status == 0, (
+        f"reconcile.py exited {reconcile.status} reconciling {from_release} into "
+        f"{to_release}:\n{_tail(reconcile.stderr)}"
+    )
+    assert isinstance(reconcile.payload, Mapping), "reconcile emitted no report"
+
+    validate = _engine(
+        "validate.py",
+        "--staging",
+        str(staging),
+        "--tag",
+        tag,
+        "--source",
+        str(source),
+        "--report",
+        str(reports / f"validation-{to_release}.json"),
+    )
+    assert isinstance(validate.payload, Mapping), (
+        f"validate.py emitted no ValidationReport:\n{_tail(validate.stderr)}"
+    )
+    changelog = staging / CHANGELOG_FILENAME
+    return _Update(
+        tag=tag,
+        staging=staging,
+        staged_changelog=(
+            changelog.read_text(encoding="utf-8") if changelog.is_file() else ""
+        ),
+        reconciliation=reconcile.payload,
+        report=validate.payload,
+        validate_status=validate.status,
+    )
+
+
+def test_the_update_path_validates_and_accumulates_its_changelog(
+    tmp_path: Path, recorded_release: tuple[str, Path]
+) -> None:
+    """Two consecutive updates both validate, and the first entry survives the second.
+
+    `--to-release` on the second run names a patch above the release under test.
+    Nothing fetches it — the invariant-text drift comparison is the only step that
+    reads a release tree and it is not requested here — and validate is given the
+    real `--tag`, so the string reaches only the changelog entry's own text. It is
+    there because `record_update_in_staging` records at most one entry per release:
+    repeating the first tag would report `alreadyRecorded` and append nothing, which
+    would leave the accumulation half of this test asserting nothing.
+    """
+    tag, source = recorded_release
+    power = tmp_path / "senzing-bootcamp"
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    # The starting point is a Power with no changelog at all — exactly what the
+    # create path produces, and the state the first update has to cope with.
+    shutil.copytree(COMMITTED_POWER, power)
+    for stale in (power / CHANGELOG_FILENAME,):
+        stale.unlink(missing_ok=True)
+
+    first = _update(
+        power=power,
+        source=source,
+        tag=tag,
+        staging=tmp_path / "staging-first",
+        from_release=tag,
+        to_release=tag,
+        reports=reports,
+    )
+
+    # (1) The update path reaches a report that permits tagging (R13 AC5).
+    assert first.report["status"] == "passed", (
+        f"the first update to {tag} validates {first.report['status']!r}, not "
+        "'passed':\n" + "\n".join(_failing_checks(first.report))
+    )
+    assert first.report["tagAllowed"] is True
+    assert first.validate_status == 0
+
+    # R5 AC8: exactly one entry, and it names the Template_Release it came from.
+    assert first.staged_changelog.count("## ") == 1, (
+        f"the first update staged {first.staged_changelog.count('## ')} changelog "
+        f"entries, expected one:\n{first.staged_changelog}"
+    )
+    assert tag in first.staged_changelog
+
+    # R5 AC7 up to this point: nothing has been written into the Power itself.
+    assert not (power / CHANGELOG_FILENAME).exists(), (
+        "the update wrote a changelog into the Power before the swap; a failure "
+        "after this point would leave an entry for an update that never completed"
+    )
+
+    swap_into_place(first.staging, power)
+    published = (power / CHANGELOG_FILENAME).read_text(encoding="utf-8")
+    assert published == first.staged_changelog
+
+    # (2) The second update, over a Power that now carries a changelog.
+    ahead = _next_patch(tag)
+    second = _update(
+        power=power,
+        source=source,
+        tag=tag,
+        staging=tmp_path / "staging-second",
+        from_release=tag,
+        to_release=ahead,
+        reports=reports,
+    )
+
+    assert second.report["status"] == "passed", (
+        f"the second update validates {second.report['status']!r}, not 'passed'; a "
+        "Power carrying an accumulated changelog must still pass manifest-hashes "
+        "(R16 AC9):\n" + "\n".join(_failing_checks(second.report))
+    )
+    assert second.report["tagAllowed"] is True
+
+    # The classification the allowance rests on, read off the report rather than
+    # inferred from the bytes.
+    preserved = {
+        str(item["path"]): str(item.get("reason") or "")
+        for item in second.reconciliation["preservedAdaptations"]
+    }
+    assert preserved.get(CHANGELOG_FILENAME) == "local-only-no-template-source", (
+        f"the changelog was not preserved as a local-only adaptation; the "
+        f"reconciliation put it at {preserved.get(CHANGELOG_FILENAME)!r}. Recording "
+        "it in the Build_Manifest would classify it 'removed' and delete the history"
+    )
+
+    staged = second.staged_changelog
+    assert staged.startswith(published), (
+        "the second update did not carry the first update's changelog forward "
+        f"verbatim; the staged changelog begins:\n{staged[: len(published) + 80]}"
+    )
+    assert staged.count("## ") == 2, (
+        f"the second update staged {staged.count('## ')} changelog entries, "
+        f"expected the first plus one:\n{staged}"
+    )
+    assert ahead in staged

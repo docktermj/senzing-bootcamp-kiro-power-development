@@ -5,14 +5,14 @@
   "description": "Maintainer tooling for the Senzing Bootcamp Kiro Power. Use when creating the Senzing bootcamp power from a template release, or when updating it to a newer template release.",
   "author": { "name": "Senzing", "url": "https://senzing.com" },
   "license": "Apache-2.0",
-  "homepage": "https://github.com/docktermj/senzing-bootcamp-kiro-powers-development",
-  "repository": "https://github.com/docktermj/senzing-bootcamp-kiro-powers-development",
+  "homepage": "https://github.com/docktermj/senzing-bootcamp-kiro-power-development",
+  "repository": "https://github.com/docktermj/senzing-bootcamp-kiro-power-development",
   "keywords": ["senzing", "bootcamp", "maintainer", "power-authoring", "release-tooling"],
   "extensions": {
     "com.senzing.bootcamp": {
       "role": "maintainer-tooling",
       "contract": "tools/bootcamp-transform/contract.yaml",
-      "requiresWorkspace": "docktermj/senzing-bootcamp-kiro-powers-development"
+      "requiresWorkspace": "docktermj/senzing-bootcamp-kiro-power-development"
     }
   }
 }

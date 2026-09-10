@@ -7837,6 +7837,15 @@ _PORTED_OVERVIEW = "docs/overview.md"
 #: cross-reference that resolves before anything is seeded.
 _LINKED_DOCUMENT = "skills/bootcamp-onboarding/feedback.md"
 
+#: A `../<ported-skill>/<document>.md` link in an authored `kiro-owned` skill body.
+#: Anchored on the `../` so a same-directory or absolute link is not matched, and
+#: `<document>` admits no `/`, so only a document sitting *directly* beside a ported
+#: `SKILL.md` is matched. That exclusion is load-bearing: a link into
+#: `../bootcamp-onboarding/assets/kiro-hooks/…` names Tier 2 hook assets, which the
+#: `kiro-hooks` rule already materializes, and adding them to the release as well
+#: makes two rules claim one output path (`E_TRANSFORM_FAILED`).
+_SIBLING_SKILL_LINK = re.compile(r"\]\(\.\./(?P<skill>[^/)]+)/(?P<document>[^/)]+\.md)\)")
+
 #: A ported module, and the one ported hook script that imports it. The import
 #: resolves in the base Power because both land in the same directory (R10 AC1);
 #: dropping the module is what the `script-imports` defect does.
@@ -7905,14 +7914,43 @@ def _declared_template_commands() -> tuple[str, ...]:
     return tuple(sorted(commands))
 
 
+@lru_cache(maxsize=1)
+def _linked_sibling_documents() -> tuple[str, ...]:
+    """Ported documents the authored `kiro-owned` skills link to, sorted.
+
+    Read out of the authored skill bodies for the same reason
+    `_declared_template_commands` reads their frontmatter: a command-derived skill
+    is an *entry point* that hands off to a ported workflow document, so authoring
+    one adds a cross-reference into `skills/<ported>/`. The release this fixture
+    builds has to carry that document, or `cross-references` fails for a reason
+    Property 15 is not about — as it did when release 0.5.3's `bootcamp-note` and
+    `package-bootcamp` arrived, pointing at `notes.md` and `packaging.md`.
+
+    Only links into a skill the fixture actually ports are returned; a link into
+    some other skill would need that skill in `_PORTED_SKILLS` too, and silently
+    inventing one here would hide that. A link to a ported skill's own `SKILL.md`
+    is excluded because `_template_skill_document` already writes that file.
+    """
+    ported = set(_PORTED_SKILLS)
+    documents: set[str] = set()
+    for path in sorted(KIRO_OWNED_ROOT.glob(f"skills/*/{SKILL_MANIFEST}")):
+        body = path.read_text(encoding="utf-8")
+        for match in _SIBLING_SKILL_LINK.finditer(body):
+            skill, document = match.group("skill"), match.group("document")
+            if skill in ported and document != SKILL_MANIFEST:
+                documents.add(f"skills/{skill}/{document}")
+    return tuple(sorted(documents))
+
+
 def _template_release() -> dict[str, bytes]:
     """A Template_Release the engine transforms into a Power that passes.
 
     Every entry is here because some check needs it: the two superseded manifests
     so `plugin.json` and `mcp.json` exist to be validated at all *(R4 AC1)*, the
-    commands so the inventory bijection has a left-hand side, the hook scripts so
-    the shipped hook definitions invoke something that exists, and the vendored
-    asset so the `copy` rule has a subject.
+    commands so the inventory bijection has a left-hand side, the sibling documents
+    the `kiro-owned` skills link to so `cross-references` resolves, the hook
+    scripts so the shipped hook definitions invoke something that exists, and the
+    vendored asset so the `copy` rule has a subject.
     """
     files: dict[str, bytes] = {
         _TEMPLATE_MANIFEST_PATH: _json_bytes(
@@ -7937,6 +7975,12 @@ def _template_release() -> dict[str, bytes]:
         files[f"skills/{name}/{SKILL_MANIFEST}"] = _template_skill_document(name)
     for command in _declared_template_commands():
         files[f"commands/{command}.md"] = f"# /{command}\n".encode("utf-8")
+    for document in _linked_sibling_documents():
+        files.setdefault(
+            document,
+            f"# {Path(document).stem}\n\nThe ported workflow a command skill "
+            "hands off to.\n".encode("utf-8"),
+        )
     for script in HOOK_SCRIPT_NAMES:
         files[f"scripts/{script}"] = _template_hook_script(script)
     return files
@@ -8690,9 +8734,17 @@ _METADATA_FIELD = "metadata"
 _TEMPLATE_SKILL_KEY = "templateSkill"
 _TEMPLATE_COMMAND_KEY = "templateCommand"
 
-#: R9 AC1's three template commands, each with the skill that represents it.
+#: Three template commands, each with the skill that represents it.
 #: `graduate` → `graduate-bootcamp` is the pair that makes the correspondence a
 #: declaration rather than a name comparison.
+#:
+#: THREE, AND A SUBSET OF THE AUTHORED COMMAND SKILLS RATHER THAN ALL OF THEM. This
+#: property seeds exactly three command failure modes — unrepresented, claimed
+#: twice, and claiming both a skill and a command — and each needs one command of
+#: its own, so three is a property of the seed set and not of the release. The
+#: release's actual command set is derived elsewhere (`COMMAND_DERIVED_SKILLS`,
+#: itself read off the authored skills), and a release that adds a command must not
+#: have to add a fourth failure mode here to keep this property meaningful.
 _COMMAND_SKILLS: Mapping[str, str] = {
     "start-bootcamp": "start-bootcamp",
     "graduate": "graduate-bootcamp",
@@ -9276,7 +9328,12 @@ def test_skill_and_command_inventories_are_bijections_with_the_template(
     assert contract.rule("commands-superseded").source == (
         f"{_COMMANDS_ROOT}/*{_COMMAND_SUFFIX}"
     )
-    assert tuple(_COMMAND_SKILLS.values()) == COMMAND_DERIVED_SKILLS
+    # A subset, not an equality: the seed set is three commands wide because there
+    # are three command failure modes, while the release declares however many it
+    # declares. What must hold is that every seeded claimant is a real authored
+    # command-derived skill, so the produced documents this property builds are the
+    # ones the Power actually ships.
+    assert set(_COMMAND_SKILLS.values()) <= set(COMMAND_DERIVED_SKILLS)
     assert set(_COMMAND_SKILLS.values()) <= set(kiro_owned)
     template_commands = tuple(sorted(_COMMAND_SKILLS))
     assert set(_COMMAND_SKILLS) == {

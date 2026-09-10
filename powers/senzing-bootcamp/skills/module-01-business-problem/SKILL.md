@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.1
-  templateRelease: 0.5.1
+  version: 0.5.3
+  templateRelease: 0.5.3
   templateSkill: module-01-business-problem
 ---
 
@@ -44,8 +44,8 @@ When the bootcamper hits an error during this module:
 1. **SENZ error code** (message contains `SENZ` + digits, e.g. `SENZ2027`): call
    `explain_error_code(error_code="<code>", version="current")` and present the fix. If it
    returns nothing, continue to step 2.
-2. Present the matching pitfall/fix for this module (full `common-pitfalls` reference is a
-   later porting phase; for now, use `search_docs` to look up the symptom).
+2. Present the matching pitfall/fix for this module. There is no bundled `common-pitfalls`
+   reference, so use `search_docs` to look up the symptom.
 
 ## Phases
 

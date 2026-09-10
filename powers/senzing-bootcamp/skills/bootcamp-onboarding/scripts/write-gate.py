@@ -14,7 +14,8 @@ Two independent checks, governed by two different invariants:
   license blobs are blocked whatever the path. Runs independently of the location logic
   and fails closed.
 
-Cross-platform: invoked in exec form (``python3 <path>``) so no shell is required.
+Cross-platform: invoked as a ``type: command`` hook whose ``command`` names the
+interpreter and this script, quoted (``python3 "<path>"``), per INV-052.
 Native JSON parsing replaces the previous grep/sed field extraction.
 """
 import json
@@ -24,7 +25,7 @@ import sys
 
 data = sys.stdin.read()
 
-# Gate: only enforce when a bootcamp is active, so the plugin never blocks writes in
+# Gate: only enforce when a bootcamp is active, so the Power never blocks writes in
 # unrelated Kiro sessions.
 if not os.path.isfile(os.path.join("config", "bootcamp_progress.json")):
     sys.exit(0)

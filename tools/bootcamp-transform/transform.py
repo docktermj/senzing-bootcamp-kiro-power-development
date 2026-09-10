@@ -1174,7 +1174,12 @@ class PlannedOutput:
 
     @property
     def byte_exact(self) -> bool:
-        """`copy` rules are byte-for-byte, line endings included (R10 AC3)."""
+        """`copy` rules are byte-for-byte, line endings included (R10 AC3).
+
+        Authored `kiro-owned` bytes that are not text are byte-for-byte too, but
+        that cannot be decided from the rule alone — it is decided from the bytes,
+        at `render_output`. See `authored_bytes_are_binary`.
+        """
         return self.rule.kind == "copy"
 
 
@@ -2841,6 +2846,35 @@ def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def authored_bytes_are_binary(
+    rule: Rule, sets: Sequence[SubstitutionSet], data: bytes
+) -> bool:
+    """True when `data` is authored `kiro-owned` content that is not text.
+
+    `kiro-owned` content is normally text and is LF-normalized like every other
+    text output (R16 AC8). Some of it is not text: a rendered artifact the Power
+    ships as an authored file — `docs/examples/bootcamp_recap.example.pdf` — has no
+    line endings to normalize, and rewriting the byte pairs that happen to look
+    like CRLF inside its compressed streams silently corrupts it. Nine bytes is
+    enough to make a PDF unopenable, and the Build_Manifest would record the
+    corrupted bytes as authoritative.
+
+    Decided from the bytes rather than from a suffix list, and only for a rule that
+    declares no substitution set, so this can never quietly exempt content a rule
+    means to rewrite: a `kiro-owned` rule that declares a set and holds non-UTF-8
+    bytes is a contract defect, and it still reaches `substitute_content`, which
+    refuses it by name. `copy` is unaffected — it returned already, and it is the
+    kind that exists for template bytes nothing may touch (R10 AC3).
+    """
+    if rule.kind != "kiro-owned" or sets:
+        return False
+    try:
+        data.decode("utf-8")
+    except UnicodeDecodeError:
+        return True
+    return False
+
+
 def render_output(output: PlannedOutput, data: bytes, plan: TransformPlan) -> bytes:
     """Produce the bytes for one output from its source bytes.
 
@@ -2927,6 +2961,8 @@ def render_output(output: PlannedOutput, data: bytes, plan: TransformPlan) -> by
     sets = rule_substitution_sets(plan.contract, output.rule)
     if output.rule is LICENSE_RULE:
         return render_license(data)
+    if authored_bytes_are_binary(output.rule, sets, data):
+        return data
     if output.byte_exact:
         # Unreachable with a non-empty `sets`: a `copy` rule declaring one is a
         # contract defect and already halted above.

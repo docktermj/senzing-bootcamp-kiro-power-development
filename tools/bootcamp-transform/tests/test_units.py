@@ -15,6 +15,10 @@ file by appending to their own section rather than editing another's:
 4. Optional-runtime absence (R16 AC7) .......................... task 11.9
 5. Create/update orchestration edge cases (R4 AC5, AC6,
    R14 AC4, AC5) .............................................. task 12.5
+6. The changelog is unrecorded, and only the changelog (R5 AC8,
+   R16 AC9) ................................................... blocker 1
+7. Naming a release instead of taking the maximum (R1 AC1, AC3,
+   AC5) ....................................................... --tag
 """
 
 from __future__ import annotations
@@ -2128,3 +2132,482 @@ def test_a_build_that_cannot_create_its_staging_directory_is_a_write_failure(
         assert not staging.exists()
         assert _read_tree(target) == before
         assert sorted(entry.name for entry in parent.iterdir()) == [target.name]
+
+
+# ===========================================================================
+# 6. The changelog is unrecorded, and only the changelog — R5 AC8, R16 AC9
+# ===========================================================================
+
+import json
+
+from reconcile import CHANGELOG_FILENAME, apply_to_staging, reconcile_directories
+from transform import MANIFEST_VERSION, OWNER_TEMPLATE, sha256_hex
+from validate import (
+    DRIFT_ABSENT,
+    DRIFT_CONTENT,
+    DRIFT_UNRECORDED,
+    E_HASH_MISMATCH,
+    MANIFEST_UNRECORDED,
+    compare_manifest,
+)
+
+#
+# Two requirements meet on one file and used to contradict each other. R5 AC8 has
+# a successful update append one changelog entry naming its source
+# Template_Release; `reconcile.record_update_in_staging` writes that entry into
+# `<staging>/CHANGELOG.md` **after** `transform` has already emitted the
+# Build_Manifest, and the reconciler carries that manifest forward verbatim. R16
+# AC9 has the Schema_Validator report every file whose hash disagrees with the
+# manifest — including, before this allowance, every file the manifest does not
+# record at all. So the very file R5 AC8 requires made `manifest-hashes` fail, and
+# the update path could not produce a report with `tagAllowed` true.
+#
+# The allowance is narrow on purpose, and both halves of "narrow" are tested here:
+# the changelog is tolerated, and anything else unrecorded is still reported. A
+# blanket "ignore unrecorded files" would have silently readmitted the drift the
+# check exists to catch.
+#
+# These are unit tests rather than property cases because the subject is one named
+# file and one boolean about it; `Property 24` already drives the hash comparison
+# over generated trees.
+
+#: A minimal Build_Manifest: one recorded file, so `compare_manifest` has both a
+#: recorded side and a tree side to disagree about.
+_RECORDED_PATH = "skills/bootcamp-onboarding/SKILL.md"
+_RECORDED_BYTES = b"---\nname: bootcamp-onboarding\n---\n\n# Onboarding\n"
+
+
+def _manifest_document(*records: Mapping[str, Any]) -> dict[str, Any]:
+    """A Build_Manifest document in the shape `transform.BuildManifest` writes."""
+    return {
+        "manifestVersion": MANIFEST_VERSION,
+        "templateRelease": BUILD_TAG,
+        "contractVersion": 1,
+        "files": list(records),
+    }
+
+
+def _write(path: Path, data: bytes) -> None:
+    """Write `data` at `path`, creating the directories above it."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+
+
+def _write_json(path: Path, document: Mapping[str, Any]) -> None:
+    """Write `document` as UTF-8 JSON with LF endings, as the engine does."""
+    _write(path, (json.dumps(document, indent=2) + "\n").encode("utf-8"))
+
+
+def _recorded_manifest() -> dict[str, Any]:
+    """A manifest recording exactly `_RECORDED_PATH`."""
+    return _manifest_document(
+        {
+            "path": _RECORDED_PATH,
+            "ruleId": "skill-onboarding",
+            "owner": OWNER_TEMPLATE,
+            "sourcePath": f"plugins/senzing-bootcamp/{_RECORDED_PATH}",
+            "sha256": sha256_hex(_RECORDED_BYTES),
+        }
+    )
+
+
+def test_the_changelog_and_the_manifest_are_the_two_files_a_manifest_never_records():
+    """The allowance is exactly two names, and both are named by their writers.
+
+    Spelled through the constants the writing modules export rather than as
+    literals, so renaming either file cannot leave this allowance pointing at a
+    path nothing produces.
+    """
+    assert MANIFEST_UNRECORDED == (MANIFEST_FILENAME, CHANGELOG_FILENAME)
+
+
+def test_an_accumulated_changelog_is_not_reported_as_manifest_drift():
+    """A Power carrying the entry R5 AC8 requires still passes `manifest-hashes`.
+
+    The regression this file exists for: with the changelog reported as unrecorded
+    drift, every update produced `E_HASH_MISMATCH` on `CHANGELOG.md`, the report
+    read `failed`, and the update skill's own instructions were then to discard the
+    staging tree — so no update could ever be published.
+
+    Two entries, not one, because the accumulation is the point: the file's content
+    is a function of the Power's history rather than of the release being built, and
+    that is *why* no build can record a hash for it.
+    """
+    changelog = (
+        b"## 0.5.3\n\nUpdated from Template_Release `0.5.1` to `0.5.3`.\n"
+        b"\n## 0.5.4\n\nUpdated from Template_Release `0.5.3` to `0.5.4`.\n"
+    )
+    comparison = compare_manifest(
+        _recorded_manifest(),
+        {
+            _RECORDED_PATH: _RECORDED_BYTES,
+            CHANGELOG_FILENAME: changelog,
+        },
+    )
+    assert comparison.findings == (), (
+        "a Power carrying its accumulated changelog reports manifest drift: "
+        + "; ".join(finding.message for finding in comparison.findings)
+    )
+    assert comparison.matched == (_RECORDED_PATH,)
+    # Tolerated, not compared: there is no recorded hash to compare it against.
+    assert CHANGELOG_FILENAME not in comparison.compared
+
+
+def test_any_other_unrecorded_file_is_still_reported_as_drift():
+    """The allowance did not become "ignore unrecorded files" *(R16 AC9)*.
+
+    A stray file in the tree is the case the unrecorded check was written for — a
+    ported script run in place leaving `__pycache__`, a hand-added document, a
+    half-finished edit — and it stays a fail. The changelog beside it is tolerated
+    in the same run, so the two rules are shown to be independent rather than one
+    loosened rule.
+    """
+    stray = "skills/bootcamp-onboarding/scripts/notes.txt"
+    comparison = compare_manifest(
+        _recorded_manifest(),
+        {
+            _RECORDED_PATH: _RECORDED_BYTES,
+            CHANGELOG_FILENAME: b"## 0.5.3\n",
+            stray: b"scratch\n",
+        },
+    )
+    assert [finding.target for finding in comparison.findings] == [stray]
+    finding = comparison.findings[0]
+    assert finding.code == E_HASH_MISMATCH
+    assert finding.details["kind"] == DRIFT_UNRECORDED
+    assert finding.details["actualSha256"] == sha256_hex(b"scratch\n")
+
+
+def test_the_manifest_still_reports_a_recorded_file_that_changed_or_vanished():
+    """Neither allowance weakened the comparison it was carved out of *(R16 AC9)*.
+
+    The two failure modes the check owes a recorded file — different bytes, and
+    absent altogether — are asserted in the presence of a changelog, so the
+    allowance is shown not to short-circuit the loop it sits beside.
+    """
+    edited = compare_manifest(
+        _recorded_manifest(),
+        {_RECORDED_PATH: b"hand-edited\n", CHANGELOG_FILENAME: b"## 0.5.3\n"},
+    )
+    assert [finding.target for finding in edited.findings] == [_RECORDED_PATH]
+    assert edited.findings[0].code == E_HASH_MISMATCH
+    assert edited.findings[0].details["kind"] == DRIFT_CONTENT
+
+    vanished = compare_manifest(
+        _recorded_manifest(), {CHANGELOG_FILENAME: b"## 0.5.3\n"}
+    )
+    assert [finding.target for finding in vanished.findings] == [_RECORDED_PATH]
+    assert vanished.findings[0].details["kind"] == DRIFT_ABSENT
+
+
+def test_the_reconciler_preserves_an_unrecorded_changelog_across_an_update(
+    tmp_path: Path,
+) -> None:
+    """The other half of the fix: leaving it unrecorded is what keeps the history.
+
+    This is the classification the allowance depends on, asserted directly rather
+    than reasoned about. With no manifest entry, the Power's changelog has no
+    baseline, upstream produces none, and the reconciler's
+    `local-only-no-template-source` row preserves it — so entry one survives to sit
+    above entry two.
+
+    Had the manifest recorded it, the same file would have matched `previous ==
+    on-disk` with `staging` absent, which is the `removed` row: `apply` would delete
+    the accumulated changelog and the next `--changelog` would append entry two to
+    an empty file. That is the failure this test would catch.
+    """
+    power = tmp_path / "senzing-bootcamp"
+    staging = tmp_path / ".senzing-bootcamp.staging"
+    for directory in (power, staging):
+        directory.mkdir()
+
+    existing = b"## 0.5.3\n\nUpdated from Template_Release `0.5.1` to `0.5.3`.\n"
+    _write(power / CHANGELOG_FILENAME, existing)
+    _write(power / _RECORDED_PATH, _RECORDED_BYTES)
+    _write(staging / _RECORDED_PATH, _RECORDED_BYTES)
+    _write_json(power / MANIFEST_FILENAME, _recorded_manifest())
+    _write_json(staging / MANIFEST_FILENAME, _recorded_manifest())
+
+    report = reconcile_directories(power, staging, to_release="0.5.4")
+    preserved = {item.path: item for item in report.preserved_adaptations}
+    assert CHANGELOG_FILENAME in preserved, (
+        "the changelog was not preserved; it landed in "
+        f"{ {bucket: paths for bucket, paths in report.buckets().items() if CHANGELOG_FILENAME in paths} }"
+    )
+    assert preserved[CHANGELOG_FILENAME].reason == "local-only-no-template-source"
+
+    apply_to_staging(report, power, staging)
+    assert (staging / CHANGELOG_FILENAME).read_bytes() == existing, (
+        "the Power's changelog did not survive into the staging tree, so the "
+        "atomic swap would publish a Power that lost its history"
+    )
+
+
+# ===========================================================================
+# 7. Naming a release instead of taking the maximum — R1 AC1, AC3, AC5
+# ===========================================================================
+
+from resolve_release import (
+    E_TAG_NOT_FOUND,
+    find_release,
+    ineligibility_reason,
+    is_eligible,
+)
+
+# `--tag` exists because the semver maximum is not always the release a
+# Maintainer needs. Two situations make that concrete, and both had no answer
+# before it:
+#
+#   * **Stepping.** Between two update runs upstream may publish more than one
+#     release. Taking the maximum jumps over the ones in between, so those
+#     Template_Releases can never have a matching Bootcamp_Power — which is the
+#     version-pairing the whole repository exists to maintain.
+#   * **Rebuilding.** Reproducing a past Power means building the release it came
+#     from, which is by definition not the maximum any more.
+#
+# What must NOT change is everything else. `--tag` replaces the *selection* step
+# and nothing else: the eligibility filter still applies, so naming a draft or a
+# prerelease is refused rather than obeyed, and the fetch is still the tag ref, so
+# a named build of a release is the same build that release would have produced
+# when it was the maximum. These tests pin both halves — what it changes, and what
+# it leaves alone.
+
+#: A release list with a maximum, an older selectable release, and one record for
+#: each way a release can be disqualified. The reasons are tested by name, so each
+#: disqualifying flag needs a record that trips only that one.
+NAMED_RELEASES: tuple[Mapping[str, Any], ...] = (
+    {
+        "tagName": "0.5.3",
+        "isDraft": False,
+        "isPrerelease": False,
+        "publishedAt": "2025-03-01T00:00:00Z",
+    },
+    {
+        "tagName": "0.5.1",
+        "isDraft": False,
+        "isPrerelease": False,
+        "publishedAt": "2025-01-01T00:00:00Z",
+    },
+    {
+        "tagName": "0.6.0",
+        "isDraft": True,
+        "isPrerelease": False,
+        "publishedAt": "2025-04-01T00:00:00Z",
+    },
+    {
+        "tagName": "0.5.4",
+        "isDraft": False,
+        "isPrerelease": True,
+        "publishedAt": "2025-02-01T00:00:00Z",
+    },
+    {
+        "tagName": "0.5.5",
+        "isDraft": False,
+        "isPrerelease": False,
+        "publishedAt": None,
+    },
+    {
+        "tagName": "v0.5.6",
+        "isDraft": False,
+        "isPrerelease": False,
+        "publishedAt": "2025-02-15T00:00:00Z",
+    },
+)
+
+#: The subset of `NAMED_RELEASES` a Maintainer may name, in list order.
+SELECTABLE_TAGS = ("0.5.3", "0.5.1")
+
+
+def _named_resolve(
+    out_dir: Path,
+    tag: str,
+    *,
+    records: Sequence[Mapping[str, Any]] = NAMED_RELEASES,
+) -> tuple[dict[str, Any] | ResolutionError, CountingFetcher]:
+    """Run `resolve(tag=...)`, returning either the record or the raised error."""
+    clock = FakeClock()
+    sleeper = FakeSleeper(clock)
+    lister = SequenceLister(clock, hangs=0, records=records)
+    fetcher = CountingFetcher(out_dir / f"bootcamp-src-{tag}")
+    try:
+        payload = resolve(
+            out_dir=out_dir,
+            repository="Senzing/senzing-bootcamp-claude-plugin",
+            tag=tag,
+            lister=lister,
+            fetcher=fetcher,
+            clock=clock,
+            sleeper=sleeper,
+        )
+    except ResolutionError as error:
+        return error, fetcher
+    return payload, fetcher
+
+
+def test_a_named_release_is_resolved_instead_of_the_maximum(tmp_path: Path) -> None:
+    """`--tag` resolves the release asked for, not the newest one *(R1 AC1, AC5)*.
+
+    `0.5.3` is the maximum in the list and `0.5.1` is named, so a resolver that
+    quietly kept selecting the maximum would pass every other assertion here.
+    """
+    payload, fetcher = _named_resolve(tmp_path, "0.5.1")
+
+    assert isinstance(payload, dict), f"resolve raised instead of resolving: {payload}"
+    assert payload["tag"] == "0.5.1"
+    assert payload["semver"] == [0, 5, 1]
+    assert "error" not in payload
+    # R1 AC3 is unchanged by naming: the tag ref, never a branch.
+    assert payload["sourceRef"] == "refs/tags/0.5.1"
+    assert fetcher.calls == 1
+
+
+def test_naming_a_release_never_reports_already_current(tmp_path: Path) -> None:
+    """Rebuilding what the Power already has is a decision, not a no-op *(R5 AC2)*.
+
+    `E_ALREADY_CURRENT` answers "is there anything newer?", and naming a release
+    does not ask it. Were the two paths to share that check, the older release a
+    Maintainer named to reproduce a past Power would be refused as stale — the
+    exact case `--tag` was added for.
+    """
+    payload, fetcher = _named_resolve(tmp_path, "0.5.1")
+
+    assert isinstance(payload, dict)
+    assert payload.get("error") is None
+    assert fetcher.calls == 1, (
+        "naming an older release fetched nothing, so it was treated as "
+        "already-current rather than as a rebuild"
+    )
+
+
+def test_naming_an_absent_release_reports_tag_not_found(tmp_path: Path) -> None:
+    """A tag upstream does not carry halts the build and lists what it does.
+
+    The list is in the message because the realistic cause is a typo or a
+    misremembered version, and a bare refusal leaves a Maintainer querying GitHub
+    by hand to find that out.
+    """
+    error, fetcher = _named_resolve(tmp_path, "9.9.9")
+
+    assert isinstance(error, ResolutionError), "an absent tag resolved successfully"
+    assert error.code == E_TAG_NOT_FOUND
+    assert "9.9.9" in error.message
+    for tag in SELECTABLE_TAGS:
+        assert tag in error.message, f"the refusal does not offer {tag}"
+    # R1 AC4's rule, applied to this code as well: no artifact on a failure.
+    assert fetcher.calls == 0
+    assert error.payload()["error"] == E_TAG_NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    ("tag", "reason"),
+    [
+        ("0.6.0", "is a draft"),
+        ("0.5.4", "is a prerelease"),
+        ("0.5.5", "is not published"),
+    ],
+)
+def test_naming_an_ineligible_release_is_refused_with_its_reason(
+    tmp_path: Path, tag: str, reason: str
+) -> None:
+    """Naming a release does not override the eligibility filter *(R1 AC1, AC2)*.
+
+    R1 AC1 restricts what may be *sourced*, not merely what is *picked* when
+    several are available, so an explicit `--tag` cannot opt into a draft. The
+    reason travels in the message because "not found" would be misleading for a
+    tag the Maintainer can plainly see on the releases page.
+    """
+    error, fetcher = _named_resolve(tmp_path, tag)
+
+    assert isinstance(error, ResolutionError), f"{tag} was built despite being {reason}"
+    assert error.code == E_TAG_NOT_FOUND
+    assert reason in error.message, (
+        f"the refusal of {tag} does not say it {reason}: {error.message}"
+    )
+    assert tag in error.message
+    assert fetcher.calls == 0
+
+
+def test_a_non_semver_tag_is_rejected_before_any_query(tmp_path: Path) -> None:
+    """A `v` prefix is a `ValueError`, not a resolution outcome *(R2 AC1)*.
+
+    The resolved tag is stamped into `plugin.json` character-for-character, so
+    `v0.5.6` would produce a version string the Agent Plugins schema rejects. That
+    is an input fault rather than a fact about upstream, and it is caught before a
+    release is listed — which is also why `v0.5.6` sits in `NAMED_RELEASES` and is
+    unreachable through `--tag` from either direction.
+    """
+    with pytest.raises(ValueError, match="bare semver"):
+        resolve(
+            out_dir=tmp_path,
+            repository="Senzing/senzing-bootcamp-claude-plugin",
+            tag="v0.5.6",
+            lister=lambda timeout: list(NAMED_RELEASES),
+            fetcher=CountingFetcher(),
+        )
+
+
+def test_naming_a_release_and_naming_a_floor_are_mutually_exclusive(
+    tmp_path: Path,
+) -> None:
+    """Both together is refused rather than given a precedence.
+
+    A precedence would make one of the two arguments silently ineffective, and the
+    two ask different questions: a floor asks whether anything newer exists, a tag
+    has already decided. The CLI enforces the same thing through an argparse
+    mutually exclusive group, so this can only be reached programmatically.
+    """
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        resolve(
+            out_dir=tmp_path,
+            repository="Senzing/senzing-bootcamp-claude-plugin",
+            min_version="0.5.1",
+            tag="0.5.3",
+            lister=lambda timeout: list(NAMED_RELEASES),
+            fetcher=CountingFetcher(),
+        )
+
+
+def test_the_eligibility_rules_have_one_home():
+    """`is_eligible` is `ineligibility_reason`'s boolean, record for record.
+
+    The filter drops a record silently and `--tag` has to explain itself, so both
+    read the same rules. Two copies would eventually refuse for one reason and
+    report another — the failure mode this asserts away.
+    """
+    for record in NAMED_RELEASES:
+        reason = ineligibility_reason(record)
+        assert is_eligible(record) is (reason is None), (
+            f"{record['tagName']}: is_eligible and ineligibility_reason disagree "
+            f"({is_eligible(record)} vs {reason!r})"
+        )
+        if reason is not None:
+            assert reason.strip() == reason and reason, "a reason must be readable"
+
+    assert [
+        record["tagName"] for record in NAMED_RELEASES if is_eligible(record)
+    ] == list(SELECTABLE_TAGS)
+
+
+def test_a_named_tag_is_matched_exactly_not_by_version_equality():
+    """`find_release` matches the tag string, not the version it denotes.
+
+    `0.05.1` and `0.5.1` parse to the same version and are different refs, and only
+    the one upstream actually published can be fetched. Matching by version would
+    resolve a tag that does not exist and fail later, at the clone.
+    """
+    records = [
+        {
+            "tagName": "0.05.1",
+            "isDraft": False,
+            "isPrerelease": False,
+            "publishedAt": "2025-01-01T00:00:00Z",
+        }
+    ]
+    assert find_release(records, "0.05.1") is records[0]
+    assert find_release(records, "0.5.1") is None
+    assert find_release([], "0.5.1") is None
+
+    # An ineligible record is returned rather than filtered out: that is what lets
+    # the refusal say "is a draft" instead of "no such release".
+    draft = find_release(NAMED_RELEASES, "0.6.0")
+    assert draft is not None and ineligibility_reason(draft) == "is a draft"

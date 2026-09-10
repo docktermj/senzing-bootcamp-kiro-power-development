@@ -262,8 +262,8 @@
       "id": "residual-claude-refs",
       "result": "pass",
       "documents": 97,
-      "terms": 27,
-      "contractTerms": 22,
+      "terms": 28,
+      "contractTerms": 23,
       "invariantCitations": 1116,
       "rootTokenOccurrences": 0,
       "byKind": {

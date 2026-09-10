@@ -220,8 +220,22 @@ progression:
 # `write-gate.py` must keep its blocking exit 2.
 substitutionSets:
   # R10 AC2: zero occurrences of the template root path token may remain.
+  #
+  # TWO SPELLINGS, AND THE SECOND IS NOT REDUNDANT. The expanded form is what a
+  # command line writes; the BARE form is what prose writes when it names the
+  # variable rather than expanding it — release 0.5.1 has five of those, in
+  # `onboarding-flow.md` ("With `CLAUDE_PLUGIN_ROOT` empty, a search made the banner
+  # report v0.5.0") and in four `# or, if CLAUDE_PLUGIN_ROOT is unset:` comments.
+  # Rewriting only the expanded form leaves a Bootcamper reading instructions about
+  # an environment variable that does not exist under Kiro, beside a path that was
+  # correctly repointed — the half-translated failure mode R10 AC2 exists to prevent.
+  #
+  # Expanded first, so the more specific match wins; the bare entry then claims
+  # whatever the first left behind. Single pass per set is what makes that safe:
+  # the first entry's output contains no `CLAUDE_PLUGIN_ROOT` for the second to see.
   plugin-root:
     - { find: "${CLAUDE_PLUGIN_ROOT}", replace: "${PLUGIN_ROOT}", literal: true }
+    - { find: "CLAUDE_PLUGIN_ROOT", replace: "PLUGIN_ROOT", literal: true }
 
   # The manifest moved from `<pluginRoot>/.claude-plugin/plugin.json` to the Power
   # root (R10 AC2). Two shapes of reference need repointing, and they are NOT the
@@ -281,9 +295,19 @@ substitutionSets:
   #    ported script, and the Schema_Validator's residual-reference check names it.
   #    A laxer pattern would instead re-emit this indentation into a body that has
   #    moved on. A wrong path that reports itself beats a wrong path that does not.
+  #
+  # 3. THE MCP DOCUMENT MOVED TOO, and by the same rule. The template's server
+  #    declaration is `.mcp.json` at the plugin root; Agent Plugins names that
+  #    document `mcp.json`, which is the name the `mcp` rule generates and the name
+  #    the Power actually carries. Release 0.5.1's `onboarding-flow.md` spells the
+  #    template's name in a troubleshooting step ("it ships with this plugin's
+  #    .mcp.json, pointing at https://mcp.senzing.com/mcp"), so a Bootcamper
+  #    following it looks for a file that is not there. Listed last because it is
+  #    the same kind of repointing and shares nothing with the entries above.
   manifest-path:
     - { find: "../.claude-plugin/plugin.json", replace: "../plugin.json", literal: true }
     - { find: ".claude-plugin/plugin.json", replace: "plugin.json", literal: true }
+    - { find: ".mcp.json", replace: "mcp.json", literal: true }
     - pattern: '^        "\.claude-plugin",$'
       replace: "        os.pardir, os.pardir,  # skills/<skill>/scripts/ -> Power root"
       regex: true
@@ -416,12 +440,953 @@ substitutionSets:
   scripts-dir-strategy:
     - { find: "<SCRIPTS_DIR_STRATEGY>", replace: "in-power", literal: true }
 
-  # All ported scripts live under the single owning skill, so a non-owning skill
-  # reaches them by relative path. Applied only to non-owning skills; the owning skill
-  # `bootcamp-onboarding` does not declare this set, because its own `scripts/`
-  # references are already correct.
-  script-paths:
-    - { find: "scripts/", replace: "../bootcamp-onboarding/scripts/", literal: true }
+  # ---------------------------------------------------------------------------
+  # Where the ported scripts ended up, and the three ways content reaches them
+  # ---------------------------------------------------------------------------
+  # `scripts-owned` lands every ported script under ONE owning skill, so the move is
+  # not a rename but a change of DEPTH: what was `<pluginRoot>/scripts/` is now
+  # `<powerRoot>/skills/bootcamp-onboarding/scripts/`, two levels deeper. Three
+  # spellings reach it, and each needs a different correction:
+  #
+  #   `${PLUGIN_ROOT}/scripts/…`      root-anchored. Gains the two new levels.
+  #   `../../scripts/…`               skill-relative, and its correct answer depends
+  #                                   on WHICH skill is doing the reaching.
+  #   `src/scripts/…`                 NOT a reference to a ported script at all — it
+  #                                   is the BOOTCAMPER'S own project layout, where
+  #                                   INV-050 puts their utilities and where Module 2
+  #                                   has them create `senzing-env.sh`. It must not
+  #                                   be touched.
+  #
+  # ⛔ WHICH IS WHY NO ENTRY BELOW NAMES A BARE `scripts/`. A bare-`scripts/` entry
+  # reads as the general case and is in fact the one pattern that cannot distinguish
+  # any of the three. It rewrites `${PLUGIN_ROOT}/scripts/` to
+  # `${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/`, which escapes the Power
+  # entirely; it rewrites `../../scripts/` to `../../../bootcamp-onboarding/scripts/`,
+  # one level too far up; and it rewrites the Bootcamper's own `src/scripts/` to
+  # `src/../bootcamp-onboarding/scripts/`, corrupting a path that was never about this
+  # Power. Every entry here is therefore anchored on the segment that PRECEDES
+  # `scripts/`, because that segment is the only thing that says which of the three a
+  # given occurrence is.
+
+  # Root-anchored references, from wherever they appear: ported skills, ported docs,
+  # and the ported scripts' own docstrings, which is why every rule that can carry one
+  # declares this set. Declared AFTER `plugin-root`, so the token is already
+  # `${PLUGIN_ROOT}` by the time this runs.
+  # The bootcamper's feedback file is named per ARTIFACT, not per vocabulary (R12 AC2).
+  #
+  # `SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` is **reserved for the Senzing Bootcamp Claude
+  # plugin**; the Kiro Power's file is `SENZING_BOOTCAMP_POWER_FEEDBACK.md`. This is the one
+  # place where an identifier MUST be rewritten even though `power-vocabulary` protects
+  # every other `plugin`-bearing identifier from the general rename, and the reason is that
+  # the two names do not denote the same file. They denote the same *role* in two different
+  # artifacts, developed in two different repositories, and the filename is the only thing
+  # that says which artifact a given feedback file is about. Left unported, a Kiro
+  # Bootcamper's feedback lands under the Claude plugin's name, and the maintainer tooling
+  # that consumes it — `.kiro/skills/feedback-to-specs/`, which refuses the reserved name by
+  # design — never sees it.
+  #
+  # ONE ENTRY, on the STEM rather than on the full filename, so every spelling the corpus
+  # uses is covered by the same rule: the bare name, the
+  # `docs/feedback/…` path, and the prose form followed by `.md.` at the end of a sentence.
+  #
+  # It is declared BEFORE `power-vocabulary` on every rule that takes both, which is what
+  # lets `power-vocabulary` drop its identity entry for the old stem: once this has run
+  # there is no `SENZING_BOOTCAMP_PLUGIN_FEEDBACK` left for the general `plugin`/`Plugin`
+  # rename to reach, and the new stem carries neither word.
+  feedback-filename:
+    - find: "SENZING_BOOTCAMP_PLUGIN_FEEDBACK"
+      replace: "SENZING_BOOTCAMP_POWER_FEEDBACK"
+      literal: true
+
+  script-paths-root:
+    - find: "${PLUGIN_ROOT}/scripts/"
+      replace: "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/"
+      literal: true
+
+  # Skill-relative references FROM A NON-OWNING SKILL. `skills/<skill>/x.md` reaching
+  # `../../scripts/` meant "up to the plugin root, then down into scripts/"; the same
+  # document in the Power has to cross into the owning skill instead, which is one
+  # level up and back down. This also fixes the `<this-skill-dir>/../../scripts/…`
+  # spelling by suffix, because that string ends in the term below.
+  # The second entry is the bare, unprefixed spelling — `scripts/senzing_viz_server.py`
+  # written as though the reader were standing at the plugin root. It is the one
+  # spelling a bare-`scripts/` entry would appear to be for, and it still may not be
+  # written that way: it is anchored on the OPENING BACKTICK, because that is what
+  # distinguishes it from `src/scripts/`, which is the only other thing in these
+  # documents that ends in `scripts/` and is the Bootcamper's own project directory.
+  # Every occurrence in release 0.5.1 is inside a code span, so the anchor costs
+  # nothing and buys the distinction.
+  #
+  # Ordered after the parent-relative entry so a path that entry has already produced
+  # cannot be rewritten again: its output holds `/scripts/`, never a backtick
+  # immediately followed by `scripts/`.
+  script-paths-sibling:
+    # ⛔ AN IDENTITY ENTRY, AND IT IS DOING WORK. `phase1-query-visualize.md` is the
+    # one place that writes the bare spelling ON PURPOSE: it warns that a bare
+    # `scripts/…` resolves against the Bootcamper's own working directory, where no
+    # such top-level directory exists. There the bare form is the example being warned
+    # about, not a reference to resolve, and rewriting it leaves a warning that
+    # contradicts itself in the same sentence.
+    #
+    # A set is applied as ONE left-to-right pass in which the earliest match wins and
+    # ties go to the earlier-declared entry, so an entry that matches a span and
+    # returns it unchanged CONSUMES that span: the general entry below never sees it.
+    # That is what makes an exception expressible with literal terms alone, and it is
+    # why this is declared first — its match begins at `bare `, ahead of the backtick
+    # the general entry would match on.
+    #
+    # It stops short of the `(INV-050 …)` citation on the following line, which no
+    # substitution may target or write (R15 AC7).
+    - find: |-
+        bare `scripts/…` path, which resolves against the project working directory where no top-level
+        `scripts/` exists
+      replace: |-
+        bare `scripts/…` path, which resolves against the project working directory where no top-level
+        `scripts/` exists
+      literal: true
+    - { find: "../../scripts/", replace: "../bootcamp-onboarding/scripts/", literal: true }
+    - { find: "`scripts/", replace: "`../bootcamp-onboarding/scripts/", literal: true }
+
+  # Skill-relative references FROM THE OWNING SKILL, which the sibling form gets
+  # wrong: `bootcamp-onboarding`'s own documents sit beside the scripts now, so their
+  # answer is the bare relative directory, not a hop through their own directory name.
+  #
+  # The first entry is the exception the second would otherwise flatten. Release
+  # 0.5.1's `module-completion.md` lives in `bootcamp-onboarding` but states the
+  # fallback ON BEHALF OF A MODULE SKILL — it says so in the same sentence, "relative
+  # to a module skill" — so that one occurrence wants the sibling answer while every
+  # other occurrence in the skill wants the bare one. Specific first, then general:
+  # the set is one left-to-right pass in which the earliest match wins and ties go to
+  # the earlier-declared entry, so the first entry consumes that occurrence — its match
+  # opens on the backtick, one character ahead of where the second could match — and
+  # nothing rescans what a replacement emitted.
+  script-paths-owning:
+    - find: "`../../scripts/capture_screenshots.py` relative to a module skill"
+      replace: "`../bootcamp-onboarding/scripts/capture_screenshots.py` relative to a module skill"
+      literal: true
+    - { find: "../../scripts/", replace: "scripts/", literal: true }
+
+
+
+  # Surface names the `client-names` set cannot reach, and the two vocabulary
+  # retirements that go with them (R12 AC2, INV-158).
+  #
+  # ⛔ THIS SET EXISTS BECAUSE A LITERAL TERM CANNOT MATCH ACROSS A LINE BREAK, and
+  # the template hard-wraps its prose. `client-names` rewrites "Claude Code",
+  # "Claude Desktop" and "a Claude IDE extension" wherever they sit on one line; where
+  # the wrap falls mid-name — "**Claude\n  Code CLI**", "in Claude\n       Desktop",
+  # "their Claude\n   IDE extension" — the term is simply absent and the rewrite
+  # silently does not happen. What ships then is worse than an untranslated name: it is
+  # a HALF-translated one, because the second half of the pair usually does match. That
+  # is how release 0.5.1's surface-naming section came to say "a Kiro Power on every one
+  # of those interfaces — Kiro runs Kiro too", which names nothing and does not parse.
+  #
+  # Each entry therefore carries the wrap as the template wrote it, and re-wraps the
+  # replacement to fit — which is also why these are passage rewrites rather than name
+  # rewrites, and why they live here rather than in `client-names`.
+  #
+  # Two entries are not about a wrap at all. Kiro's surface table describes the desktop
+  # application and the browser in Kiro's own terms rather than by pointing at a Claude
+  # deployment ("Kiro at claude.ai/code" names an address a Bootcamper cannot use), and
+  # `/loop` is a Claude Code slash command whose Kiro counterpart is `/goal` — it
+  # appears in the closed list of session controls the bootcamp must never present as a
+  # question, so naming a command Kiro does not have would leave that list incomplete
+  # exactly where it is load-bearing.
+  #
+  # Pinned to release 0.5.1's wrapping, deliberately: should upstream re-flow a
+  # paragraph, the entry stops matching, the untranslated name survives, and the
+  # Schema_Validator's residual-reference scan names the file. A laxer entry would
+  # instead re-impose this wrapping on a paragraph that has moved on.
+  surface-naming:
+    - find: "Claude app\" is retired vocabulary"
+      replace: "Kiro app\" is retired vocabulary"
+      literal: true
+    - find: "`/loop`. Those belong to the bootcamper's Claude "
+      replace: "`/goal`. Those belong to the bootcamper's Kiro "
+      literal: true
+    - find: |2
+        **in their Claude
+      replace: |2
+        **in their Kiro
+      literal: true
+    - find: "application (it runs Kiro inside itself). "
+      replace: "application. "
+      literal: true
+    - find: "at claude.ai/code. "
+      replace: "in a browser. "
+      literal: true
+    - find: |2-
+        Claude
+          Code plugin", "Kiro hooks" — and wrong as a way of saying *the terminal*, because Claude
+          Desktop 
+      replace: |2-
+        Kiro
+          Power", "Kiro hooks" — and wrong as a way of saying *the terminal*, because the desktop
+          application 
+      literal: true
+    - find: |2-
+        `/loop` or
+          any other setting belonging to their Claude 
+      replace: |2-
+        `/goal` or
+          any other setting belonging to their Kiro 
+      literal: true
+    - find: |2
+        bootcamper's Claude
+      replace: |2
+        bootcamper's Kiro
+      literal: true
+    - find: |2-
+        `/compact`,
+          `/loop` 
+      replace: |2-
+        `/compact`,
+          `/goal` 
+      literal: true
+    - find: |2
+        **Claude
+          Code CLI** present the exact `/model` and `/effort` commands; in **Kiro, the Claude web
+          app, or the Kiro IDE** — or when the interface is unknown — phrase it by intent, naming
+      replace: |2
+        **Kiro
+          CLI** present the exact `/model` and `/effort` commands; in **Kiro, Kiro on the
+          web, or the Kiro IDE** — or when the interface is unknown — phrase it by intent, naming
+      literal: true
+    - find: |2-
+        in Claude
+               Desktop 
+      replace: |2-
+        in
+               Kiro 
+      literal: true
+    - find: |2-
+        a Claude
+          IDE extension, 
+      replace: |2-
+        the Kiro
+          IDE, 
+      literal: true
+    - find: "Claude-plugin port of the Kiro `module-completion*` / `module-completion-artifacts` steering. "
+      replace: "module-completion routine every module closes with. "
+      literal: true
+    - find: "the Claude plugin "
+      replace: "the Kiro Power "
+      literal: true
+    - find: "Claude plugin\", "
+      replace: "Kiro Power\", "
+      literal: true
+    - find: "Bootcamp Claude plugin "
+      replace: "Bootcamp Kiro Power "
+      literal: true
+    - find: |2-
+        their Claude
+           IDE extension), 
+      replace: |2-
+        the Kiro
+           IDE), 
+      literal: true
+
+
+  # Statements about mechanisms the host provides — hook triggers, hook delivery, and
+  # process control — where Kiro and the template differ in FACT rather than in
+  # vocabulary (R7 AC5, AC12, R12 AC2).
+  #
+  # ⛔ THESE ARE THE ENTRIES WHERE A NAME-LEVEL REWRITE WOULD PRODUCE A CONFIDENT
+  # FALSEHOOD, which is why every one of them replaces a whole passage. Three
+  # differences drive the set:
+  #
+  #   * Kiro has no session-end trigger and no pre-compaction trigger. The template's
+  #     prose tells the Bootcamper that a `SessionEnd` hook stops their Docker or
+  #     PostgreSQL containers on exit and that `PreCompact` folds their in-progress
+  #     recap. Under Kiro nothing does either. Renaming the trigger would keep the
+  #     promise and only change who appears to make it; each passage instead states the
+  #     behavior as the guide's own responsibility at close-out, which is what the
+  #     Tier 1 instructions already require, and names the instruction that carries it.
+  #     The two shipped scripts that can never fire (`precompact-recap.py`,
+  #     `session-end.py`) say so in their own first paragraph, so a Maintainer reading
+  #     the file learns it there rather than inferring it from the hook assets.
+  #   * Kiro does not load hooks bundled inside a Power. The template can say hooks
+  #     ship active with no install step; here installation is opt-in, disclosed and
+  #     consented through `bootcamp-enforcement-setup`, and the bootcamp is complete
+  #     with none installed (R7 AC5). A passage claiming otherwise would have a
+  #     Bootcamper relying on a guard that is not running.
+  #   * `hooks/README.md` is an upstream file the build deliberately does not port (see
+  #     the `ignore` list), so prose citing it for a harness setting is a dangling
+  #     reference; the claim it supported is restated without the citation.
+  #
+  # Nothing here reaches a Hook_Command_String or an interpreter name.
+  kiro-mechanisms:
+    - find: |2
+        harness setting suppresses that today (see
+          `../../hooks/README.md`), so the only lever is to write **rarely** and **small**. Therefore:
+      replace: |2
+        Kiro setting suppresses that today, so the only lever is to
+          write **rarely** and **small**. Therefore:
+      literal: true
+    - find: |2-
+        the plugin's `PreCompact`, `SessionEnd`,
+          and `SessionStart` hooks fold it into `docs/bootcamp_recap.md` (append-only, idempotent). 
+      replace: |2-
+        it is folded into
+          `docs/bootcamp_recap.md` (append-only, idempotent). **Nothing folds it for you — that is yours
+          to do** — at module completion, at graduation, at session close-out, and whenever you are given
+          any signal that the conversation is about to be compacted or trimmed. Kiro fires no trigger at
+          compaction and none at session end, so there is no hook to fall back on; the
+          `senzing-bootcamp-session-start` hook folds on a *new* session when the optional enforcement
+          hooks are installed, which backs the rule and never replaces it. See
+          `senzing-bootcamp-tier1-recap-folding.md` for the full rule. 
+      literal: true
+    - find: |2-
+        plugin ships
+          skills, hooks and commands, 
+      replace: |2-
+        Power ships
+          skills and hook definitions, 
+      literal: true
+    - find: |2
+        (The Kiro Power installed Agent Hooks here via `createHook`. In the Claude plugin, hooks ship
+        with the plugin in `hooks/hooks.json` and are already active - there is no hook-install step.)
+      replace: |2
+        (No hook-install step belongs here. The bootcamp's rules are always in force as instructions
+        (Tier 1); installing Kiro hook definitions into `.kiro/hooks/` is optional, separate, and consented
+        to through the `bootcamp-enforcement-setup` skill.)
+      literal: true
+    - find: |2-
+        the reminder cannot live only in the PreCompact hook. That hook cannot fire until
+        a compaction is already under way, which is after the window in which the checkpoint
+        had to 
+      replace: |2
+        a per-turn reminder, and why it matters more in Kiro than it did in the template.
+        The template also had a pre-compaction hook, but that hook could not fire until a
+        compaction was already under way — after the window in which the checkpoint had to
+      literal: true
+    - find: "So the reminder is emitted here, once per session, while it can still "
+      replace: |2-
+        Kiro has no pre-compaction trigger at all, so this per-turn tick is the
+        only mechanical guard there is: it is what bounds the loss to a single turn of
+        unfolded material. The reminder is emitted here, once per session, while it can 
+      literal: true
+    - find: |2-
+        mid-module; the PreCompact, SessionEnd and SessionStart hooks "
+                        "fold whatever is in it into docs/bootcamp_recap.md, and fold nothing "
+                        "while 
+      replace: |2-
+        mid-module. Kiro has no pre-compaction and no session-end "
+                        "trigger, so folding it into docs/bootcamp_recap.md is yours to do -- at "
+                        "module completion, at graduation, at session close-out, and whenever you "
+                        "are given any signal that the conversation is about to be compacted. "
+                        "Fold nothing while 
+      literal: true
+    - find: |2
+        lets the SessionEnd hook
+        stop those recorded containers when the session ends, and the SessionStart hook
+        surface them on resume so the guide can restart or regenerate them.
+      replace: |2
+        stops those recorded
+        containers and surfaces them on resume, so the guide can restart or regenerate them.
+
+        Kiro has no session-end trigger, so nothing stops a recorded container automatically:
+        stopping them at close-out is the guide's job, and `senzing-bootcamp-tier1-session-lifecycle.md`
+        is where that instruction lives. The `SessionStart` hook (`session-start.py`) does use
+        this module to surface recorded containers on resume.
+      literal: true
+    # SPLIT IN TWO AROUND THE INTERPRETER NAME, and not for readability. No
+    # substitution set may name an interpreter, on either side of an entry: an
+    # interpreter name must never appear in generated output, because the
+    # Hook_Installer resolves it to an absolute path at install time (R7 AC6,
+    # R16 AC3, AC4). The passage this rewrites carries ``python3 <hook>.py``
+    # through it unchanged, so the two entries stop either side of it.
+    - find: |2-
+        the SessionEnd and SessionStart hook
+        scripts, which run in exec form (
+      replace: |2-
+        ``session-start.py`` (the ``SessionStart``
+        hook) and by ``session-end.py`` (inert in Kiro, but runnable by hand at close-out).
+        Those run in exec form (
+      literal: true
+    - find: |2-
+        puts each hook
+        script's own directory (this ``scripts/`` directory) on ``sys.path``, so
+        ``import docker_lifecycle`` resolves 
+      replace: |2
+        puts each script's own directory
+        (this ``scripts/`` directory) on ``sys.path``, so ``import docker_lifecycle`` resolves
+      literal: true
+    - find: |2
+        """PreCompact hook: to preserve your in-progress recap before the conversation is compacted.
+      replace: |2
+        """Fold the in-progress recap before the conversation is compacted.
+
+        ⛔ INERT IN KIRO — NO HOOK INVOKES THIS SCRIPT. Kiro provides no pre-compaction
+        trigger, so no hook definition names it at any tier. The behavior is delivered as an
+        instruction instead: see `senzing-bootcamp-tier1-recap-folding.md`, which tells the
+        guide to fold at module completion, at graduation, at session close-out, and whenever
+        it is given any signal that the conversation is about to be compacted. The per-turn
+        `checkpoint-tick.py` (`UserPromptSubmit`) is what bounds the residual loss to one turn.
+
+        It is kept, unchanged and runnable, because the logic below is the reference for what
+        folding means, and because it can be run by hand. Running it is never required.
+      literal: true
+    - find: |2
+        hook:
+      replace: |2
+        script:
+      literal: true
+    - find: |2-
+        It is imported by the PreCompact, SessionEnd, SessionStart
+        and UserPromptSubmit hook scripts, which 
+      replace: |2-
+        In Kiro it is imported by the ``SessionStart`` and
+        ``UserPromptSubmit`` hook scripts (``session-start.py``, ``checkpoint-tick.py``), and by
+        the two scripts that are inert here because Kiro has no trigger for them
+        (``precompact-recap.py``, ``session-end.py``). Hooks 
+      literal: true
+    - find: |2-
+        mid-module: the",
+                    "     PreCompact, SessionEnd and SessionStart hooks fold it into",
+                    "     docs/bootcamp_recap.md. While it holds only this scaffold there is nothing",
+                    "     to fold, and each of those hooks 
+      replace: |2-
+        mid-module. Kiro",
+                    "     has no pre-compaction and no session-end trigger, so folding it into",
+                    "     docs/bootcamp_recap.md is the guide's job -- at module completion, at",
+                    "     graduation, and at session close-out. While it holds only this scaffold",
+                    "     there is nothing to fold, and the session-start hook 
+      literal: true
+    - find: |2
+        """SessionEnd hook: to preserve your in-progress recap when the session ends.
+      replace: |2
+        """Preserve the in-progress recap and stop bootcamp containers at session close-out.
+
+        ⛔ INERT IN KIRO — NO HOOK INVOKES THIS SCRIPT. Kiro provides no session-end trigger,
+        so no hook definition names it at any tier. Both behaviors are delivered as
+        instructions instead: see `senzing-bootcamp-tier1-session-lifecycle.md` (session
+        close-out) and `senzing-bootcamp-tier1-recap-folding.md` (folding). Nothing stops a
+        bootcamp container automatically in Kiro; the guide stops it — stop, never remove.
+
+        It is kept, unchanged and runnable, because it is the reference for what close-out
+        does, and because the guide MAY run it to perform both steps in one command at a
+        close-out point. Running it is never required.
+      literal: true
+    - find: |2
+        disable/quiet the nudge (see hooks/README.md).
+      replace: |2
+        quiet the nudge without removing the hook; removing it
+             outright is the `bootcamp-enforcement-setup` skill's `remove` path.
+      literal: true
+    - find: |2-
+        the hooks stop and report each container with
+          the CLI named there, so a wrong value means a container is reported under a tool that never
+          started it. An entry with no `runtime` is treated as `docker`. The `SessionEnd` hook stops
+          recorded containers on exit (`<runtime> stop`, not remove) and `SessionStart` surfaces them on
+          resume so they can be restarted or regenerated. (The list key stays `docker_containers` for
+          compatibility with in-flight bootcamps, whatever runtime its entries 
+      replace: |2-
+        each container is stopped and reported with the
+          CLI named there, so a wrong value means a container is reported under a tool that never
+          started it. An entry with no `runtime` is treated as `docker`.
+
+          ⛔ **Nothing stops these containers for you. Kiro has no session-end trigger, so stopping
+          them at session close-out is yours to do** (`<runtime> stop`, **never** remove).
+          Do it whenever the bootcamper says they are stopping, when a module closes, and before any
+          long pause. On a new session the `senzing-bootcamp-session-start` hook surfaces the recorded
+          containers so they can be restarted or regenerated, when the optional enforcement hooks are
+          installed; without them, read `docker_containers` yourself at resume. (The list key stays
+          `docker_containers` for compatibility with in-flight bootcamps, whatever runtime its entries
+          
+      literal: true
+    - find: |2
+        the SessionEnd hook
+           stops it on exit and SessionStart offers to restart it.
+      replace: |2
+        you can stop it at
+           session close-out and offer to restart it on resume.
+      literal: true
+    - find: |2
+        Kiro process control (`controlBashProcess`) maps here to running the web service as a background
+          process and stopping it later at this module's close.
+      replace: |2
+        Run the web service as a background process (Kiro's process control) and stop it again at this
+          module's close. Never leave it running past Phase 2.
+      literal: true
+    - find: |2-
+        In the Kiro plugin, bootcamp hooks ship with the plugin: there is no manual hook-install
+        step (this replaces the Kiro `install_hooks.py` / `.kiro/hooks/` workflow). The plugin's Stop
+        hook is a safety net for the closing 👉 question; you still own that question on every yielding
+        turn 
+      replace: |2-
+        Kiro does not load hooks bundled inside a Power, so the bootcamp's enforcement hooks are
+        **opt-in**: the `bootcamp-enforcement-setup` skill installs them into `.kiro/hooks/` after
+        disclosure and an explicit yes, and the bootcamp is complete and correct with none installed.
+        Do not assume any hook is active here. When the hooks *are* installed, the `Stop` hook is a
+        safety net for the closing 👉 question — you still own that question on every yielding turn,
+        installed or not 
+      literal: true
+
+
+  # Development-status notes carried over from the template's own port, and dropped
+  # (R12 AC2).
+  #
+  # ⛔ THESE READ AS A PROMISE IN THIS REPOSITORY, WHICH IS WHY THEY CANNOT SIMPLY BE
+  # RE-WORDED. Release 0.5.1's skills carry roughly forty asides of the shape "the Kiro
+  # `X.py` helper is a later porting phase; for now, do Y" — written when the template
+  # was itself being ported FROM a Kiro-steering original, so "Kiro" there names the
+  # thing being ported *from*. In the Bootcamp_Power "Kiro" names the host the
+  # Bootcamper is sitting in and this Power is the artifact, so the same sentence reads
+  # as a reference to a helper that is present, or arriving. Neither is true: no such
+  # helper is bundled and none is planned here.
+  #
+  # Every entry keeps the instruction that was already beside the aside — the "do Y"
+  # half is the part that works — and replaces only the status claim with a plain
+  # statement that nothing is bundled. Where the aside named the absent helper, the
+  # replacement still names it, so a reader who goes looking learns it is absent rather
+  # than finding nothing at all.
+  #
+  # Two entries are the same defect in a different register: a "Reconciliation notes
+  # (Kiro Power -> Claude plugin)" heading and a "Reconciliation note: the Kiro source
+  # referred to X as if they were callable tools" aside are both port bookkeeping. They
+  # become an operating note and a plain ⛔ warning respectively, because what they
+  # protect — do not treat those names as MCP tools — is real and outlives the port.
+  port-status:
+    - find: |2
+        (A full preflight script is a later porting phase; keep this check lightweight for now.)
+      replace: |2
+        (There is no preflight script; keep this check lightweight.)
+      literal: true
+    - find: |2
+           returns nothing, continue to step 2.
+        2. Present the matching pitfall/fix for this module (full `common-pitfalls` reference is a
+           later porting phase; for now, use `search_docs` to look up the symptom).
+      replace: |2
+           returns nothing, continue to step 2.
+        2. Present the matching pitfall/fix for this module. There is no bundled `common-pitfalls`
+           reference, so use `search_docs` to look up the symptom.
+      literal: true
+    - find: |2
+        (The full pattern gallery is a
+        later porting phase; that is why this step retrieves rather than reads from a shipped catalogue.)
+      replace: |2
+        No pattern gallery is bundled, which is why this
+        step retrieves from MCP rather than reading a shipped catalogue.
+      literal: true
+    - find: |2
+        *(The Kiro helper `business_case_offer.py` encodes these invariants; the script port is a later
+        phase: validate them directly for now.)*
+      replace: |2
+        *(No scenario-generation helper is bundled; validate these invariants directly.)*
+      literal: true
+    - find: |2
+        (Full `design-patterns` reference is a later
+          porting phase; use `search_docs` for specifics.)
+      replace: |2
+        There is no bundled `design-patterns`
+          reference; use `search_docs` for specifics.
+      literal: true
+    - find: |2-
+        (The Kiro `templates/stakeholder_summary.md` port is a
+        later phase; compose the summary directly for now.) 
+      replace: |2-
+        (No stakeholder-summary template is bundled; compose
+        the summary directly.) 
+      literal: true
+    - find: |2-
+        A detailed background document for this module (`MODULE_2_SDK_SETUP.md`)
+        > is a later porting phase. For now, teach the 
+      replace: |2-
+        There is no separate background document for this module. Teach the
+        > 
+      literal: true
+    - find: |2
+        it returns nothing, continue to step 2.
+        2. Present the matching pitfall/fix for this module (full `common-pitfalls` reference is a
+           later porting phase; for now, use `search_docs` to look up the symptom).
+      replace: |2
+        it returns nothing, continue to step 2.
+        2. Present the matching pitfall/fix for this module. There is no bundled `common-pitfalls`
+           reference, so use `search_docs` to look up the symptom.
+      literal: true
+    - find: |2
+        live in a TypeScript "Common Environment Issues" reference (`lang-typescript.md`) that is a
+        later porting phase; until then, source the fixes from the Senzing MCP server (see item 5) and
+      replace: |2-
+        are not bundled as a separate TypeScript reference; source them from the Senzing MCP server
+        (see item 5) and 
+      literal: true
+    - find: |2-
+        tools (and, once ported, the `lang-typescript.md`
+        reference). If an MCP tool is unavailable, the 
+      replace: |2
+        tools. If an MCP tool is unavailable, the
+      literal: true
+    - find: |2
+        (The full Kiro agent-instructions directory-creation script is a later porting phase; create
+        the layout directly per the ground-rules placement rules for now.)
+      replace: |2
+        (There is no directory-creation script; create the layout directly per the ground-rules
+        placement rules.)
+      literal: true
+    - find: |2
+        in ground-rules
+          (the Kiro `FILE_STORAGE_POLICY.md` reference is a later porting phase).
+      replace: |2
+        in
+          `../bootcamp-onboarding/ground-rules.md`, which is the only file-placement authority here.
+      literal: true
+    - find: |2-
+        A Kiro preflight script (`preflight.py`) is a later porting phase; for
+          now, verify prerequisites directly and use 
+      replace: |2-
+        There is no preflight script; verify prerequisites directly and use
+          
+      literal: true
+    - find: |2
+        above; a
+        > standalone `docs/modules/MODULE_3_SYSTEM_VERIFICATION.md` reference is a later porting phase and
+        > is not created yet.
+      replace: |2
+        above. There
+        > is no standalone module reference document, and none is created.
+      literal: true
+    - find: |2
+        Reconciliation notes (Kiro Power -> Claude plugin)
+      replace: |2
+        Operating notes (MCP and tooling)
+      literal: true
+    - find: |2-
+        Kiro helper scripts (`../bootcamp-onboarding/scripts/progress_utils.py`, `../bootcamp-onboarding/scripts/fetch_fallback_truthset.py`) are
+          later porting phases; where referenced, 
+      replace: |2-
+        This Power ships no `progress_utils.py` or `fetch_fallback_truthset.py` helper. Where a step
+          reads as though one exists, 
+      literal: true
+    - find: |2-
+        (The `config/fallback_sources.yaml` registry and its fetch
+          script are a later porting phase; for now, if the registry file is absent, treat the fallback as
+          unavailable and run the 
+      replace: |2-
+        (No registry file and no fetch script are bundled, so if
+          `config/fallback_sources.yaml` is absent, treat the fallback as unavailable and run the
+          
+      literal: true
+    - find: |2
+        runtime.
+          This supersedes the Kiro `generate_standalone_demo.py` / `write_html.py` / builder-module approach.
+      replace: |2
+        runtime.
+      literal: true
+    - find: |2
+        Detailed background for this module lives in the Kiro Power at
+        > `docs/modules/MODULE_4_DATA_COLLECTION.md` (the docs port is a later porting phase).
+      replace: |2
+        There is no separate background document for this module. Teach the
+        > steps directly from this skill.
+      literal: true
+    - find: |2
+        module (full `common-pitfalls` reference is a
+           later porting phase; for now, use `search_docs` to look up the symptom, then check any
+           cross-module troubleshooting once ported).
+      replace: |2
+        module. There is no bundled `common-pitfalls`
+           reference, so use `search_docs` to look up the symptom.
+      literal: true
+    - find: |2
+        _(The Kiro registry helpers are a later
+        > porting phase; write/update the YAML directly for now.)_
+      replace: |2
+        _(No registry helper is bundled; write and
+        > update the YAML directly.)_
+      literal: true
+    - find: |2
+        _(The Kiro `validate_data_files.py` validator is a later porting phase; perform the checks
+        > directly for now.)_
+      replace: |2
+        _(No file validator is bundled; perform the checks directly.)_
+      literal: true
+    - find: |2
+        _(The Kiro `cord_metadata.py` helper is a later porting phase;
+        > record the snapshot directly for now.)_
+      replace: |2
+        _(This Power ships no metadata-capture helper; write the
+        > snapshot directly.)_
+      literal: true
+    - find: |2
+        _(The Kiro
+        `templates/data_collection_checklist.md` port is a later porting phase; compose the checklist
+        directly for now.)_
+      replace: |2
+        _(No checklist template is bundled;
+        compose the checklist directly.)_
+      literal: true
+    - find: |2
+        privacy (the Kiro `security-privacy` steering reference is a
+          later porting phase; use `search_docs` for Senzing's guidance in the meantime).
+      replace: |2
+        privacy. No privacy reference is bundled; use `search_docs`
+          for Senzing's guidance.
+      literal: true
+    - find: |2-
+        database-migration guide (the Kiro `docs/guides/DATABASE_MIGRATION.md` guide is a later
+             porting phase). 
+      replace: |2-
+        migration guidance from `search_docs` and the graduation migration checklist. No migration
+             guide is bundled. 
+      literal: true
+    - find: |2
+        _(The Kiro `volume_utils` and
+        `load_time_warning` helpers, and the shared marker/identity logic, are a later porting phase;
+        apply the behavior directly for now.)_
+      replace: |2
+        _(No volume or load-time helper is bundled;
+        apply the behavior directly.)_
+      literal: true
+    - find: |2-
+        standalone `QUALITY_SCORING_METHODOLOGY` guide is a later porting phase; for now use
+          
+      replace: |2-
+        dimension definitions in Phase 1 are the authority; there is no standalone methodology guide.
+          Use 
+      literal: true
+    - find: |2
+        (The Kiro `check_cord_readiness.py` helper is a
+           later porting phase; perform the check directly against the sampled records for now.)
+      replace: |2
+        (No readiness helper is bundled; perform the
+           check directly against the sampled records.)
+      literal: true
+    - find: |2
+        (The full Visualization Protocol / `visualization-guide` is a later
+        porting phase; offer directly for now.)
+      replace: |2
+        (No visualization guide is bundled; offer directly.)
+      literal: true
+    - find: |2
+        The plugin's PreToolUse write-gate enforces the temp-path and secret rules; file-type placement
+        is your responsibility. (The Kiro `organize_mapping_files.py` and `generate_docs_index.py`
+        scripts are a later porting phase: place files directly per the contract above for now.)
+      replace: |2
+        When the optional enforcement hooks are installed, the `PreToolUse` write-gate enforces the
+        temp-path and secret rules mechanically; when they are not, those rules still bind you as
+        instructions. File-type placement is your responsibility either way. (No file-organizing script
+        is bundled: place files directly per the contract above.)
+      literal: true
+    - find: |2
+        Regenerating a `docs/README.md`
+        docs index is a later porting phase: skip it for now.
+      replace: |2
+        Do not regenerate a
+        `docs/README.md` index; nothing here maintains one.
+      literal: true
+    - find: |2
+        (The
+          Kiro `templates/transformation_lineage.md` template is a later porting phase; compose the
+          lineage document directly for now.)
+      replace: |2
+        (No
+          lineage template is bundled; compose the document directly.)
+      literal: true
+    - find: |2-
+        (The Kiro `compare_results.py` helper is a
+        later porting phase; compute the per-metric deltas directly for now.) 
+      replace: |2-
+        (No comparison helper is bundled; compute
+        the per-metric deltas directly.) 
+      literal: true
+    - find: |2-
+        (The Kiro
+        > `baseline_status.py` helper is a later porting phase; report coverage directly if you choose
+        > 
+      replace: |2-
+        (No baseline-status helper
+        > is bundled; report coverage directly if you choose 
+      literal: true
+    - find: |2
+        module (full `common-pitfalls` reference is a
+           later porting phase; for now, use `search_docs` to look up the symptom, e.g.
+           `search_docs(query="loading", category="anti_patterns", version="current")`).
+      replace: |2
+        module. There is no bundled `common-pitfalls`
+           reference, so use `search_docs` to look up the symptom, e.g.
+           `search_docs(query="loading", category="anti_patterns", version="current")`.
+      literal: true
+    - find: |2
+        (The Kiro CORD-freshness helper
+        `../bootcamp-onboarding/scripts/cord_metadata.py` is a later porting phase; give the reminder inline for now.)
+      replace: |2
+        (This Power ships no CORD-freshness
+        helper; compare against `config/cord_metadata.yaml` and give the reminder inline.)
+      literal: true
+    - find: |2
+        (The Kiro helpers `answer_binding.py` / `volume_utils.py` encode this parsing and persistence;
+        the script port is a later phase, apply the logic inline for now.)
+      replace: |2
+        (No answer-parsing or volume helper is bundled; apply the parsing and persistence logic inline.)
+      literal: true
+    - find: |2
+        (Full
+        `CODE_QUALITY_STANDARDS` reference is a later porting phase; apply clean-code conventions for
+        the language for now.)
+      replace: |2
+        (No coding-standards
+        reference is bundled; apply clean-code conventions for the language.)
+      literal: true
+    - find: |2
+        (The Kiro
+        helpers `volume_utils.py`, `preferences_utils.py`, `load_time_warning.py`, and the migration
+        guide are later porting phases; apply the logic inline and refer to the graduation migration checklist for PostgreSQL migration for
+        now.)
+      replace: |2
+        (No volume,
+        preferences, load-time, or migration helper is bundled; apply the logic inline and refer to the
+        graduation migration checklist for PostgreSQL migration.)
+      literal: true
+    - find: |2
+        (The Kiro backup/restore helper `../bootcamp-onboarding/scripts/restore_project.py` is a later porting phase; restore
+        from your own `database/G2C.db` backup for now.)
+      replace: |2
+        (This Power ships no backup/restore helper. Restore from the bootcamper's own
+        `database/G2C.db` backup.)
+      literal: true
+    - find: |2
+        (The Kiro
+        `templates/stakeholder_summary.md` port is a later phase; compose the summary directly for now.)
+      replace: |2
+        (No
+        stakeholder-summary template is bundled; compose the summary directly.)
+      literal: true
+    - find: |2
+        (The Kiro multi-source reference `data-processing-reference.md` and the user reference
+        `docs/modules/MODULE_6_DATA_PROCESSING.md` are later porting phases.)
+      replace: |2
+        (No separate multi-source reference or background document is bundled; this skill's phases are
+        the whole of it.)
+      literal: true
+    - find: "Reconciliation note: the Kiro source referred to "
+      replace: "⛔ **Do not treat these as MCP tools.** "
+      literal: true
+    - find: "as if they were callable tools. "
+      replace: "read like callable tools and are not. "
+      literal: true
+
+
+  # The artifact's own name, in prose (R12 AC2).
+  #
+  # The template calls itself a plugin throughout. Under Kiro it is a Power, and a
+  # Bootcamper reading "the plugin's write-gate" or "two plugin roots on one machine" is
+  # being told about something that, by that name, is not installed.
+  #
+  # THE SET IS THREE LAYERS, IN THIS ORDER, AND THE ORDER IS THE MECHANISM. A set is
+  # applied as ONE left-to-right pass in which the earliest match wins and ties go to
+  # the earlier-declared entry, and nothing rescans what a replacement emitted. So an
+  # entry that matches a span and returns it UNCHANGED consumes that span, and every
+  # later entry — including a general one — never sees it:
+  #
+  #   1. IDENTITY ENTRIES, one per span the rename must not claim. These are the
+  #      occurrences that are IDENTIFIERS OR DATA VALUES rather than prose, where
+  #      renaming breaks a contract with something that reads them:
+  #
+  #        `plugins`                      the plural is `agent-plugins.org` and the
+  #                                       template's own `plugins/senzing-bootcamp`
+  #                                       path; it is also a substring of the singular,
+  #                                       so without this it becomes "Powers".
+  #        `plugin.json`, `plugin_version`, `plugin.schema.json`
+  #                                       the Agent Plugins manifest name, the ported
+  #                                       function that resolves it, and its schema.
+  #        `Plugin version`, `plugin version`
+  #                                       a recap/keepsake FIELD LABEL and its prose
+  #                                       form. `generate_recap_pdf.py` matches the
+  #                                       label case-insensitively to render the
+  #                                       certificate and `module-completion.md` amends
+  #                                       it in place; rename it and the renderer stops
+  #                                       finding it.
+  #        `plugin manifest`              names the manifest, so it follows the filename.
+  #        `Senzing Bootcamp Plugin Feedback`, `SENZING_BOOTCAMP_PLUGIN_FEEDBACK`
+  #                                       the feedback document's header and committed
+  #                                       filename.
+  #        `Template_Plugin`              the design's term for the upstream artifact,
+  #                                       which IS a plugin.
+  #        `Plugin-owned`                 upstream writes the capitalized form once, in a
+  #                                       heading the Power keeps as-is.
+  #        `Plugin initialization error`  Senzing's own SENZ2027 error text, quoted from
+  #                                       `explain_error_code`. Rewriting a quoted engine
+  #                                       message makes it unfindable.
+  #        `plugin`, `**plugin**`, `plugin issue`, `[plugin | mcp-server`
+  #                                       the feedback report's triage VERDICT — one of
+  #                                       five values of its Routing field — in each
+  #                                       spelling the corpus uses.
+  #        `bootcamp|plugin`, `bootcamp, plugin, module or tutorial`,
+  #        `bootcamp/plugin referent`, `plugin, so record it as given`
+  #                                       `feedback-capture.py`'s `_OURS` pattern and the
+  #                                       comments that explain it: the pattern matches
+  #                                       what a BOOTCAMPER types, and they type
+  #                                       "plugin".
+  #
+  #   2. PASSAGE ENTRIES, for spans where the sentence changes and not just the noun,
+  #      written in the PRE-rename spelling so they are matched ahead of layer 3.
+  #
+  #   3. THE GENERAL RENAME, last, claiming every occurrence the first two layers left.
+  #      It is general on purpose: prose the next Template_Release adds should be
+  #      renamed without a contract edit, and the exceptions above are identifiers,
+  #      which is a closed and stable set. A new identifier-shaped use of the word is
+  #      the one thing this cannot see, and it is what a Maintainer reviews when the
+  #      Update_Skill reports this file as changed.
+  #
+  # Declared LAST on every rule that takes it, so the passage sets above match the
+  # template's own wording rather than a half-renamed version of it.
+    - find: |2
+        module/step. (Full session-resume behavior is a later porting
+             phase; for now, read `current_module`/`current_step` and continue from there.)
+      replace: |2
+        module/step: read `current_module`/`current_step` and
+             continue from there.
+      literal: true
+    - find: |2-
+        the full `common-pitfalls` reference is a later porting
+           phase; for now use 
+      replace: |2-
+        there is no bundled `common-pitfalls` reference, so use
+           
+      literal: true
+    - find: |2
+        fix (the full
+           `common-pitfalls` reference and its Troubleshooting-by-Symptom table are a later porting
+           phase).
+      replace: |2
+        fix. There is no bundled
+           `common-pitfalls` reference or Troubleshooting-by-Symptom table.
+      literal: true
+  power-vocabulary:
+    - { find: "plugins", replace: "plugins", literal: true }
+    - { find: "plugin.json", replace: "plugin.json", literal: true }
+    - { find: "plugin_version", replace: "plugin_version", literal: true }
+    - { find: "plugin.schema.json", replace: "plugin.schema.json", literal: true }
+    - { find: "Plugin version", replace: "Plugin version", literal: true }
+    - { find: "plugin version", replace: "plugin version", literal: true }
+    - { find: "plugin manifest", replace: "plugin manifest", literal: true }
+    - { find: "Senzing Bootcamp Plugin Feedback", replace: "Senzing Bootcamp Plugin Feedback", literal: true }
+    - { find: "Template_Plugin", replace: "Template_Plugin", literal: true }
+    - { find: "Plugin-owned", replace: "Plugin-owned", literal: true }
+    - { find: "Plugin initialization error", replace: "Plugin initialization error", literal: true }
+    - { find: "`plugin`", replace: "`plugin`", literal: true }
+    - { find: "**plugin**", replace: "**plugin**", literal: true }
+    - { find: "plugin issue", replace: "plugin issue", literal: true }
+    - { find: "[plugin | mcp-server", replace: "[plugin | mcp-server", literal: true }
+    - { find: "bootcamp|plugin", replace: "bootcamp|plugin", literal: true }
+    - { find: "bootcamp, plugin, module or tutorial", replace: "bootcamp, plugin, module or tutorial", literal: true }
+    - { find: "bootcamp/plugin referent", replace: "bootcamp/plugin referent", literal: true }
+    - { find: "plugin, so record it as given", replace: "plugin, so record it as given", literal: true }
+    - find: |2-
+        This plugin is a
+          Kiro plugin on every one of those interfaces — Kiro runs Kiro too — so
+      replace: |2-
+        This Power is the
+          same Power on every one of those interfaces, so
+      literal: true
+    - find: "plugin"
+      replace: "Power"
+      literal: true
+    - find: "Plugin"
+      replace: "Power"
+      literal: true
 
 # ---------------------------------------------------------------------------
 # Per-skill trigger phrase declarations (R8 AC6)
@@ -431,12 +1396,12 @@ substitutionSets:
 # description character-for-character — so for almost every ported skill, R8 AC6 is
 # satisfied by preservation and this section says nothing about it.
 #
-# `bootcamp-preparation` in release 0.5.1 is the exception. Its description states
-# *when* the module runs ("Use right after the onboarding WELCOME preface, before the
-# entity-resolution primer / Module 1") but names no phrase a Bootcamper can state, so
-# the Schema_Validator reports E_FRONTMATTER_INVALID for it and Test_Checklist step 6 —
-# stating each of the 16 skills' trigger phrases and observing activation — has nothing
-# to state for that one skill.
+# `bootcamp-preparation` is the exception, in release 0.5.1 and still in 0.5.3. Its
+# description states *when* the module runs ("Use right after the onboarding WELCOME
+# preface, before the entity-resolution primer / Module 1") but names no phrase a
+# Bootcamper can state, so the Schema_Validator reports E_FRONTMATTER_INVALID for it
+# and Test_Checklist step 6 — stating every skill's trigger phrase and observing
+# activation — has nothing to state for that one skill.
 #
 # The phrase is declared HERE, as contract data, and not synthesized in the engine: a
 # trigger phrase is a mapping decision about what the Bootcamper is told to say, and an
@@ -452,9 +1417,13 @@ substitutionSets:
 # signal that put this entry here, raised by the gate that owns it. Nothing is
 # asserted about this list at build time, so a partial tree still builds.
 #
-# Phrases stay lexically disjoint from the three command-derived triggers ("start the
-# senzing bootcamp", "graduate the senzing bootcamp", "give senzing bootcamp
-# feedback"), so no single statement matches two skills (R9 AC3).
+# Phrases stay lexically disjoint from the command-derived triggers ("start the senzing
+# bootcamp", "graduate the senzing bootcamp", "give senzing bootcamp feedback", "take a
+# senzing bootcamp note", "package the senzing bootcamp") and from the
+# client-adaptation skill's ("install the senzing bootcamp enforcement hooks"), so no
+# single statement matches two skills (R9 AC3). Disjoint here means no phrase is a
+# substring of another, which is the condition Property 19 checks — not merely that the
+# phrases differ.
 skillTriggers:
   bootcamp-preparation: 'Use when the bootcamper says "prepare the senzing bootcamp".'
 
@@ -519,25 +1488,77 @@ rules:
     kind: skill
     source: "skills/bootcamp-onboarding/**"
     dest: "skills/bootcamp-onboarding/"
-    substitutions: [plugin-root, manifest-path, client-names, model-guidance]
+    substitutions:
+      [
+        plugin-root,
+        manifest-path,
+        client-names,
+        model-guidance,
+        feedback-filename,
+        script-paths-root,
+        script-paths-owning,
+        surface-naming,
+        kiro-mechanisms,
+        port-status,
+        power-vocabulary,
+      ]
 
   - id: skills-modules
     kind: skill
     source: "skills/module-*/**"
     dest: "skills/{skillName}/"
-    substitutions: [plugin-root, manifest-path, client-names, model-guidance, script-paths]
+    substitutions:
+      [
+        plugin-root,
+        manifest-path,
+        client-names,
+        model-guidance,
+        feedback-filename,
+        script-paths-root,
+        script-paths-sibling,
+        surface-naming,
+        kiro-mechanisms,
+        port-status,
+        power-vocabulary,
+      ]
 
   - id: skill-preparation
     kind: skill
     source: "skills/bootcamp-preparation/**"
     dest: "skills/bootcamp-preparation/"
-    substitutions: [plugin-root, manifest-path, client-names, model-guidance, script-paths]
+    substitutions:
+      [
+        plugin-root,
+        manifest-path,
+        client-names,
+        model-guidance,
+        feedback-filename,
+        script-paths-root,
+        script-paths-sibling,
+        surface-naming,
+        kiro-mechanisms,
+        port-status,
+        power-vocabulary,
+      ]
 
   - id: skill-graduation
     kind: skill
     source: "skills/graduation/**"
     dest: "skills/graduation/"
-    substitutions: [plugin-root, manifest-path, client-names, model-guidance, script-paths]
+    substitutions:
+      [
+        plugin-root,
+        manifest-path,
+        client-names,
+        model-guidance,
+        feedback-filename,
+        script-paths-root,
+        script-paths-sibling,
+        surface-naming,
+        kiro-mechanisms,
+        port-status,
+        power-vocabulary,
+      ]
 
   # --- Ported scripts (R10) ------------------------------------------------
   # Every ported script lands together under ONE owning skill's scripts/ directory, so
@@ -556,7 +1577,19 @@ rules:
     source: "scripts/**/*.py"
     exclude: ["scripts/vendor/**"]
     dest: "skills/bootcamp-onboarding/scripts/"
-    substitutions: [plugin-root, manifest-path, client-names, tool-names]
+    substitutions:
+      [
+        plugin-root,
+        manifest-path,
+        client-names,
+        tool-names,
+        feedback-filename,
+        script-paths-root,
+        surface-naming,
+        kiro-mechanisms,
+        port-status,
+        power-vocabulary,
+      ]
 
   # Vendored third-party assets, byte-for-byte at the same relative location
   # (R10 AC3). Declared as `copy`, never `substitute`: a single rewritten byte in
@@ -575,9 +1608,12 @@ rules:
     dest: "skills/bootcamp-onboarding/scripts/"
 
   # --- Ported documentation (R12) -----------------------------------------
+  # `docs/model-selection.md` is excluded and superseded — see the
+  # `model-selection-superseded` and `model-selection-doc` rules below.
   - id: docs
     kind: substitute
     source: "docs/**/*.md"
+    exclude: ["docs/model-selection.md"]
     dest: "docs/"
     substitutions: [client-names, model-guidance]
 
@@ -587,8 +1623,89 @@ rules:
   - id: docs-assets
     kind: copy
     source: "docs/**"
-    exclude: ["docs/**/*.md"]
+    exclude: ["docs/**/*.md", "docs/examples/bootcamp_recap.example.pdf"]
     dest: "docs/"
+
+  # --- The one documentation asset a byte-for-byte copy gets wrong -----------
+  # `bootcamp_recap.example.pdf` is the worked example of the keepsake a Bootcamper
+  # finishes with: `generate_recap_pdf.py` rendered from
+  # `bootcamp_recap.example.md`, which ports by substitution and is byte-identical
+  # to it. The PDF is not, and cannot be, because a PDF is not the document — it is
+  # a RENDERING of the document by a renderer this build also ports. That renderer's
+  # cover and footer name the artifact, and `power-vocabulary` correctly rewrites
+  # "Claude plugin" to "Kiro Power" in the ported `generate_recap_pdf.py`. Copying
+  # the template's PDF therefore ships an example whose visible text disagrees with
+  # the renderer that is supposed to have produced it, and it says "Claude plugin"
+  # to every Bootcamper who opens the sample of their own certificate.
+  #
+  # This is exactly the failure a digest check cannot see: the PDF's hash matches
+  # its source perfectly, and the content inside is stale. So the rendered artifact
+  # is declared `kiro-owned` and carried as authored bytes, produced by running the
+  # ported renderer over the ported example document.
+  #
+  # WHEN THIS HAS TO BE REFRESHED: whenever a newer Template_Release changes
+  # `bootcamp_recap.example.md`, or when a change here alters the renderer's output.
+  # Re-render rather than hand-edit — the point of the file is that it is what the
+  # shipped renderer produces:
+  #
+  #   python3 powers/senzing-bootcamp/skills/bootcamp-onboarding/scripts/generate_recap_pdf.py \
+  #       --input  powers/senzing-bootcamp/docs/examples/bootcamp_recap.example.md \
+  #       --output tools/bootcamp-transform/templates/kiro-owned/docs/examples/bootcamp_recap.example.pdf
+  #
+  # The example document itself stays ported: it is prose, it ports cleanly, and
+  # freezing it would silently drop upstream improvements to the worked example.
+  # The template's rendering is superseded by a rule rather than by an `ignore` entry,
+  # for the same reason `model-selection.md` is: `ignore` is consulted on both sides,
+  # so an entry naming this path would suppress the authored replacement too.
+  - id: docs-recap-example-pdf-superseded
+    kind: ignore
+    source: "docs/examples/bootcamp_recap.example.pdf"
+
+  - id: docs-recap-example-pdf
+    kind: kiro-owned
+    owner: kiro
+    dest: "docs/examples/bootcamp_recap.example.pdf"
+
+  # --- The one ported document whose SUBJECT is the host --------------------
+  # `docs/model-selection.md` is maintainer notes recording which components of the
+  # artifact can carry a model or reasoning-effort setting, what those settings scope
+  # to, and a best-value model evaluation per skill. Every other ported document
+  # describes the BOOTCAMP, which is the same bootcamp on either host and so ports by
+  # substitution. This one describes the HOST, and the two hosts differ in kind:
+  #
+  #   * The template's analysis rests on per-skill `model:` / `effort:` frontmatter and
+  #     on a `context: fork` escape hatch for sustained per-skill control. Kiro's skill
+  #     frontmatter has NO model key, NO effort key, and no forked-skill equivalent.
+  #   * An unrecognized frontmatter key in Kiro is a silent no-op, not an error. So a
+  #     substituted version of this document would advise a setting that looks applied
+  #     and does nothing — the worst available outcome for a document whose entire job
+  #     is telling a Maintainer which dials exist.
+  #   * The conclusions invert rather than reword. Where the template says the session
+  #     lever is *more reliable* than per-skill frontmatter, Kiro's answer is that the
+  #     session lever is the ONLY one, and therefore that everything the bootcamp does
+  #     about model selection is a recommendation the Bootcamper acts on rather than a
+  #     setting the Power applies.
+  #
+  # No substitution set can turn a document about keys that exist into a document
+  # about keys that do not, so this is declared `kiro-owned` and authored, and the
+  # template's version is superseded by a rule rather than by an `ignore` entry —
+  # `ignore` is consulted on both sides, so an entry naming this path would suppress
+  # the authored file as well as the template's.
+  #
+  # WHAT THIS COSTS, stated because it is a real cost: an upstream edit to the
+  # per-skill evaluation or to the module-start recommendation table no longer arrives
+  # by rebuild. The authored document carries the same tables, and a Maintainer moving
+  # to a newer Template_Release should diff the template's copy against this one. The
+  # Update_Skill's reconciliation reports the rule as a preserved adaptation, which is
+  # where that review belongs.
+  - id: model-selection-superseded
+    kind: ignore
+    source: "docs/model-selection.md"
+
+  - id: model-selection-doc
+    kind: kiro-owned
+    owner: kiro
+    dest: "docs/model-selection.md"
 
   # --- Generated Agent Plugins manifests (R4 AC1, AC2, AC3) ---------------
   # Each generate rule names the template document it supersedes, so the superseded
@@ -608,12 +1725,26 @@ rules:
     dest: "mcp.json"
 
   # --- Deliberately not ported, with a rule rather than a bare path -------
-  # The template's three slash commands are thin wrappers around
-  # `bootcamp-onboarding`. Kiro has no plugin-level slash commands, so each is
-  # represented instead by one trigger-phrase skill materialized by the
-  # `command-skills` rule below (R9 AC1). The command markdown itself is therefore
-  # matched and not ported; the Schema_Validator still checks the one-to-one
-  # correspondence between this command set and those three skills.
+  # The template's slash commands are thin wrappers around `bootcamp-onboarding`.
+  # Kiro has no plugin-level slash commands, so each is represented instead by one
+  # trigger-phrase skill materialized by the `command-skills` rule below (R9 AC1).
+  # The command markdown itself is therefore matched and not ported; the
+  # Schema_Validator still checks the one-to-one correspondence between this
+  # command set and those skills.
+  #
+  # ⚠️ THIS GLOB IS WHY A NEW UPSTREAM COMMAND DOES NOT REPORT ITSELF AT BUILD
+  # TIME. `commands/*.md` claims a command file this contract has never seen, so
+  # `E_UNMATCHED_FILE` — the early warning for genuinely new upstream content —
+  # cannot fire for one. The gate that does catch it is the Schema_Validator's
+  # `skill-inventory` bijection, which reports `E_INVENTORY_MISMATCH`
+  # (`template-command-unrepresented`) naming the command file. That is a later
+  # and narrower signal than the unmatched-file halt, so when a release adds a
+  # command the answer is a new `dest` on `command-skills` plus an authored skill
+  # under `templates/kiro-owned/skills/`, exactly as release 0.5.3's
+  # `bootcamp-note` and `package-bootcamp` were added. Narrowing this glob to an
+  # enumerated list was considered and rejected: it would move the signal earlier
+  # at the cost of a second place to declare every command, and the bijection
+  # already names the missing one precisely.
   - id: commands-superseded
     kind: ignore
     source: "commands/*.md"
@@ -647,12 +1778,38 @@ rules:
     dest: ["skills/bootcamp-onboarding/assets/kiro-hooks/", "dev.kiro/hooks/"]
     substitutions: [tool-names, scripts-dir-strategy]
 
-  # The three command-derived skills, one per template command, each carrying exactly
-  # one distinct trigger phrase (R9 AC1, AC2, AC3).
+  # The command-derived skills: one per template command, each carrying exactly one
+  # distinct trigger phrase (R9 AC1, AC2, AC3).
+  #
+  # ONE `dest` PER COMMAND THE RESOLVED RELEASE DECLARES, AND THE LIST IS NOT A
+  # COUNT. `skill-inventory` checks a bijection against `commands/*.md` in the
+  # resolved release, in both directions, so this list is wrong in a way that
+  # blocks tagging if it drifts from that set either way: a command with no skill
+  # is `template-command-unrepresented`, and a skill declaring a command the
+  # release does not carry is `declares-absent-template-command`. That second
+  # direction is why the list cannot simply accumulate — a `dest` is removed when
+  # upstream removes the command it stands for.
+  #
+  # The template command name and the skill name are deliberately allowed to
+  # differ: `graduate` is represented by `graduate-bootcamp`, so what ties the two
+  # together is the `metadata.templateCommand` field in each authored skill's
+  # frontmatter, never the directory name. The four names that happen to match
+  # match by coincidence of good naming, not by rule.
+  #
+  # Release 0.5.3 added `bootcamp-note` and `package-bootcamp`; both are
+  # Bootcamper-facing flows whose workflow documents (`notes.md`, `packaging.md`)
+  # port into `bootcamp-onboarding` under the `skills-fixed` rule, so each authored
+  # skill here is an entry point that hands off to a ported document, exactly as
+  # the other three are.
   - id: command-skills
     kind: kiro-owned
     owner: kiro
-    dest: ["skills/start-bootcamp/", "skills/graduate-bootcamp/", "skills/bootcamp-feedback/"]
+    dest:
+      - "skills/start-bootcamp/"
+      - "skills/graduate-bootcamp/"
+      - "skills/bootcamp-feedback/"
+      - "skills/bootcamp-note/"
+      - "skills/package-bootcamp/"
 
   # The client-adaptation skill that realizes the Hook_Installer (R7 AC6-AC11).
   - id: enforcement-setup-skill

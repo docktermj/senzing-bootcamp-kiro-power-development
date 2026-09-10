@@ -78,6 +78,22 @@ states the rule once for all three (INV-234).
    truncated fetch, or a saved error page, is caught here in one comparison instead of surfacing in
    Step 4 as attribute names that are merely absent. (INV-228's count-check discipline, applied to a
    resource fetch rather than a dataset.)
+3. ⛔ **(INV-115) Read the attribute names out of the FIRST COLUMN of the feature tables as PLAIN
+   TEXT — they are not backticked in this document, and a catalog built by scanning for backticked
+   tokens silently under-collects by roughly four fifths.** Verified against the served document on
+   server **1.33.0**, 2026-08-28. `NAME_ORG`, `ADDR_LINE1` and `PHONE_NUMBER` appear plain and are
+   **never** backticked anywhere in the file, so a backtick-tuned parse reports three of the
+   commonest attributes in the specification as unrecognized — which is the cheap way to tell a
+   broken parse from a real absence.
+   - ⚠️ **The same names render the other way through a different route, which is what makes this a
+     trap rather than a typo.** `search_docs(query='entity specification attribute names feature
+     tables NAME_ORG ADDR_LINE1 PHONE_NUMBER', category='data_mapping')` returns those same tables
+     with the names **backticked** (`` `OTHER_ID_TYPE` ``). A parse tuned on a `search_docs` excerpt
+     works there and under-collects here — and this saved document is what Step 4 reads.
+   - ⛔ **(INV-080) Do not pin an attribute count in this file** — whatever the document holds today, a figure
+     written into shipped prose is one nobody re-measures, and it goes stale silently because it
+     keeps reading authoritative. Confirm the parse against the saved copy instead: a catalog
+     missing `NAME_ORG` is a parse failure, not a specification change.
 
 ⚠️ **If the URL fetch fails, `inline=true` is the sanctioned fallback for this tool — and for this
 tool only.** `download_resource`'s declared schema carries `filename`, `filenames`, `inline` and
@@ -189,8 +205,8 @@ obtained via the `get_sample_data` MCP tool in Module 4):
    - DATA_SOURCE and RECORD_ID are present or derivable.
 
    If ALL sampled records pass, classify as **structurally loadable**. If ANY sampled record
-   fails, classify as not structurally loadable. (The Kiro `check_cord_readiness.py` helper is a
-   later porting phase; perform the check directly against the sampled records for now.)
+   fails, classify as not structurally loadable. (No readiness helper is bundled; perform the
+   check directly against the sampled records.)
 
    ⛔ **This is the entry condition, not the fast-path condition.** Structurally loadable means the
    engine will accept the record; it does not mean every field in it has been decided about. Step 3
@@ -240,11 +256,33 @@ obtained via the `get_sample_data` MCP tool in Module 4):
    answers *will it load*. This answers *is there anything left to map* — and they are not the same
    question. Over the same sampled records, partition every root key into three sets:
 
-   - **structural keys** — `DATA_SOURCE`, `RECORD_ID`, `RECORD_TYPE`, `FEATURES`, and the legacy
-     per-feature root sub-lists (`NAMES`, `ADDRESSES`, `IDENTIFIERS`, …);
+   - **structural keys** — `DATA_SOURCE`, `RECORD_ID`, `RECORD_TYPE`, `FEATURES`, and any root
+     sub-list **whose contents resolve to Entity Specification attributes** (`NAMES`, `ADDRESSES`,
+     `IDENTIFIERS`, …);
    - **specification attributes** — keys that resolve to an attribute in the Entity Specification
      you retrieved in Step 3 (the same copy step 1 above reuses — do not download it again);
-   - **unrecognized keys** — everything else.
+   - **unrecognized keys** — everything else, *including the contents of any root array whose
+     contained keys do not resolve*.
+
+   ⛔ **(INV-294) A root array is a per-feature sub-list only if its CONTENTS are spec attributes — decide it
+   by looking inside, never by the key's shape.** The structural set above is closed, and the `…`
+   continues a list of *examples of the test*, not an invitation to add members by resemblance:
+   plural, uppercase and an array-of-objects is exactly what an unrecognized array looks like too.
+   **So partition one level down as well** — for every root key holding an array of objects, run the
+   same three-way test on the contained keys, and count an unresolved contained key as an
+   unrecognized key of the source.
+
+   ⚠️ **The worked case, measured live.** `get_sample_data(dataset='las-vegas', source='GLEIF')`
+   returns four root arrays that look alike. Three are genuine sub-lists — `COUNTRIES` holds
+   `REGISTRATION_COUNTRY`, `DATES` holds `REGISTRATION_DATE`, `RELATIONSHIPS` holds
+   `REL_ANCHOR_*`/`REL_POINTER_*`, and all resolve. The fourth, **`RISKS`, holds `TOPIC`, which is
+   not a Senzing attribute at all** — 547 of the source's 1,952 records carry it, and `TOPIC` appears
+   in no feature table of the Entity Specification (both re-verified on MCP server **1.35.1**,
+   2026-09-01). Filed as structural, its undispositioned contents are invisible, and a source whose
+   only unmapped content sits inside such an array reaches step 5 with **zero** unrecognized keys —
+   the fast path is offered, and the module is skipped with real fields undecided. That is the
+   failure the ⛔ two paragraphs down already forbids, arriving one level up: at the **container**
+   rather than at the leaf.
 
    ⛔ **Do not resolve the second set by exact string match against the attribute catalog.** A
    catalog attribute can arrive carrying a leading label, and an exact match reports it as
@@ -255,7 +293,11 @@ obtained via the `get_sample_data` MCP tool in Module 4):
    `ADDR_LINE1`/`ADDR_CITY`/… (Entity Specification, *Feature: NAME*; and *Usage types and payload
    (optional attributes)*, which defines a usage type as "a short label that distinguishes multiple
    instances of the same feature on one entity" — both confirmed via
-   `search_docs(category='data_mapping')`, MCP server 1.32.8, docs index 2026-08-11). Resolve each
+   `search_docs(query='usage type distinguishes multiple instances payload optional attributes',
+   category='data_mapping')` for the usage-type half and
+   `search_docs(query='NAME_FULL NAME_ORG parsed person name single field', category='data_mapping')` for
+   *Feature: NAME*, MCP server 1.32.8, docs index 2026-08-11; both queries re-verified as top hits
+   on 1.33.0, 2026-08-23). Resolve each
    key against the specification you hold, and where a key is a catalog attribute carrying such a
    label, count it as a specification attribute. ⛔ The label **encoding** on a flat attribute name
    is an observed shape, not something the indexed specification states — so where you cannot
@@ -501,6 +543,32 @@ profiling.
 apply to a record is not missing data, and averaging it in penalizes the source for data that could
 not exist.
 
+⛔ **A GROUP score is not evidence that two sources share an ATTRIBUTE, and MUST NOT be read as a
+cross-source join prediction.** Completeness for a grouped family — the Entity Specification's
+*Identifiers* section groups `NATIONAL_ID`, `PASSPORT`, `TAX_ID`, `LEI_NUMBER` and `TRUSTED_ID`
+(verified via `search_docs(query='Identifiers NATIONAL_ID PASSPORT TAX_ID TRUSTED_ID feature group',
+category='data_mapping')`, server 1.32.9, 2026-08-17; query re-verified on 1.33.0, 2026-08-23,
+returning the *Identifiers* feature sections) — counts the group
+as present when **any** member is populated. That is the right answer to *does this record carry an
+identifier at all*. It is not evidence for *will these two sources join*, because a join needs
+presence-of-**same**, not presence-of-any.
+
+⚠️ **The guards above all protect the number's accuracy; this one protects its interpretation, and
+that is a different failure.** Two sources both scored **IDENTIFIER 100%**, and the evaluation report
+named them the highest-confidence cross-source pair, "both carrying LEI". One carried **2,375** LEI
+values; the other carried **one**, across 137 records — its identifiers were national IDs and
+passports. Exactly one LEI value was shared in the whole dataset: the prediction was wrong by ~38x on
+the attribute it named, and nothing disproved it until **after loading**, when the match keys showed
+LEI in a single match key. ⛔ **The 0%/100% sanity-check above does not catch this**: it fires on a
+suspiciously uniform figure as a probable *measurement* failure, and here the 100% was entirely real
+— so a guide following that instruction confirms the number and proceeds with the wrong inference
+intact.
+
+**So, before naming any expected cross-source pair:** count the **distinct values shared on the named
+attribute**, not the group scores. The profiling pass already holds the values, so this is cheap. If
+that count was not run, write the pair as a *candidate on group coverage, overlap unmeasured* — a
+prediction is still useful, but an unmarked one is what did the damage.
+
 This is not a corner case. Mixed person/organization sources are the norm in KYC, AML, sanctions
 screening, vendor MDM and beneficial-ownership work — several of this bootcamp's headline use cases.
 One sanctions list with **NAME and ADDRESS on 100% of records** scored **52% completeness / 69%
@@ -537,9 +605,25 @@ provides), and it must not be hidden inside an aggregate.
 
 ⛔ **Extend the uniformity sanity-check above with this case: a low completeness score on a source
 whose NAME and ADDRESS coverage is high is a probable applicability error, not a data problem.**
-Check the record-type mix before reporting the score or routing anyone to remediation. The presence
+Check the record-type mix before reporting the score or routing anyone to remediation (INV-264). The presence
 rules above are unchanged — they decide whether a *value* is there; this decides whether the feature
 belonged in the denominator at all.
+
+⛔ **(INV-174, INV-264) Before reporting the score, print a per-`RECORD_TYPE` presence breakdown for
+EVERY field you marked as applying to BOTH types — and treat a 100%/0% split as an applicability
+error that stops the score.** No real field is present on every record of one type and none of the
+other; that shape is the signature of a wrong applicability set, not a finding about the data. The
+breakdown costs nothing — the profiling pass already holds both per-type counts.
+
+⚠️ **This is a precondition, not another heuristic.** The check above fires *after* a low score
+exists and keys on a NAME/ADDRESS pattern; this one runs *before* any score is reported and keys on
+the applicability set itself, which is the input that was wrong. On 2026-08-25 four fields on a
+72,799-record source were marked "both" while measuring 100% / 91.5% / 42.3% / 100% on
+`ORGANIZATION` and **0%** on `PERSON` — the source's person records are officer and contact records
+attached to a company, where a business address structurally cannot exist. The source scored 70.5%
+and landed in the remediation band; corrected, it scores 85.7% and passes. ⛔ **(INV-174) The applicability
+set is authored by hand per source, so getting it wrong is the default failure rather than an
+unusual one** — which is why it needs a check by construction rather than an instruction to be careful.
 
 Use these thresholds to guide the decision:
 
@@ -607,8 +691,7 @@ source, per-field completeness). Pin the offer verbatim:
 > 👉 **Would you like a visual of the quality assessment (coverage bars and per-field completeness)?**
 
 If the bootcamper accepts, generate a self-contained HTML page and save it to
-`docs/visualizations/` (INV-070). (The full Visualization Protocol / `visualization-guide` is a later
-porting phase; offer directly for now.)
+`docs/visualizations/` (INV-070). (No visualization guide is bundled; offer directly.)
 
 ⛔ **This page is a bootcamper-facing visual deliverable, so the four rules below bind it** — it is
 saved, kept, and shareable, exactly like the Truth Set app's snapshot. See
@@ -617,12 +700,12 @@ and `../module-03b-truthset-visualization/visualization-api-reference.md` → "R
 the third; both are the statements of record, so read them rather than reconstructing the rules here.
 
 1. **Brand tokens, not an ad hoc palette** (INV-081): take colors and typography from
-   `${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/brand_tokens.py` (skill-relative fallback
-   `../../../bootcamp-onboarding/scripts/brand_tokens.py`, INV-252), degrading gracefully if the module cannot be
+   `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/brand_tokens.py` (skill-relative fallback
+   `../bootcamp-onboarding/scripts/brand_tokens.py`, INV-252), degrading gracefully if the module cannot be
    imported.
 2. **Renders offline** (INV-081/INV-091): **no CDN, no web font, no remote script.** If you need a
-   charting library, inline the vendored `${PLUGIN_ROOT}/../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`
-   (skill-relative fallback `../../../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`, INV-252); plain
+   charting library, inline the vendored `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/vendor/d3.v7.min.js`
+   (skill-relative fallback `../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`, INV-252); plain
    HTML/CSS bars need no library at all and are the better default here. A `<script src="https://…">`
    makes the page render blank on an air-gapped workstation — which Senzing evaluations frequently
    are — with no error anywhere.
@@ -672,7 +755,25 @@ Create `docs/data_source_evaluation.md`:
 ## Mapping Priority
 1. [Data source] - [Reason for priority]
 2. [Data source] - [Reason for priority]
+
+## Cross-Source Outlook
+- [Source A] × [Source B] — **[measured | candidate, overlap unmeasured]**
+  - Shared attribute: [the named attribute, e.g. `LEI_NUMBER`]
+  - Distinct values shared: [count] (of [A count] in A, [B count] in B)
 ```
+
+⛔ **Every named cross-source pair in this report carries one of two labels, and neither is
+optional (INV-261).** `measured` requires a **distinct-value overlap count on the named attribute**; anything
+else is `candidate, overlap unmeasured`. ⚠️ **A group completeness score is not a measurement for
+this purpose** — see the ⛔ at the completeness definition above. Two sources at IDENTIFIER 100% were
+once written up as the highest-confidence pair "both carrying LEI" when exactly **one** LEI value was
+shared in the entire dataset; the group scores were correct and the inference was wrong by ~38x.
+
+⚠️ **This report is a deliverable the Bootcamper keeps** — it is rendered to
+`docs/data_source_evaluation.pdf` at graduation and it shapes the load-order rationale — so an
+unmarked prediction reads as a finding long after the run. Nothing between writing it and loading
+re-examines it. Never rank pairs by confidence on group coverage alone; where the overlap was not
+counted, say so in the report rather than omitting the pair.
 
 ### Quality gate: iterate vs. proceed
 
@@ -687,6 +788,24 @@ exactly the pointless question INV-012 forbids and INV-006 counts against the as
 improvising one breaches INV-056, which pins every gate question's wording precisely so it cannot
 drift at runtime. The ≥80% branch is the common one for curated data — a CORD source routinely
 scores there — so this is the path most runs take.
+
+⛔ **(INV-284) On a `provenance: synthesized` source, disclose before the 👉 — those gaps are deliberate.**
+Read `provenance` for this source from `config/data_sources.yaml`. When it is `synthesized`, Module
+4's Step 2 was **required** to manufacture exactly these gaps (INV-239: *"missing values in non-key
+fields, enough to put at least one source in the 70-79% band… That band opens the remediation
+conversation, so it has to be reachable"*) — so this gate is firing as designed, and "improve the
+data" means regenerating data the bootcamp authored minutes ago. Say so in one line **before** the
+question, because anything meant to inform the answer goes before it
+(`../bootcamp-onboarding/ground-rules.md` → the 👉 protocol):
+
+> "One thing worth knowing before you choose: this source was generated for the bootcamp, and its
+> gaps are deliberate — they were built in so this assessment would have something to find.
+> Improving them means regenerating data we authored a few minutes ago. That is a fair choice, it
+> is just not the same as fixing a real dataset."
+
+Then present the pinned question **unchanged, with both options live** (INV-056). ⛔ **Never
+silently regenerate.** Rewriting the Bootcamper's data as the answer to a question they were not
+told meant that is the failure this disclosure exists to prevent.
 
 - **Quality ≥80%:** "Your data quality is strong. Let's continue to mapping." **(statement, no 👉;
   continue into Phase 2 this turn)**
@@ -710,6 +829,80 @@ scores there — so this is the path most runs take.
 *(Internal: in the two gating branches, end the turn on the applicable question and wait. In the
 ≥80% branch no question applies — do not manufacture one; continue into Phase 2 this same turn and
 end on its first 👉.)*
+
+### 7a. The improve path — what option 1 means, in both gating bands
+
+⛔ **(INV-284) This step is what the gate's first option executes.** Both gating bands offer to improve the
+data first, and until this step existed the turn ended on the question with nothing to run: no
+procedure, no re-score, no way back to the gate. A pinned question whose answer has no handling step
+is the unsatisfiable-instruction shape that teaches a guide to read the surrounding ⛔ rules as
+advisory, so treat this as executable, not advisory.
+
+1. **Name the weakest fields from the score you already computed** — do not re-measure. Step 6's
+   assessment already identifies them per field (e.g. *phone missing in 60% of records, address 44%,
+   date of birth 34%*). Name the worst three with their figures, worst first.
+
+2. **Split them by what can honestly be fixed here, and say which is which.** The score has three
+   dimensions and they are not equally repairable:
+
+   - ✅ **Fixable in this module — `format_consistency` and `duplicate_rate`** (0.25 and 0.05 of the
+     score). These are mechanical: normalize the minority formats in a field to its dominant one
+     (phone punctuation, date layout, casing, whitespace, state/country spellings) and resolve
+     records whose `(DATA_SOURCE, RECORD_ID)` pair repeats, per Step 6's own definitions. Do this
+     work **for** the Bootcamper rather than asking them to; it is deterministic and they can read
+     the diff.
+   - ⛔ **(INV-284) Not fixable here — `completeness`** (0.70 of the score, and usually what put the source in
+     the band). **A missing value cannot be invented**, and offering to fill one is offering to
+     fabricate data. Say that plainly. The honest route is a better export from the source system,
+     which is Data collection's job: offer a return to that module for this source, and say the
+     bootcamp will pick up here with the new file.
+
+3. **Write the improved data as a NEW file; never overwrite what was collected.** Put it beside the
+   original as `data/raw/<source>-improved.<ext>` and record the original `file_path` in the same
+   entry so nothing is lost. `data/raw/` holds source data as received (INV-050), and the original
+   stays exactly as received.
+
+4. ⛔ **(INV-243) Update every registry field the new file changes — not just `file_path`.** The
+   entry is a set of claims about the file it points at, and repointing it makes each of them a
+   claim about the improved file. Re-measure and rewrite, in `config/data_sources.yaml`:
+
+   - **`file_path`** → the improved file.
+   - **`record_count`** → **re-counted from the improved file.** ⛔ **(INV-243) This is the one that does
+     damage if it is skipped.** Resolving duplicates removes records, and Module 6 Phase B compares
+     its loaded count against the `record_count` written here (INV-243) — so a stale figure reports
+     a *correct* load as short by exactly the number of duplicates this step just removed, one
+     module downstream of the cause. Say both figures to the Bootcamper when it changes, with the
+     reason ("1,000 → 984 records; 16 duplicate `(DATA_SOURCE, RECORD_ID)` pairs resolved").
+   - **`file_size_bytes`** → re-measured.
+   - **`quality_score`** → the re-scored figure from step 5 below, once it is computed.
+   - **`updated_at`** → the current ISO 8601 timestamp.
+
+   ⛔ **(INV-203) Leave `expected_record_count`, `validation_status` and `validation_checks` describing the
+   ORIGINAL fetch, and say in the entry that they do.** Those fields record that a *fetched* file
+   arrived with a 2xx status and a count matching what the provider stated (INV-203); the improved
+   file was derived here, not fetched, so re-pointing them at it would assert a check nobody ran.
+   ⚠️ **`record_count` is the opposite case and must NOT be left alone for the same reason** — it is
+   a measurement of the file, and the file changed, so leaving it stale is what makes the entry
+   wrong rather than what keeps it honest.
+
+5. **Re-score the source with Step 6's formula and re-present the gate with the new figure**, naming
+   the before and after (e.g. *"75.1 → 79.4"*).
+
+   ⛔ **Re-presenting the gate here is NOT an INV-006 repeat, and a guide must not suppress it as
+   one.** INV-006 forbids re-asking a question already answered about the same state; the score has
+   changed, so this is a new question about a new state, and the Bootcamper's earlier answer was
+   about the old figure. Present whichever band's pinned question the **new** score selects — a
+   source that crossed into ≥80% gets no question at all and continues into Phase 2 this turn.
+
+6. **When nothing was fixable, say so rather than looping.** If the gaps are entirely completeness,
+   there is no mechanical work to do: state that, name the return-to-collection route from step 2,
+   and present the gate again with the score **unchanged and identified as unchanged**. Never
+   re-present an unchanged score as an improvement.
+
+⚠️ **On a `provenance: synthesized` source this path is still available and still honest** — the
+disclosure above has already told the Bootcamper the gaps are deliberate. Normalizing formats in
+generated data is real work with a real re-score; if they ask to regenerate instead, that is Module
+4's Step 2, and it is their call to make with the disclosure in hand.
 
 **Success indicator:** ✅ All data sources categorized + `docs/data_source_evaluation.md`
 created.

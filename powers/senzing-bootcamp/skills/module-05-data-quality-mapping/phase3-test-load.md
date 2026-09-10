@@ -131,8 +131,8 @@ datasource name).
 #### 24c. Compare against baseline
 
 When a baseline exists, compute the diff between `config/er_baseline_{datasource}.json` and
-`config/er_current_{datasource}.json` and present it. (The Kiro `compare_results.py` helper is a
-later porting phase; compute the per-metric deltas directly for now.) Show per-metric deltas
+`config/er_current_{datasource}.json` and present it. (No comparison helper is bundled; compute
+the per-metric deltas directly.) Show per-metric deltas
 (entities gained/lost, matches gained/lost) and an overall quality assessment (improved,
 degraded, or unchanged). Explain what the changes mean:
 
@@ -222,9 +222,8 @@ request, per the ground rules):
 > **Optional: baseline status summary (advisory, non-blocking):** On Phase 3 completion you
 > MAY surface which data sources still lack an ER baseline (compare the set of
 > `config/er_baseline_*.json` files against the mapped sources). It is read-only, never blocks
-> the workflow, and never creates, modifies, or deletes a baseline. (The Kiro
-> `baseline_status.py` helper is a later porting phase; report coverage directly if you choose
-> to.)
+> the workflow, and never creates, modifies, or deletes a baseline. (No baseline-status helper
+> is bundled; report coverage directly if you choose to.)
 
 **Checkpoint:** write step 26.
 
@@ -278,15 +277,25 @@ accepted, not only the recommended one):
   `No NAME features found` as evidence that names are absent — they are extracted normally at load.
 
 The arbiter is this phase's own instrument: load one unmodified record and read back the features
-Senzing extracted. Extracted features settle it in favour of loadability, whatever the analyzer's
+Senzing extracted. Extracted features settle it in favor of loadability, whatever the analyzer's
 exit code was.
+
+⚠️ **One SCHEMA finding is NOT a conformance notice, and it belongs one phase earlier.** A
+`disposition: payload` field emitted at the record root under a **registered feature attribute's
+name** is reported here as a schema finding — but it is not a question of recommended-versus-flat
+shape. It means the Bootcamper's routing answer was not honored: at the record root that name is
+extracted as a feature regardless of the payload intent (observation-only, 2026-08-17 — see
+`phase2-data-mapping.md` step 11, which carries the full marker and its evidence). If it reaches
+this phase at all, step 11's collision check did not run or was skipped; resolve it as step 11
+prescribes — offer the rename, never silently re-route — rather than filing it under the conformance
+split above and continuing.
 
 ## Encoding
 
 - Detect encoding in the profiling step. Convert to UTF-8 in the transformation program.
 - Non-Latin scripts: `search_docs(query="globalization", category="globalization")`. For the
   sections to ask for by topic — and the two phrasings that return wrong content — see this
-  module's `SKILL.md` → "Multi-language data" (INV-212) rather than restating them.
+  module's `SKILL.md` → "Multi-language data" (INV-212, INV-300) rather than restating them.
 - Strip the UTF-8 BOM from Windows CSV files. JSON libraries handle special character escaping.
 - That covers a BOM arriving in **input** data. The more damaging case is a BOM you *write*: on
   PowerShell 5.1, `Out-File -Encoding utf8` prefixes the file it creates, so record 1 of a generated
@@ -296,7 +305,9 @@ exit code was.
 
 ## Hooks
 
-In the Kiro plugin, bootcamp hooks ship with the plugin: there is no manual hook-install
-step (this replaces the Kiro `install_hooks.py` / `.kiro/hooks/` workflow). The plugin's Stop
-hook is a safety net for the closing 👉 question; you still own that question on every yielding
-turn (see the ground rules).
+Kiro does not load hooks bundled inside a Power, so the bootcamp's enforcement hooks are
+**opt-in**: the `bootcamp-enforcement-setup` skill installs them into `.kiro/hooks/` after
+disclosure and an explicit yes, and the bootcamp is complete and correct with none installed.
+Do not assume any hook is active here. When the hooks *are* installed, the `Stop` hook is a
+safety net for the closing 👉 question — you still own that question on every yielding turn,
+installed or not (see the ground rules).

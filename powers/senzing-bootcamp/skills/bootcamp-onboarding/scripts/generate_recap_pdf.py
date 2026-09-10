@@ -16,7 +16,7 @@ A valid PDF is ALWAYS produced, via a tiered strategy:
 The script is dependency-light: its only optional sibling import is ``brand_tokens``
 (the shared Senzing brand palette that ships next to it in ``scripts/``), and it
 falls back to an inlined copy of those values if that module is unavailable — so it
-still works when bundled inside the Claude plugin and invoked from a bootcamp
+still works when bundled inside the Kiro Power and invoked from a bootcamp
 working directory, and always produces a valid PDF.
 
 Success signal (matches the graduation skill's contract): on success it prints
@@ -122,6 +122,20 @@ CERTIFICATE_NAME_PLACEHOLDER = "Bootcamper"
 RECAP_CHECKPOINT_START = "<!-- RECAP-CHECKPOINT:START -->"
 RECAP_CHECKPOINT_END = "<!-- RECAP-CHECKPOINT:END -->"
 
+# Fence markers graduation wraps the Bootcamper's own notes in (INV-258).
+#
+# ⛔ THE FENCE IS THE DISCRIMINATOR, NOT THE HEADING TEXT. Every `## ` heading in a recap
+# is parsed as a module (`parse_recap`), so a notes section recognized by its *title*
+# would be one renamed module away from being mis-parsed — and a Bootcamper's private
+# note is then one heading away from being cited on their Certificate of Completion.
+# The block is lifted out of the source before module parsing begins, so no `## ` inside
+# it can ever reach `Recap.modules`.
+BOOTCAMP_NOTES_START = "<!-- BOOTCAMP-NOTES:START -->"
+BOOTCAMP_NOTES_END = "<!-- BOOTCAMP-NOTES:END -->"
+
+#: Default heading for the notes section when the folded block carries none.
+BOOTCAMP_NOTES_TITLE = "Notes, Ideas and Questions"
+
 # Recap image references: `![alt](path)` on a line of its own.
 # An embedded screenshot: ``![alt](path)`` alone on its line.
 #
@@ -223,10 +237,64 @@ class ModuleSection:
 
 
 @dataclass
+class NoteEntry:
+    """One note the Bootcamper captured during the run (INV-257).
+
+    ``body`` is **their** words. ``elaboration`` is the bootcamp's expansion and
+    ``context`` is machine-composed, so both are kept in their own fields and rendered
+    under their own labels — never folded into ``body``. This is a keepsake with their
+    name on the certificate; a paragraph they did not write, indistinguishable from one
+    they did, is the Power putting words in their mouth permanently.
+    """
+
+    title: str
+    type: str = ""
+    captured: str = ""
+    module: str = ""
+    body: List[str] = field(default_factory=list)
+    context: str = ""
+    elaboration: str = ""
+
+
+@dataclass
+class NotesSection:
+    """The Bootcamper's notes, folded into the recap at graduation.
+
+    Deliberately NOT a ``ModuleSection``: it is never a module, so it never reaches the
+    certificate's module citation (INV-100), either renderer's cover module list, or the
+    four-subsection completeness check (INV-103).
+    """
+
+    title: str = BOOTCAMP_NOTES_TITLE
+    entries: List[NoteEntry] = field(default_factory=list)
+    #: Source characters this section actually accounted for — the stripped length of
+    #: every line the parser assigned to the title or to an entry.
+    #:
+    #: ⚠️ Counted at PARSE time rather than recomputed from the fields, and the difference
+    #: is load-bearing. `**Captured:** <value>` is 14 characters of label the renderer
+    #: draws as a stamp rather than as literal markup; summing the field values instead
+    #: undercounts every note by its label overhead, so retention falls a little further
+    #: with each note the Bootcamper writes. Lines the parser could NOT place stay
+    #: uncounted, so a note that fails to parse still shows up as content loss — which is
+    #: the whole point of the retention figure (INV-110).
+    source_chars: int = 0
+
+    def __bool__(self) -> bool:
+        """Falsey when empty, so ``if recap.notes`` means "there is something to render".
+
+        An empty notes section on a keepsake is worse than an absent one, and every
+        render/TOC/pagination site below gates on exactly this.
+        """
+        return bool(self.entries)
+
+
+@dataclass
 class Recap:
     title: str
     meta: List[Tuple[str, str]]  # ("Bootcamper", "Ada"), ...
     modules: List[ModuleSection]
+    # Defaulted so every existing construction site and test keeps working unchanged.
+    notes: Optional[NotesSection] = None
 
 
 # The suffix the durability hooks leave on a folded-but-unfinalized section, in place of
@@ -256,7 +324,7 @@ def _split_title_date(rest: str) -> Tuple[str, str]:
       graduation to backfill a section that is already there (INV-157 warns against
       exactly that).
 
-    Recognizing the marker the plugin itself produces is narrower, and safer, than
+    Recognizing the marker the Power itself produces is narrower, and safer, than
     loosening the date test.
     """
     for sep in (" — ", " – ", " - "):
@@ -522,7 +590,233 @@ def _normalize_heading(name: str) -> str:
     return n
 
 
+_NOTE_HEADING_RE = re.compile(r"^###\s+(.*)$")
+_NOTE_LABEL_RE = re.compile(r"^\*\*(.+?):?\*\*:?\s*(.*)$")
+
+
+def _parse_notes_block(inner: str) -> NotesSection:
+    """Parse the inside of a BOOTCAMP-NOTES fence into a :class:`NotesSection`."""
+    section = NotesSection()
+    current: Optional[NoteEntry] = None
+
+    def close() -> None:
+        nonlocal current
+        if current is not None:
+            while current.body and not current.body[-1].strip():
+                current.body.pop()
+            while current.body and not current.body[0].strip():
+                current.body.pop(0)
+            section.entries.append(current)
+        current = None
+
+    def account(line: str) -> None:
+        """Record a line as content this section carries into the PDF."""
+        section.source_chars += len(line.strip())
+
+    for raw in inner.splitlines():
+        line = raw.rstrip("\n")
+        h2 = re.match(r"^##\s+(.*)$", line)
+        if h2 and current is None:
+            title = h2.group(1).strip()
+            if title:
+                section.title = title
+            account(line)
+            continue
+        h3 = _NOTE_HEADING_RE.match(line)
+        if h3:
+            close()
+            heading = h3.group(1).strip()
+            ntype, _, rest = heading.partition(":")
+            if rest.strip():
+                current = NoteEntry(title=rest.strip(), type=ntype.strip())
+            else:
+                current = NoteEntry(title=heading)
+            account(line)
+            continue
+        if current is None:
+            # Stray text between the fence and the first note. Deliberately NOT
+            # accounted: it reaches no field and renders nowhere, so counting it would
+            # hide exactly the content loss this figure exists to surface.
+            continue
+        label = _NOTE_LABEL_RE.match(line.strip())
+        if label:
+            key = _normalize_heading(label.group(1))
+            val = label.group(2).strip()
+            handled = True
+            if key == "captured":
+                current.captured = val
+            elif key == "module":
+                current.module = val
+            elif key == "type":
+                current.type = current.type or val
+            elif key == "context":
+                current.context = val
+            elif key == "elaboration":
+                current.elaboration = val
+            else:
+                handled = False
+            if handled:
+                account(line)
+                continue
+        current.body.append(line)
+        account(line)
+
+    close()
+    return section
+
+
+def _fence_spans(text: str, start_marker: str, end_marker: str):
+    """Every WELL-FORMED ``(start, end_exclusive)`` fence span, and the strays skipped.
+
+    ⛔ **(INV-288) A fence's span NEVER extends past the next START of its own type.** Both handlers
+    used to locate their terminator with ``text.find(END, start)`` — the next END *anywhere*
+    in the document — so a stray unterminated START annexed the region up to a later fence's
+    terminator, and **every finalized module section in that region was discarded**.
+
+    Measured 2026-09-01 on the shipped script, for both fences: a three-module recap parsed
+    to two, with `## SDK setup` and its content gone. It was silent three ways — ``audit_recap``
+    fired the *unfinalized-module* warning (true, and about something else), ``--expect-modules``
+    checks presence and never absence, and ``_source_content_chars`` stripped the same region so
+    the deleted module left the retention **denominator** too: 94% retention, no fatal, on a
+    recap that had lost a module.
+
+    A stray START is therefore skipped rather than paired: the caller leaves its block in
+    place, the well-formed fence after it is still handled, and the module between them
+    survives. Returns ``(spans, strays)`` so the caller can report the strays.
+    """
+    spans, strays = [], []
+    pos = 0
+    while True:
+        start = text.find(start_marker, pos)
+        if start == -1:
+            break
+        end = text.find(end_marker, start)
+        if end == -1:
+            break                      # genuinely unterminated — the caller's own policy
+        nxt = text.find(start_marker, start + len(start_marker))
+        if nxt != -1 and nxt < end:
+            # This START's terminator belongs to a later block. Skip it; do not span both.
+            strays.append(start)
+            pos = nxt
+            continue
+        spans.append((start, end + len(end_marker)))
+        pos = end + len(end_marker)
+    return spans, strays
+
+
+def stray_fence_markers(text: str):
+    """Every stray (unterminated-but-followed-by-another) fence START in ``text``.
+
+    Reported by :func:`audit_recap`: a stray marker means the recap is malformed in a way
+    that leaves content in the document which the fence was supposed to lift — for the
+    notes fence that is a Bootcamper's private note one heading away from the recap
+    (INV-100), and the operator has to be told rather than have it silently rendered or
+    silently deleted.
+    """
+    out = []
+    for start_marker, end_marker in (
+        (BOOTCAMP_NOTES_START, BOOTCAMP_NOTES_END),
+    ) + tuple(DISCARDED_FENCES):
+        _spans, strays = _fence_spans(text, start_marker, end_marker)
+        out.extend((start_marker, i) for i in strays)
+    return out
+
+
+def _extract_notes_block(text: str) -> Tuple[str, Optional[NotesSection]]:
+    """Lift the BOOTCAMP-NOTES fence out of ``text`` before any module parsing.
+
+    Returns ``(text_without_the_block, notes_or_None)``. Removing it up front is what
+    makes the fence — not the heading text — the discriminator: the ``## `` inside it
+    never reaches the module loop, so no renamed module can collide with it and no note
+    can be promoted to a module section.
+    """
+    spans, _strays = _fence_spans(text, BOOTCAMP_NOTES_START, BOOTCAMP_NOTES_END)
+    if spans:
+        # The first WELL-FORMED block. A stray START before it is left where it is — its
+        # region is not annexed, so no finalized module between the two is deleted. The
+        # stray is reported by `stray_fence_markers` rather than silently swallowed.
+        start, end = spans[0]
+        inner = text[start + len(BOOTCAMP_NOTES_START): end - len(BOOTCAMP_NOTES_END)]
+        remainder = text[:start] + text[end:]
+        notes = _parse_notes_block(inner)
+        return remainder, (notes if notes.entries else None)
+
+    start = text.find(BOOTCAMP_NOTES_START)
+    if start == -1:
+        return text, None
+    # ⛔ An unterminated fence — a write truncated mid-fold — runs to end of text.
+    # Graduation appends this block AFTER the last module section, so everything past
+    # the opening marker is notes; treating the marker as absent instead would let
+    # the notes heading be parsed as a module and put a Bootcamper's private note on
+    # their Certificate of Completion (INV-100). Losing the fence must cost the
+    # notes' formatting at worst, never the modules and never the certificate.
+    # ⚠️ This is reached only when there is NO well-formed block anywhere — the
+    # genuinely-truncated case the policy was written for. Where a later well-formed
+    # fence exists, the branch above handles it and this end-of-text sweep is not used,
+    # because sweeping would delete every module after the stray marker.
+    inner = text[start + len(BOOTCAMP_NOTES_START):]
+    notes = _parse_notes_block(inner)
+    return text[:start], (notes if notes.entries else None)
+
+
+#: Fenced blocks lifted out of the recap before module parsing and then DISCARDED.
+#:
+#: ⛔ The notes fence is not here because its content is KEPT — `_extract_notes_block`
+#: parses it into a `NotesSection`. Everything in this tuple is transient working state
+#: that must not reach `Recap.modules`, and the parse path iterates the tuple rather than
+#: naming markers one at a time: adding a fence here is what brings it under the lift
+#: (INV-246), so a third fenced block cannot repeat this defect by being overlooked.
+#:
+#: ⚠️ The checkpoint fence had the same exposure as the notes fence and none of the
+#: protection. `recap_checkpoint.md`'s own interior uses `## ` headings (`## Where we are`,
+#: `## Still to do`, …), the durability hooks fold it verbatim, and every `## ` in a recap
+#: is parsed as a module — so a resumed session put five phantom "modules" beside the real
+#: ones in the keepsake PDF. `audit_recap` warned, but the warning is non-fatal and the
+#: block was never lifted, so the PDF rendered anyway (2026-08-26, Power 0.5.2).
+DISCARDED_FENCES: Tuple[Tuple[str, str], ...] = (
+    (RECAP_CHECKPOINT_START, RECAP_CHECKPOINT_END),
+)
+
+
+def _strip_discarded_fences(text: str) -> str:
+    """Lift every :data:`DISCARDED_FENCES` block out of ``text`` before module parsing.
+
+    ⛔ An UNTERMINATED fence is left in place here, which is the opposite of what
+    `_extract_notes_block` does — and the asymmetry is deliberate. Graduation appends the
+    notes block *after* the last module, so running an unterminated notes fence to
+    end-of-text costs at most the notes' formatting. The checkpoint is folded **mid-recap**,
+    so truncating to end-of-text would delete the Bootcamper's real finalized modules. A
+    phantom section that `audit_recap` already warns about is the lesser loss; deleting
+    module content to avoid it is not a trade this may make.
+    """
+    for start_marker, end_marker in DISCARDED_FENCES:
+        spans, _strays = _fence_spans(text, start_marker, end_marker)
+        # Right to left, so an earlier span's indices stay valid after a later removal.
+        for start, end in reversed(spans):
+            text = text[:start] + text[end:]
+    return text
+
+
+#: A module section heading, used only to decide whether a lift would empty the recap.
+_MODULE_HEADING_RE = re.compile(r"(?m)^##\s+\S")
+
+
 def parse_recap(text: str) -> Recap:
+    text, notes = _extract_notes_block(text)
+
+    # ⛔ THE LIFT MUST NEVER EMPTY THE RECAP. A checkpoint fence contains only the
+    # in-progress narrative — `recap_checkpoint.py`'s `_strip_block` says so outright:
+    # "Completed `## {module}` sections carry no markers and are never touched." But a
+    # malformed or mis-placed fence CAN enclose finalized sections, and discarding those
+    # would delete the Bootcamper's real module content to avoid phantom headings — a
+    # trade this must not make. Where stripping would remove every module heading from a
+    # recap that had one, keep the unstripped text: the phantom sections then render and
+    # `audit_recap` warns about the surviving block, which is the pre-existing behavior
+    # and the lesser loss.
+    stripped = _strip_discarded_fences(text)
+    if _MODULE_HEADING_RE.search(stripped) or not _MODULE_HEADING_RE.search(text):
+        text = stripped
+
     lines = text.splitlines()
 
     title = "Senzing Bootcamp Recap"
@@ -614,7 +908,7 @@ def parse_recap(text: str) -> Recap:
             while content and not content[0].strip():
                 content.pop(0)
 
-    return Recap(title=title, meta=meta, modules=modules)
+    return Recap(title=title, meta=meta, modules=modules, notes=notes)
 
 
 # --------------------------------------------------------------------------- #
@@ -683,10 +977,27 @@ def _source_content_chars(text: str) -> int:
     the renderers legitimately drop them, so counting them would understate
     retention for a perfectly good recap.
     """
+    # ⛔ A DISCARDED_FENCES block is lifted before module parsing, so its characters
+    # CANNOT reach the PDF by design. Counting them in the denominator would measure the
+    # lift's own effect as content loss — and on a resumed session, whose checkpoint is
+    # large relative to a partly-written recap, that is enough to trip the
+    # catastrophic-content-loss gate and block the PDF outright (INV-048 requires the
+    # recap PDF to always be produced). Measured on a fixture: 42% retention, fatal,
+    # where the block was the only thing "missing".
+    text = _strip_discarded_fences(text)
+
     total = 0
     for raw in text.splitlines():
         line = raw.strip()
         if not line or line == "---":
+            continue
+        # Fence markers are structure, not content: the renderers drop them exactly as
+        # they drop `---`, so counting them would understate retention on a recap whose
+        # only difference is that the Bootcamper wrote something down. The checkpoint
+        # markers are here for the UNTERMINATED case, where the block itself survives
+        # the lift (see `_strip_discarded_fences`).
+        if line in (BOOTCAMP_NOTES_START, BOOTCAMP_NOTES_END,
+                    RECAP_CHECKPOINT_START, RECAP_CHECKPOINT_END):
             continue
         total += len(line)
     return total
@@ -706,6 +1017,13 @@ def _rendered_content_chars(recap: Recap) -> int:
         for heading, lines in mod.subsections:
             total += len(heading)
             total += sum(len(line.strip()) for line in lines if line.strip())
+    # ⚠️ The notes section MUST be counted (INV-258). Omitting it makes the retention
+    # figure fall with every note the Bootcamper writes — their own words counted
+    # against them as content the PDF "lost" — and a long enough notes file crosses
+    # MIN_CONTENT_RETENTION and makes the generator REFUSE to render their recap
+    # (INV-110). The keepsake would be destroyed by the feature meant to enrich it.
+    if recap.notes:
+        total += recap.notes.source_chars
     return total
 
 
@@ -871,6 +1189,128 @@ def find_tab_manifests(base_dirs: Optional[Sequence[Path]] = None) -> List[dict]
     return manifests
 
 
+# --- The expected-visualization denominator (INV-271) -----------------------
+#
+# `tab_coverage_problems` answers "did every captured tab reach the recap?" for each
+# manifest it is given, and `find_tab_manifests` supplies the manifests that exist. So
+# its denominator is *the set of captures that happened*: a module that captured nothing
+# contributes no manifest, no denominator, and no shortfall anything can see.
+#
+# ⛔ That is INV-193's own failure shape, one level out. INV-193 moved the completeness
+# denominator off the artifact being measured and onto the manifest; the manifest is
+# external to the recap, but the SET of manifests is still derived from whatever capture
+# happened to produce. On 2026-08-25 the check reported "6 of 6 captured tabs reached the
+# recap" -- a clean pass -- while the whole Module 7 application, built over the
+# Bootcamper's own resolved data, had been captured not at all. The keepsake illustrated
+# the bootcamp with pictures of the sample dataset.
+#
+# The fix is a denominator that does not come from the manifests: the modules that ran.
+# `config/bootcamp_progress.json` records `modules_completed`, and each visualizing module
+# is specified to build one named visualization. Below is that mapping; a module absent
+# from it produces no visualization and contributes nothing to expect.
+
+# ⛔ The KEYS are module name tokens owned elsewhere: the registry is
+# `skills/bootcamp-preparation/SKILL.md`'s module table, and
+# `skills/bootcamp-onboarding/module-completion.md` is what writes a module's token into
+# `modules_completed` at its close. This map is therefore a COPY, and a copy that goes stale
+# fails silently -- `read_completed_modules()` degrades in the under-reporting direction, so a
+# key no module writes any more produces no error, just a tab-coverage figure that reads clean
+# with a whole visualization missing. `tests/test_expected_visualization_denominator.py` pins it
+# from both ends: `TheMappingKeysMatchTheTokenRegistry` against the registry table, and
+# `test_the_mapping_covers_both_visualizing_modules` against the map's own content (a valid key
+# mapped to the wrong visualization name is invisible to the first).
+MODULE_VISUALIZATIONS = {
+    # module name token in `modules_completed` -> the `{name}` its capture step uses
+    "truthset_visualization": "truthset_verification",
+    "query_visualize_discover": "results_visualization",
+}
+
+DEFAULT_PROGRESS = Path("config") / "bootcamp_progress.json"
+
+
+def read_completed_modules(path=DEFAULT_PROGRESS) -> List[str]:
+    """The ``modules_completed`` list from the progress JSON, or [] if unreadable.
+
+    Any read or parse problem yields [] rather than raising: a missing progress file
+    must degrade to "nothing expected" and leave the pre-existing per-manifest checks
+    exactly as they were, never break the render (INV-048). Returning [] is safe in the
+    honest direction -- it can only under-report, and the caller says so when it does.
+    """
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return []
+    if not isinstance(data, dict):
+        return []
+    completed = data.get("modules_completed")
+    if not isinstance(completed, list):
+        return []
+    return [item for item in completed if isinstance(item, str)]
+
+
+def expected_visualizations(completed: Sequence[str]) -> List[str]:
+    """The visualization names the modules that ran were specified to build."""
+    names = []
+    for module in completed:
+        name = MODULE_VISUALIZATIONS.get(module)
+        if name and name not in names:
+            names.append(name)
+    return sorted(names)
+
+
+def manifest_names(manifests: Sequence[dict]) -> set:
+    """Every visualization a manifest accounts for.
+
+    Prefers the manifest's own ``name`` field and falls back to the filename stem, so a
+    manifest written by an older capture that predates that field still counts.
+    """
+    names = set()
+    for manifest in manifests:
+        name = manifest.get("name")
+        if isinstance(name, str) and name:
+            names.add(name)
+            continue
+        path = manifest.get("_path")
+        if isinstance(path, str) and path:
+            stem = Path(path).name
+            if stem.endswith("-tabs.json"):
+                names.add(stem[: -len("-tabs.json")])
+    return names
+
+
+def missing_visualization_reports(
+    expected: Sequence[str], manifests: Sequence[dict]
+) -> List[str]:
+    """One report per expected visualization that has no manifest.
+
+    Phrased as an UNRUN check, not a failure: nothing here is evidence the tabs were
+    never captured, only that coverage for them cannot be measured. Graduation is
+    non-blocking (INV-048), so the requirement is that the shortfall is stated -- by
+    name, with the module that owed it, and with the remedy -- never that graduation
+    refuses (INV-163, INV-193, INV-265).
+    """
+    present = manifest_names(manifests)
+    owed = {name: module for module, name in MODULE_VISUALIZATIONS.items()}
+    reports = []
+    for name in expected:
+        if name in present:
+            continue
+        module = owed.get(name, "an unrecorded module")
+        reports.append(
+            f"tab-coverage check for '{name}' — the '{module}' module ran (it is in "
+            f"modules_completed) and is specified to build this visualization, but no "
+            f"{name}-tabs.json was found beside the recap's images. Coverage for it has "
+            f"NOT been measured — this is not a pass, and the per-manifest figure below "
+            f"cannot see it because its denominator is the manifests that exist. "
+            f"Remedy while the artifacts are still on disk: re-start the app and re-run "
+            f"capture_screenshots.py --url http://localhost:<port> --name {name}, then "
+            f"re-embed (the backfill path), rather than shipping a recap that pictures "
+            f"the sample dataset in place of the Bootcamper's own results."
+        )
+    return reports
+
+
 def tab_coverage_problems(source_text: str, manifests: Sequence[dict]) -> List[str]:
     """Captured tabs that never reached the recap, named by slug.
 
@@ -897,6 +1337,48 @@ def tab_coverage_problems(source_text: str, manifests: Sequence[dict]) -> List[s
             f"the recap — {slugs} (captured {len(manifest['captured'])}, referenced "
             f"{len(manifest['captured']) - len(missing)}; source: "
             f"{manifest.get('_path', 'tab manifest')})"
+        )
+    return problems
+
+
+def manifest_undercount_problems(manifests: Sequence[dict]) -> List[str]:
+    """Manifests describing fewer captures than there are PNGs beside them.
+
+    ⛔ **This is the denominator the manifest cannot supply about itself.** The manifest is
+    the only number in the system that does not come from the recap Markdown, which is
+    exactly why a truncated one is undetectable from the consumer side: there is no second
+    figure to check it against. The PNGs are that second figure, and they are the one
+    record a truncating manifest write cannot destroy — the earlier images stay on disk.
+
+    The reported sequence: six tabs captured, one re-captured on its own because its query
+    matched nothing, and the manifest rewritten from scratch as ``captured_count: 1``.
+    Coverage then passes on a 1-of-1 denominator — and would pass just as cheerfully with
+    five of the six images lost. `write_manifest` now merges rather than replaces, but this
+    check is what notices when that merge is bypassed, skipped, or undone by a later edit;
+    it also catches any other cause of an undercount, not just the re-capture path.
+    """
+    problems: List[str] = []
+    for manifest in manifests:
+        source = manifest.get("_path")
+        name = manifest.get("name")
+        if not source or not name:
+            continue
+        directory = Path(str(source)).parent
+        try:
+            pngs = sorted(directory.glob(f"{name}-*.png"))
+        except OSError:
+            continue
+        if not pngs:
+            continue
+        captured = len([e for e in manifest.get("captured", []) if isinstance(e, dict)])
+        if captured >= len(pngs):
+            continue
+        problems.append(
+            f"visualization {name!r}: the tab manifest records {captured} captured tab(s) "
+            f"but {len(pngs)} {name}-*.png file(s) sit beside it — the manifest "
+            "undercounts, so the coverage check above is measuring against a denominator "
+            "smaller than what was actually captured (a targeted re-capture that replaced "
+            f"the manifest is the usual cause; source: {source})"
         )
     return problems
 
@@ -976,6 +1458,20 @@ def audit_recap(
             f"recap still contains a {RECAP_CHECKPOINT_START} … "
             f"{RECAP_CHECKPOINT_END} block — a module was folded by the "
             "durability hooks but never finalized (module-completion step 2d)"
+        )
+
+    # ⛔ A stray fence START — one whose terminator belongs to a LATER block — is reported
+    # by name. It is not the same condition as the surviving-block warning above, and
+    # saying so matters: the stray's region is deliberately NOT annexed (annexing it
+    # deleted finalized modules), so its content stays in the document, and for the notes
+    # fence that is a Bootcamper's private note one heading away from the recap (INV-100).
+    # Neither silently deleting it nor silently rendering it is acceptable; naming it is.
+    for marker, index in stray_fence_markers(source_text):
+        warnings.append(
+            "stray %s at offset %d — its closing marker belongs to a later block, so the "
+            "region was left in place rather than removed (removing it would delete any "
+            "finalized module section between the two). Repair the recap's fences."
+            % (marker, index)
         )
 
     source_chars = _source_content_chars(source_text)
@@ -1064,7 +1560,7 @@ try:
     ACCENT = _h2rgb(_bt.EMBER_HOT)   # hot ember accent / rules
     INK = _h2rgb(_bt.DARK_INK)       # headline ink
     GREEN = _h2rgb(_bt.SIGNAL_GREEN)  # resolved/done sections only
-    LINE = _h2rgb(_bt.WARM_LINE)     # warm divider/rule (never cold grey)
+    LINE = _h2rgb(_bt.WARM_LINE)     # warm divider/rule (never cold gray)
     AMBER = _h2rgb(_bt.EMBER_GRAD_END)  # warm end of the brand's ember gradient
 except ModuleNotFoundError:  # defensive fallback — kept in sync via tests/test_brand_sync.py
     # INV-111: a degraded path is never inferred from silence. The two branches stay
@@ -1090,8 +1586,8 @@ except Exception as exc:  # present but unusable
 # from the brand palette (INV-081/INV-107) — it is not a new token.
 TABLE_HEAD_FILL = tuple(min(255, c + 12) for c in LINE)
 
-# Muted warm grey for the certificate's small-caps labels, where body ink reads too
-# loud and a cold grey fights the ember band. Derived by blending body ink toward the
+# Muted warm gray for the certificate's small-caps labels, where body ink reads too
+# loud and a cold gray fights the ember band. Derived by blending body ink toward the
 # warm off-white — the same "derive, never invent" rule TABLE_HEAD_FILL follows
 # (INV-081): it is not a new brand token.
 MUTED = tuple(round(s + (l - s) * 0.48) for s, l in zip(SLATE, LIGHT))
@@ -1157,7 +1653,7 @@ _UNICODE_MAP = {
     "⚠": "!",
     "\ufe0f": "",  # variation selector-16, trails emoji like the warning sign
     # Comparison, currency and spacing characters a bootcamper's own
-    # discoveries document carries but the plugin's templates never emit — so
+    # discoveries document carries but the Power's templates never emit — so
     # scanning the templates could not find them. Each rendered as "?" until mapped.
     "≈": "~",
     "≤": "<=",
@@ -1211,11 +1707,44 @@ _DROP_EXCERPT_CHARS = 60
 _DROP_NAMES_SHOWN = 8
 
 
+# The one dropped character that is expected, harmless, and has no available remedy.
+#
+# Module 1 Step 11 writes `> \U0001f916 Bootcamp-generated business case` under the title of
+# `docs/business_problem.md` on every run that accepts the Business Case Offer -- the common
+# Core path -- and graduation Step 5b renders that file as a keepsake PDF. ROBOT FACE has no
+# Latin-1 core-font glyph, so it is dropped, and NEITHER branch of the warning's guidance
+# applies: the marker does not name an entity, and it is not the subject of its passage. It is
+# a machine-readable flag that four shipped files match on, read from the MARKDOWN and never
+# from the PDF, so its loss from the page costs nothing and there is no correct action to take.
+#
+# A guaranteed warning with no correct response is what teaches that warnings are ignorable,
+# which is the cost this suppresses.
+#
+# ⛔ Scoped to this exact line, deliberately (INV-266). The character is still DROPPED from the page --
+# only the tally entry is skipped -- and a ROBOT FACE anywhere else in the document still
+# warns, because the guard is the passage, not the character. `tests/test_recap_pdf_guard.py`
+# pins both directions.
+_EXPECTED_DROP_PASSAGE = "> \U0001f916 Bootcamp-generated business case"
+_EXPECTED_DROP_CHAR = "\U0001f916"
+
+
+def _is_expected_marker_drop(ch: str, excerpt: str) -> bool:
+    """True only for ROBOT FACE in the generated-scenario marker line itself."""
+    if ch != _EXPECTED_DROP_CHAR:
+        return False
+    return excerpt.startswith(_EXPECTED_DROP_PASSAGE)
+
+
 def _record_dropped_character(ch: str, context: str) -> None:
     """Remember one character `_fold_to_latin1` had to drop, and where it was."""
     if ch in _DROPPED_CHARACTERS:
         return
     excerpt = re.sub(r"\s+", " ", context).strip()
+    # Checked BEFORE truncation, against the full normalized passage: the marker is 45
+    # characters and _DROP_EXCERPT_CHARS is 60, so truncation would not currently reach it,
+    # but a shorter excerpt cap later must not silently widen what this exempts.
+    if _is_expected_marker_drop(ch, excerpt):
+        return
     if len(excerpt) > _DROP_EXCERPT_CHARS:
         excerpt = excerpt[:_DROP_EXCERPT_CHARS].rstrip() + "..."
     _DROPPED_CHARACTERS[ch] = excerpt
@@ -1259,10 +1788,15 @@ def dropped_character_warning() -> Optional[str]:
         f"PDF's built-in fonts and were dropped from the page: {shown}. "
         f'First affected passage: "{where}". The PDF was still written and the content is '
         f"otherwise intact, but those characters are GONE from it: check the page before "
-        f"sharing it. To fix: use each entity's verified Latin-script name or alias instead "
-        f"of its non-Latin primary name (especially inside fenced/monospace blocks), and use "
-        f"ASCII connectors (| and v) in ASCII diagrams. Never substitute a guess for a name "
-        f"you have not verified.\n"
+        f"sharing it. Which fix applies depends on what the dropped text WAS. "
+        f"(a) If it NAMES an entity: use that entity's verified Latin-script name or alias "
+        f"instead of its non-Latin primary name, especially inside fenced/monospace blocks -- "
+        f"and never substitute a guess for a name you have not verified. "
+        f"(b) If the dropped text IS the subject rather than a label -- a field value the "
+        f"passage is about, with no Latin-script equivalent to substitute -- do NOT remove it: "
+        f"keep it verbatim and add an ASCII description of it alongside, so the page still "
+        f"carries the meaning. "
+        f"Either way, use ASCII connectors (| and v) in ASCII diagrams.\n"
     )
 
 
@@ -1478,7 +2012,7 @@ def render_with_fpdf2(recap: Recap, output: Path) -> bool:
             self.set_text_color(*SLATE)
             if self.page_no() == 1:
                 self.cell(
-                    0, 6, "Generated by the Senzing Bootcamp Claude plugin", align="C"
+                    0, 6, "Generated by the Senzing Bootcamp Kiro Power", align="C"
                 )
             else:
                 self.cell(0, 6, str(self.page_no()), align="C")
@@ -1495,20 +2029,27 @@ def render_with_fpdf2(recap: Recap, output: Path) -> bool:
         # numbers. Because both passes paginate identically, the numbers are
         # correct. This is deterministic and avoids fpdf2's insert_toc_placeholder
         # 2-pass render, which duplicated ("ghosted") text in the field report.
+        # ⚠️ Both passes MUST render the notes page. Rendering it in one and not the
+        # other shifts every page number the TOC reports after it (INV-258).
         measure = new_pdf()
         epw = measure.w - measure.l_margin - measure.r_margin
         _render_cover(measure, epw, recap)
         if recap.modules:
-            _render_toc(measure, epw, recap, None)
+            _render_toc(measure, epw, recap, None, None)
         starts = [_render_module_page(measure, epw, mod) for mod in recap.modules]
+        notes_start = (
+            _render_notes_page(measure, epw, recap.notes) if recap.notes else None
+        )
         _render_certificate(measure, recap)
 
         pdf = new_pdf()
         _render_cover(pdf, epw, recap)
         if recap.modules:
-            _render_toc(pdf, epw, recap, starts)
+            _render_toc(pdf, epw, recap, starts, notes_start)
         for mod in recap.modules:
             _render_module_page(pdf, epw, mod)
+        if recap.notes:
+            _render_notes_page(pdf, epw, recap.notes)
         _render_certificate(pdf, recap)
 
         _ensure_parent(output)
@@ -1769,7 +2310,7 @@ def _cert_attribution(recap: Recap) -> List[str]:
     lines = ["Senzing Bootcamp"]
     version = _cert_plugin_version(recap)
     if version:
-        lines.append(f"Senzing Bootcamp Claude plugin v{version.lstrip('v')}")
+        lines.append(f"Senzing Bootcamp Kiro Power v{version.lstrip('v')}")
     return lines
 
 
@@ -1875,7 +2416,7 @@ def recap_certificate_name_unprintable(recap: Recap) -> Tuple[str, List[str]]:
 # Certificate of Completion (INV-100) — layout
 # --------------------------------------------------------------------------- #
 # Scaled from the Senzing certificate template, `resources/certificate-of-completion.pdf`
-# (a maintainer asset, not shipped with the plugin — like the style reference behind
+# (a maintainer asset, not shipped with the Power — like the style reference behind
 # brand_tokens): a warm ember gradient band down the left edge, a white card bordered by
 # an ember rule, then the Senzing wordmark, an eyebrow, the headline, the recipient, the
 # citation, and a date / issuer signature row flanking an award seal.
@@ -1892,7 +2433,7 @@ _CERT_CARD_Y = 26.0
 _CERT_CARD_W = 255.0
 _CERT_CARD_H = 158.0
 _CERT_BORDER = 1.3         # ember card border stroke
-_CERT_CX = 148.5           # page centre; every line on the certificate is centred on it
+_CERT_CX = 148.5           # page center; every line on the certificate is centered on it
 _CERT_TEXT_W = 175.0       # wrap width for the citation and the module list
 _CERT_LIST_W = 227.0       # widest a line may run: the card less both signature insets
 _CERT_RULE_W = 33.0        # short ember rule under the tagline
@@ -1970,7 +2511,7 @@ def _cert_citation(labels: List[str]) -> str:
 
 
 def _cert_band_color(fraction: float) -> Tuple[int, int, int]:
-    """Colour of the gradient band at `fraction` of the way down the page.
+    """Color of the gradient band at `fraction` of the way down the page.
 
     Ember at both ends, amber through the middle — the template's warm band, mirrored
     with the brand's own gradient pair (`EMBER_HOT`/`EMBER_GRAD_END`) instead of hexes
@@ -2026,7 +2567,7 @@ def _cert_seal_paths() -> Tuple[List[Tuple[float, float]], Tuple[float, float, f
 
 def _cert_text_width(pdf, text: str, size: float, style: str, spacing: float) -> float:
     """Width in mm of one certificate line, letterspacing included but not its trailing
-    advance — fpdf2 counts spacing after the last glyph too, which would shift a centred
+    advance — fpdf2 counts spacing after the last glyph too, which would shift a centered
     line half a space to the left."""
     pdf.set_font("Helvetica", style, size)
     setter = getattr(pdf, "set_char_spacing", None)
@@ -2042,9 +2583,9 @@ def _cert_text_width(pdf, text: str, size: float, style: str, spacing: float) ->
 
 def _cert_line(pdf, key: str, text: str, y: float, color, cx: float = _CERT_CX,
                size: Optional[float] = None, max_w: float = 0.0) -> None:
-    """Draw one centred certificate line with its baseline at `y` (mm).
+    """Draw one centered certificate line with its baseline at `y` (mm).
 
-    Centred here rather than with ``cell(align="C")`` because the template's positions
+    Centered here rather than with ``cell(align="C")`` because the template's positions
     were measured as cap tops, and `text()` takes a baseline — a cell would tie the line
     to a box height instead. Letterspacing is real (``set_char_spacing``), never spaces
     inserted between glyphs: a certificate gets searched and copied out of, and
@@ -2265,7 +2806,8 @@ def _render_certificate(pdf, recap: Recap) -> None:
     # Leave suppress_footer set: this is the last page.
 
 
-def _render_toc(pdf, epw: float, recap: Recap, starts: Optional[List[int]]) -> None:
+def _render_toc(pdf, epw: float, recap: Recap, starts: Optional[List[int]],
+                notes_start: Optional[int] = None) -> None:
     """Render the table of contents. ``starts`` is None in the measure pass
     (placeholder page numbers, identical layout) and the real per-module start
     pages in the final pass, so both passes paginate identically."""
@@ -2291,6 +2833,19 @@ def _render_toc(pdf, epw: float, recap: Recap, starts: Optional[List[int]]) -> N
         pdf.set_text_color(*BLUE)
         pdf.set_font("Helvetica", "B", 11)
         pdf.cell(16, 8, "" if starts is None else str(starts[i]), align="R")
+        pdf.ln(8)
+
+    # The notes row goes AFTER the module rows, mirroring where the page itself sits
+    # (INV-258). It is a row in the contents, never a module: nothing else in this file
+    # reads the TOC, so listing it here cannot leak it into the certificate or the cover.
+    if recap.notes:
+        pdf.set_x(pdf.l_margin)
+        pdf.set_text_color(*INK)
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(epw - 16, 8, _clip(_safe(recap.notes.title), 66))
+        pdf.set_text_color(*BLUE)
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.cell(16, 8, "" if notes_start is None else str(notes_start), align="R")
         pdf.ln(8)
 
 
@@ -2326,6 +2881,78 @@ def _render_module_page(pdf, epw: float, mod) -> int:
             _normalize_heading(r) for r in REQUIRED_SECTIONS
         }:
             _render_subsection(pdf, epw, sub_h, content)
+    return start
+
+
+def _render_notes_page(pdf, epw: float, notes: NotesSection) -> int:
+    """Render the Bootcamper's notes onto a fresh page; return its start page.
+
+    Styled like a module page but visibly its own thing — its own header band color and
+    a heading that reads as the Bootcamper's rather than the bootcamp's — because this
+    is the one section of the keepsake they wrote.
+    """
+    pdf.add_page()
+    start = pdf.page_no()
+    pdf.set_fill_color(*ACCENT)
+    pdf.rect(0, 0, pdf.w, 24, style="F")
+    pdf.set_xy(pdf.l_margin, 6)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(epw, 9, _clip(_safe(notes.title), 62))
+    pdf.set_xy(pdf.l_margin, 15)
+    pdf.set_font("Helvetica", "", 9)
+    count = len(notes.entries)
+    pdf.cell(epw, 5, _safe(
+        "In your own words — %d note%s captured during the bootcamp"
+        % (count, "" if count == 1 else "s")))
+    pdf.ln(24)
+
+    for note in notes.entries:
+        pdf.ln(3)
+        pdf.set_x(pdf.l_margin)
+        pdf.set_text_color(*NAVY)
+        pdf.set_font("Helvetica", "B", 12)
+        heading = f"{note.type}: {note.title}" if note.type else note.title
+        pdf.multi_cell(epw, 6, _safe(heading))
+
+        stamp = " · ".join(p for p in (note.captured, note.module) if p)
+        if stamp:
+            pdf.set_x(pdf.l_margin)
+            pdf.set_text_color(*SLATE)
+            pdf.set_font("Helvetica", "I", 8.5)
+            pdf.multi_cell(epw, 4.6, _safe(stamp))
+
+        body = [line for line in note.body if line.strip()]
+        if body:
+            pdf.ln(0.8)
+            pdf.set_x(pdf.l_margin)
+            pdf.set_text_color(*INK)
+            pdf.set_font("Helvetica", "", 10.5)
+            for line in body:
+                pdf.set_x(pdf.l_margin)
+                pdf.multi_cell(epw, 5.2, _safe(_md_inline_to_text(line.strip())))
+
+        # ⛔ Context and Elaboration carry their own labels because neither is the
+        # Bootcamper's writing (INV-257). The elaboration says whose words it is on the
+        # page, not merely in the source, so the distinction survives printing.
+        for label, value in (("Context", note.context),
+                             ("Elaboration (written by the bootcamp)",
+                              note.elaboration)):
+            if not value:
+                continue
+            pdf.ln(0.8)
+            pdf.set_x(pdf.l_margin + 4)
+            pdf.set_text_color(*SLATE)
+            pdf.set_font("Helvetica", "B", 8.5)
+            pdf.multi_cell(epw - 4, 4.6, _safe(label.upper()))
+            pdf.set_x(pdf.l_margin + 4)
+            pdf.set_font("Helvetica", "", 9.5)
+            pdf.multi_cell(epw - 4, 4.8, _safe(_md_inline_to_text(value)))
+
+        pdf.ln(2)
+        pdf.set_draw_color(*LINE)
+        y = pdf.get_y()
+        pdf.line(pdf.l_margin, y, pdf.l_margin + epw, y)
     return start
 
 
@@ -2642,10 +3269,10 @@ def _clip(s: str, n: int) -> str:
 # --------------------------------------------------------------------------- #
 # Stdlib-only fallback renderer
 # --------------------------------------------------------------------------- #
-# Helvetica advance widths (1/1000 em) for the glyphs that actually move a centred line;
+# Helvetica advance widths (1/1000 em) for the glyphs that actually move a centered line;
 # everything else is within a hair of 556. This writer has no font metrics of its own, and
 # the crude `len(text) * size * 0.52` it used before put the certificate's 38 pt headline
-# 8 mm off centre — visible on the page, invisible to text extraction.
+# 8 mm off center — visible on the page, invisible to text extraction.
 _HELV_W = {
     " ": 278, "!": 278, '"': 355, "'": 191, "(": 333, ")": 333, "*": 389, ",": 278,
     "-": 333, ".": 278, "/": 278, ":": 278, ";": 278, "[": 278, "]": 278, "|": 260,
@@ -2657,7 +3284,7 @@ _HELV_W = {
     "W": 944, "Z": 611,
 }
 # Helvetica-Bold runs ~8% wider than Helvetica across mixed-case text; one factor is
-# accurate enough to centre a line, and far more accurate than ignoring the difference.
+# accurate enough to center a line, and far more accurate than ignoring the difference.
 _HELV_BOLD_FACTOR = 1.08
 
 
@@ -2710,11 +3337,11 @@ def _stdlib_certificate_stream(recap: Recap, w: float, h: float) -> str:
         base, style, spacing = _CERT_FONT[key]
         size = base if size is None else size
         # Sanitize BEFORE measuring. `_safe` can change length ("∞" -> "infinity"), so
-        # measuring raw text and rendering sanitized text mis-centres the line — the same
+        # measuring raw text and rendering sanitized text mis-centers the line — the same
         # desync the comment below describes for escaping, one step earlier.
         text = _safe(text)
         # Measure the text, escape only what is written: `_pdf_escape` turns "·" into the
-        # 4-character sequence `\267`, so measuring after escaping mis-centres the line —
+        # 4-character sequence `\267`, so measuring after escaping mis-centers the line —
         # and escaping twice prints the escape itself.
         width = _stdlib_width(text, size, style == "B", spacing)
         text = _pdf_escape(text)
@@ -2892,6 +3519,30 @@ def render_with_stdlib(recap: Recap, output: Path) -> bool:
                 }:
                     _stdlib_subsection(add, add_wrapped, h, content)
 
+        # The Bootcamper's notes, after the last module and before the certificate —
+        # which is appended as its own page below, so "after the module loop" here is
+        # the same position the fpdf2 renderer uses (INV-066 parity, INV-258).
+        if recap.notes:
+            add("", "F1", 10, 0)
+            add_wrapped(recap.notes.title, "F2", 15, 0)
+            for note in recap.notes.entries:
+                add("", "F1", 4, 0)
+                heading = f"{note.type}: {note.title}" if note.type else note.title
+                add_wrapped(heading, "F2", 12, 0)
+                stamp = " - ".join(p for p in (note.captured, note.module) if p)
+                if stamp:
+                    add_wrapped(stamp, "F1", 9, 6)
+                for line in note.body:
+                    if line.strip():
+                        add_wrapped(_md_inline_to_text(line.strip()), "F1", 10, 6)
+                if note.context:
+                    add_wrapped(f"Context: {_md_inline_to_text(note.context)}",
+                                "F1", 9.5, 12)
+                if note.elaboration:
+                    add_wrapped(
+                        "Elaboration (written by the bootcamp): "
+                        f"{_md_inline_to_text(note.elaboration)}", "F1", 9.5, 12)
+
         # Paginate tokens into pages of content streams.
         pages: List[str] = []
         y = page_h - margin
@@ -3021,8 +3672,8 @@ def _stdlib_subsection(add, add_wrapped, name: str, content: Optional[List[str]]
 def _wrap_to_width(text: str, max_w: float, measure) -> List[str]:
     """Greedy word wrap on measured width, where `measure(str)` returns a width.
 
-    Used by the certificate, whose lines are centred: a character-count wrap
-    (``_wrap``) cannot centre honestly, because "Illinois" and "MMMMMMMM" are the same
+    Used by the certificate, whose lines are centered: a character-count wrap
+    (``_wrap``) cannot center honestly, because "Illinois" and "MMMMMMMM" are the same
     number of characters and nowhere near the same width. Both renderers pass their own
     `measure`, so neither wraps the certificate differently from the other (INV-066).
     """
@@ -3221,6 +3872,23 @@ def main(argv: Optional[List[str]] = None) -> int:
             "names contain commas, e.g. 'Query, Visualize and Discover'."
         ),
     )
+    parser.add_argument(
+        "--progress",
+        default=str(DEFAULT_PROGRESS),
+        help=(
+            "Progress JSON whose `modules_completed` supplies the EXPECTED set of "
+            "visualizations. This is the tab-coverage denominator that does not come "
+            "from the manifests, so a module that captured nothing is still visible."
+        ),
+    )
+    parser.add_argument(
+        "--expect-visualizations",
+        default=None,
+        help=(
+            "Comma-separated visualization names to expect, overriding --progress. "
+            "Mainly for tests and for a run whose progress file is unavailable."
+        ),
+    )
     args = parser.parse_args(argv)
 
     inp = Path(args.input)
@@ -3228,7 +3896,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         sys.stderr.write(f"Recap not found: {inp}\n")
         return 1
 
-    source_text = inp.read_text(encoding="utf-8")
+    try:
+        source_text = inp.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        # Exists but is not UTF-8 — an editor that saves cp1252/ANSI is the usual cause.
+        # Refuse with a message the guide can relay rather than a traceback, and write no
+        # PDF (INV-110). Do NOT re-read with errors="replace": the recap is the
+        # bootcamper's document, and silently mangling their text is not ours to do.
+        sys.stderr.write(
+            f"Recap is not valid UTF-8: {inp} ({exc}). No PDF written. "
+            f"Re-save it as UTF-8 and run this again.\n"
+        )
+        return 1
     recap = parse_recap(source_text)
     expected = [s for s in (t.strip() for t in args.expect_modules.split(";")) if s]
     audit = audit_recap(recap, source_text, expected or None)
@@ -3250,6 +3929,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         # above, because they all measure the recap against itself.
         manifests = find_tab_manifests()
         problems = problems + tab_coverage_problems(source_text, manifests)
+        # …and whether the manifest those checks trust is itself complete.
+        problems = problems + manifest_undercount_problems(manifests)
         if problems:
             for p in problems:
                 sys.stderr.write(f"INCOMPLETE: {p}\n")
@@ -3265,11 +3946,32 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "is unknown. The embedded-image count cannot answer this: its "
                 "denominator comes from this same recap.\n"
             )
+        # …and whether a visualization that SHOULD have a manifest has none. This branch
+        # is the one the no-manifest branch above cannot reach: with some manifest
+        # present it never fires, so a wholly uncaptured module passed silently.
+        if args.expect_visualizations is not None:
+            expected = [
+                name.strip()
+                for name in args.expect_visualizations.split(",")
+                if name.strip()
+            ]
+        else:
+            expected = expected_visualizations(read_completed_modules(Path(args.progress)))
+        missing = missing_visualization_reports(expected, manifests)
+        for report in missing:
+            sys.stderr.write(f"SKIPPED: {report}\n")
+        # ⛔ The coverage figure is WITHHELD while an expected visualization is
+        # unaccounted for. Printing "6 of 6 captured tabs reached the recap" beside a
+        # missing-manifest notice is exactly the reading that made the 2026-08-25 run
+        # look clean: the sentence is true of the manifests that exist and false of the
+        # bootcamp (INV-163, INV-193, INV-265).
         print(
             "Recap complete: all module sections carry the required subsections, "
             "and every End-of-Module Summary carries its labeled blocks."
             + (f" Tab coverage: {tab_coverage_note(source_text, manifests)}."
-               if manifests else "")
+               if manifests and not missing else "")
+            + (f" Tab coverage NOT reported: {len(missing)} expected visualization(s) "
+               f"have no manifest (see SKIPPED above)." if missing else "")
         )
         return 0
 

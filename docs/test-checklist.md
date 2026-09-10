@@ -92,7 +92,7 @@ asserts its shape. The structure below is therefore a contract, not a layout pre
      point it at the built `powers/senzing-bootcamp/` directory.
   2. Let the install complete without hand-editing anything in the Power.
   3. Open the installed Power and list its skills.
-- **Pass:** the install completes with no error and the installed Power lists all 16 skills.
+- **Pass:** the install completes with no error and the installed Power lists all 18 skills.
 - **Fail:** any install error or schema complaint, a missing skill, or an install that only
   succeeded after a manual edit to the Power.
 - **Platform cells:**
@@ -178,14 +178,19 @@ asserts its shape. The structure below is therefore a contract, not a layout pre
   | `6.start-bootcamp` | command-derived | `start-bootcamp` | "start the senzing bootcamp" | `_unrecorded_` |
   | `6.graduate-bootcamp` | command-derived | `graduate-bootcamp` | "graduate the senzing bootcamp" | `_unrecorded_` |
   | `6.bootcamp-feedback` | command-derived | `bootcamp-feedback` | "give senzing bootcamp feedback" | `_unrecorded_` |
+  | `6.bootcamp-note` | command-derived | `bootcamp-note` | "take a senzing bootcamp note" | `_unrecorded_` |
+  | `6.package-bootcamp` | command-derived | `package-bootcamp` | "package the senzing bootcamp" | `_unrecorded_` |
   | `6.bootcamp-enforcement-setup` | client-adaptation | `bootcamp-enforcement-setup` | "install the senzing bootcamp enforcement hooks" | `_unrecorded_` |
 
-  Sixteen rows: 12 ported bootcamp skills, 3 command-derived, 1 client-adaptation. The rows
+  Eighteen rows: 12 ported bootcamp skills, 5 command-derived, 1 client-adaptation. The rows
   **are** the inventory. If the resolved Template_Release carries a different set of bootcamp
   skill directories, add or remove rows so there is exactly one row per skill directory present
   in the built Power *(R7 AC1, AC2)* — a skill in the Power with no row is a fail for this step.
-  At Template_Release `0.5.1` the nine module directories are `module-00-…` through
-  `module-07-…` including `module-03b-truthset-visualization`.
+  At Template_Release `0.5.3` the nine module directories are `module-00-…` through
+  `module-07-…` including `module-03b-truthset-visualization`, and the five template commands
+  are `start-bootcamp`, `graduate`, `bootcamp-feedback`, `bootcamp-note`, and
+  `package-bootcamp` — `graduate` being the one whose skill is named differently
+  (`graduate-bootcamp`).
 
 - **Pass:** every row activates the skill it names, and no row activates a different bootcamp
   skill or two at once.
@@ -198,10 +203,11 @@ asserts its shape. The structure below is therefore a contract, not a layout pre
 - **Verifies:** R9 AC5
 - **Do:**
   1. In a fresh session with the Power installed, say something bootcamp-adjacent that quotes
-     none of the three command phrases — for example, "what does entity resolution mean?".
+     none of the command phrases — for example, "what does entity resolution mean?".
   2. Observe which skills, if any, activate.
-- **Pass:** none of `start-bootcamp`, `graduate-bootcamp`, or `bootcamp-feedback` activates.
-- **Fail:** any one of the three activates on a statement that does not state its phrase.
+- **Pass:** no command-derived skill activates — none of `start-bootcamp`,
+  `graduate-bootcamp`, `bootcamp-feedback`, `bootcamp-note`, or `package-bootcamp`.
+- **Fail:** any one of them activates on a statement that does not state its phrase.
 - **Outcome:** `_unrecorded_`
 
 ## Step 8 — Progression follows the template order: onboarding → module 00 → module 03b → graduation

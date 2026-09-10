@@ -20,7 +20,7 @@ Read `config/data_sources.yaml` and check `test_load_status` per source:
 - **`skipped` or missing**, note that a brief test load is **owed** for that source, and say so:
   "You skipped the sandbox test load in Data Quality, Mapping, and Transformation, so we'll do a
   quick one before the full load." ⛔ **Do not run it here.** Phase B step 5 runs it, and it
-  cannot run any earlier: it needs the loading program, which step 3 builds from the volume tier
+  cannot run any earlier (INV-089 is why the ordering is not a preference): it needs the loading program, which step 3 builds from the volume tier
   captured at step 1, and the registered `DATA_SOURCE` codes, which step 4a creates — without
   which the load fails with `SENZ2207`, the exact error step 4a exists to prevent.
 
@@ -33,8 +33,8 @@ found during Phase 3 that may affect orchestration.
 
 If the bootcamper is using CORD sample data (downloaded via `get_sample_data`), remind them to
 confirm their data files haven't changed since download. This is advisory only, never block
-loading. If they are using their own data, skip silently. (The Kiro CORD-freshness helper
-`../bootcamp-onboarding/scripts/cord_metadata.py` is a later porting phase; give the reminder inline for now.)
+loading. If they are using their own data, skip silently. (This Power ships no CORD-freshness
+helper; compare against `config/cord_metadata.yaml` and give the reminder inline.)
 
 ### Anti-pattern check
 
@@ -79,8 +79,7 @@ still unparseable, default to `demo` and tell the bootcamper demo/evaluation was
 the default. Persist `production_volume` (`tier` and `raw_value`) to
 `config/bootcamp_preferences.yaml` and checkpoint step 1 to `config/bootcamp_progress.json`.
 
-(The Kiro helpers `answer_binding.py` / `volume_utils.py` encode this parsing and persistence;
-the script port is a later phase, apply the logic inline for now.)
+(No answer-parsing or volume helper is bundled; apply the parsing and persistence logic inline.)
 
 ⛔ **Echo the consequence back before generating any code.** State the tier *and* the architecture
 it selects, and invite a correction — a misread costs nothing to fix here and is expensive to
@@ -93,7 +92,29 @@ tell me now and I'll build the threaded version instead."
 **License framing (default + expansion paths).** After the tier is classified, present
 licensing as a default the bootcamper already has, never as a hard cap:
 
-- Frame the built-in evaluation license as the default they already have. Present the expansion
+- ⛔ **Read the measured `license_record_limit` from `config/bootcamp_progress.json` before framing
+  anything, and suppress this entire block when it does not bind (INV-244, INV-012).** `0` (no cap),
+  or a value **≥ the dataset size**, means the bootcamper is not constrained: say nothing here about
+  licenses, defaults, expansion paths or downsizing, and go straight to step 2. Only a **positive
+  limit below the dataset size** puts licensing in scope at this step. If the field is **absent or
+  null** that means *"never measured"*, not *"no custom license"* — follow the three branches under
+  *"Reconcile it against the license already detected"* below rather than restating them here
+  (INV-183, INV-300), then re-enter this bullet with the measured value. ⛔ **Do not measure it again here**:
+  the value you would be re-deriving was already measured and persisted by the step that owns this
+  question, and a second SDK call is the way two answers start to differ.
+  ⛔ **(INV-295) One exception, and it is the reason `license_record_limit_measured_at` exists: a reading marked
+  provisional (or carrying no marker) takes the absent branch, not this one.** SDK setup's Step 5a
+  reads the license before Step 8 writes `CONFIGPATH`, so that reading cannot see a license installed
+  at the system config path; Step 8a re-takes it, but its "cannot re-measure" branch deliberately
+  leaves the provisional figure in place rather than blanking it. A provisional value is therefore a
+  real measurement of an incomplete view — which is exactly what the "do not measure again" rule
+  above must not apply to, because re-deriving it is the point.
+  ⚠️ **`license` in `config/bootcamp_preferences.yaml` is not this gate.** It records *how* a license
+  was obtained — applied or requested — and a bootcamper who simply has a good one installed is
+  measured and never writes it. The measured limit governs (the same precedence the branches below
+  state: a value measured on this machine outranks generic guidance about that value).
+- **When the limit does bind:** frame the built-in evaluation license as the default they already
+  have. Present the expansion
   paths — apply an existing license, request one through the external channel
   (<support@senzing.com>), and, when available, request one in-flow via the Senzing MCP server —
   before any mention of downsizing. Downsizing (sampling or a smaller subset) is one option
@@ -105,7 +126,8 @@ licensing as a default the bootcamper already has, never as a hard cap:
   `get_capabilities` (wait up to 30s), and omit the in-flow path when it is unavailable, errors,
   or does not respond. If the bootcamper already has a license (`license` set in
   `config/bootcamp_preferences.yaml`), route them to the apply-an-existing-license path and omit
-  the in-flow option. Refer to the Senzing MCP server by name only, never a URL.
+  the in-flow option — that key narrows **which** expansion path to show, never **whether**
+  licensing is in scope, which the measured limit decided above. Refer to the Senzing MCP server by name only, never a URL.
 
 **Checkpoint:** write step 1 to `config/bootcamp_progress.json`.
 
@@ -127,9 +149,8 @@ Update the source's `load_status` to `loading` in `config/data_sources.yaml` and
 ## 3. Create the production loading program
 
 Help the bootcamper build a complete, production-quality loading program for this source. All
-generated code must follow the coding standards for the chosen language. (Full
-`CODE_QUALITY_STANDARDS` reference is a later porting phase; apply clean-code conventions for
-the language for now.)
+generated code must follow the coding standards for the chosen language. (No coding-standards
+reference is bundled; apply clean-code conventions for the language.)
 
 **Volume-aware scaffold.** Read `production_volume` from `config/bootcamp_preferences.yaml`.
 
@@ -166,10 +187,19 @@ persists it from `SzProduct.get_license()`) and apply the same effective-limit r
   warning the bootcamper cannot act on is noise (INV-012).
 - **Positive and below the dataset size** — the note applies. The single License Key gate (Module 4,
   Step 8a) already offered to expand capacity; restate that as a choice, never force downsizing.
-- **Absent or null** — ⛔ **this means "never asked", not "no custom license". Measure it, do not
-  assume it.** (INV-244) The only writer of `license_record_limit` is Module 4's Step 8a gate, which is
-  volume-gated by design: a bootcamper with a small dataset never triggers it, so the field is
-  absent no matter what license is installed. Assuming the default here relays a 500-record note —
+  ⛔ **Do not improvise a menu of options here, and do not ask what to load.** This phase builds the
+  loader; the load decision — with its pinned question, the *"a license may already have arrived"*
+  readout, and the pointer to Step 8a sub-step 5's apply procedure — belongs to
+  `phaseB-load-first-source.md` step 7, once. Improvising a choice at this point is how a Bootcamper
+  came to be offered *"wait until the evaluation license is applied"* with no way to reach it.
+- **Absent or null** — ⛔ **(INV-244) this means "never measured", not "no custom license". Measure it, do not
+  assume it.** **Every step that writes `license_record_limit` writes only a MEASURED value** —
+  including this branch, below. ⚠️ **Do not reason from a count of writers**; that number has been
+  stated wrongly twice. What makes absence uninformative about the *license* is that no step writes
+  this field without measuring it: SDK setup's Step 5a measures as soon as the SDK is verified and
+  deliberately writes nothing when it cannot, and Module 4's Step 8a gate is **volume-gated by
+  design**, so a bootcamper with a small dataset never triggers it. In both cases the **absence says
+  nothing about the installed license** — it is a measurement that did not happen. Assuming the default here relays a 500-record note —
   and `sdk_guide`'s sampling prescription with it — to someone whose license may have no cap at
   all, which is the same harm named just above, reached through the branch that is taken far more
   often. It also contradicts a higher-precedence rule: a value you measured on this machine governs
@@ -177,13 +207,15 @@ persists it from `SzProduct.get_license()`) and apply the same effective-limit r
   explicitly (INV-012). It is one SDK call away.
   - **Measure it** by the procedure Module 4 Step 8a already defines — generate a scaffold calling
     `SzProduct.get_license()`, save the returned JSON, read it to confirm the shape before parsing
-    (INV-115), and parse `recordLimit`. Follow that step rather than re-deriving it; the module
+    (INV-115), and parse `recordLimit`. Follow that step rather than re-deriving it (INV-300); the module
     already builds and runs SDK programs in the bootcamper's language, so this needs no new
     machinery. (`get_sdk_reference(topic='response_schemas', filter='getLicense')`, server 1.32.9,
     2026-08-14, confirms the method in every binding — `SzProduct.getLicense() -> String`,
     `get_license() -> str`.)
-  - **Persist it** as `license_record_limit` in `config/bootcamp_progress.json`, so later steps,
-    Phase B and graduation see a detected value instead of the same absence.
+  - **Persist it** as `license_record_limit` in `config/bootcamp_progress.json`, together with
+    `license_record_limit_measured_at: "module-06 phase A (engine configuration in force)"`, so later
+    steps, Phase B and graduation see a detected value instead of the same absence — and can tell it
+    was taken with a complete view rather than SDK setup's provisional one.
   - **Then re-enter these three branches** with the measured value. `recordLimit: 0` lands on the
     first branch and correctly suppresses the note.
   - **Only if the call fails** (no engine yet, SDK error) does the default-limit note apply — and
@@ -202,6 +234,42 @@ loader. Every tier that represents a real production system gets the threaded pa
   record_count=<raw_value>)` for the threaded production pattern. Add a code comment stating the
   tier and the architecture recommendation (thread pool for small and medium; distributed /
   queue-based for large).
+
+  ⛔ **(INV-296) The tier picks the PATTERN; `database_type` picks the WORKER COUNT — read both.** Read
+  `database_type` from `config/bootcamp_preferences.yaml` (the key SDK setup's Step 7 writes when the
+  engine is chosen, valued `sqlite` or `postgresql` — the same file and key the SQLite pre-load
+  check below reads, never `bootcamp_progress.json`) **here**, not only at that check
+  further down. The tier answers "what shape of program"; it cannot answer "how many writers this
+  datastore tolerates", and taking the worker count from the tier alone is how a
+  production-tier loader ends up pointed at a datastore that cannot take it.
+
+  **The server makes this a database question, in its own words.**
+  `search_docs(query='loading', category='anti_patterns')` → *"Do Not Use Single-Threaded Loading"*
+  says *"Start with 2-8 workers per CPU core and **tune based on your database and storage
+  throughput**"*, and *"Do Not Use SQLite in Production"* says SQLite *"does not support concurrent
+  writes"*, listing *"Database locked errors under concurrent access"* among its symptoms (server
+  **1.36.0**, 2026-09-02). So:
+
+  - **`postgresql`** (or any supported RDBMS) — take the tier's full concurrency. This is the case
+    the 2-8-per-core figure is written for; nothing is capped.
+  - **`sqlite`** — keep the tier's threaded *pattern* and **serialize the writes**: a single writer,
+    or a small fixed ceiling if the language's pool cannot be sized to one. ⚠️ **This ceiling is a
+    DERIVATION, not a served figure** — no MCP route returns a SQLite worker count. What the server
+    serves is the property (no concurrent writes; locked errors under concurrent access) and the
+    instruction to tune by database; the ceiling is that property's consequence. Mark it that way in
+    the code comment rather than presenting a number as documented (INV-080/INV-149).
+  - **Absent or unreadable** — treat it as the SQLite case and say so. The conservative reading is
+    the one that cannot corrupt: a serialized loader on PostgreSQL is merely slower, while a
+    thread-pooled loader on SQLite is the documented failure.
+
+  **Say it in the code comment the step already requires**, so the take-home loader carries both
+  halves: the tier and its architecture, *and* that concurrency was reduced for this datastore with
+  what to raise it to when they move to PostgreSQL. A loader tuned for a database the Bootcamper is
+  not using is a defect they inherit silently — and they **do** inherit it: graduation copies
+  `src/load/**` into `production/src/load/` **verbatim** and deliberately does not rewrite it
+  (`../graduation/SKILL.md` → Step 2, "the loader is theirs"). This comment is therefore the only
+  place the concurrency decision is explained to them at all, and the only thing that tells them
+  what to change when the production datastore is not SQLite.
 - **`demo`:** call `sdk_guide(topic='load', language='<chosen_language>', record_count=<raw_value>)`
   — the same call, with a count below the threshold, which returns the single-threaded demo
   template. Add a code comment stating the tier and that single-threaded loading is appropriate at
@@ -276,13 +344,96 @@ Truth Set visualization module already run.
    already-Senzing-ready sources — cross-checked against the source's entry in
    `config/data_sources.yaml`. Never register a code that is not present in the data.
 2. **Generate the registration code from the MCP server** (never hand-write it): call
-   `sdk_guide(topic='configure')` (and `generate_scaffold` if it exposes a data-source
-   registration workflow) in the language read from `programming_language` in
-   `config/bootcamp_preferences.yaml` (never a hardcoded default). Save it to
-   `src/load/register_data_sources.[ext]` (INV-018). The generated code MUST load the current
-   default config, register each code from step 1, set the updated config as the new default, and
-   be **idempotent** — a code already registered is treated as success, not an error, so re-runs
-   and multi-source orchestration stay safe.
+   `sdk_guide(topic='configure', language=<from `programming_language`>, data_sources=[<the codes
+   from step 1>])` (and `generate_scaffold` if it exposes a data-source registration workflow),
+   reading the language from `config/bootcamp_preferences.yaml` (never a hardcoded default). Save it
+   to `src/load/register_data_sources.[ext]` (INV-018).
+
+   <!-- MCP-NEGATIVE: sdk_guide(topic='configure', language='python', data_sources=['ECOMMERCE_ORDERS','POS_LOYALTY','EMAIL_MARKETING']) — none of the three supplied codes appears anywhere in the response; the returned snippet still carries the hardcoded sample tuple — owner: sdk_guide(topic='configure', data_sources=[...]) IS the route that would carry substituted codes — data_sources is its own documented parameter ("Data sources to register (for configure topic)"), so this call was asked WITH the codes rather than inferred from a sibling call, and its response selected the registration snippet correctly while substituting nothing (absence negative) — server 1.36.0, 2026-09-02 -->
+   ⛔ **`data_sources` SELECTS the snippet and SUBSTITUTES nothing — you must fill in the codes
+   yourself.** Passing it makes the **registration** snippet primary; omitting it returns the
+   **seeding** snippet instead, which is not what this step needs. The returned code hardcodes a
+   sample tuple of Senzing's own demo data source codes, its own `notes` say *"Replace sample data
+   source names with your own"*, and **none of the codes you passed appears anywhere in the
+   response**. Locate the snippet by its **`source_path`**, not by position among the alternatives,
+   then substitute the step-1 codes into it. Shipping it unsubstituted registers codes the
+   Bootcamper does not have and leaves the first load failing `SENZ2207` on the codes they do —
+   which is what item 1 above exists to prevent.
+
+   ⛔ **(INV-002/INV-090) Match the response against that PROPERTY, never against a literal tuple
+   or filename from this page — both are per-language.** The property holds in every language and
+   survives a snippet being re-authored; the literals do not. Verified with the three codes passed
+   explicitly on server **1.36.0, 2026-09-02**: Python's snippet
+   (`python/configuration/register_data_sources.py`) hardcodes
+   `("CUSTOMERS", "REFERENCE", "WATCHLIST")`, while **Java's**
+   (`java/snippets/configuration/RegisterDataSources.java`) hardcodes
+   `{"CUSTOMERS", "EMPLOYEES", "WATCHLIST"}` — **`EMPLOYEES`, not `REFERENCE`**, and a different
+   `source_path` shape. Telling a Java Bootcamper to look for `REFERENCE` sends them hunting for a
+   line that is not in the response they received. Read `programming_language` from preferences and
+   describe what you actually got back.
+
+   ⚠️ **The config-replacement mechanics differ per language too, and neither shape is canonical.**
+   Both languages register the modified config and then replace the default config id; **Java's
+   snippet wraps that pair in a retry loop** — `while (!replacedConfig)`, catching
+   `SzReplaceConflictException` and re-reading the current default config id — where Python's does
+   not (server **1.36.0, 2026-09-02**). The substitution rule is unaffected either way: keep every
+   Senzing method, signature and flag exactly as the snippet has them, and change only the codes.
+
+   ⚠️ **On a freshly schema-created datastore, call it WITHOUT `data_sources` first.** The
+   registration snippet reads the *current* default config, so it assumes one is already registered;
+   the same response's `compatibility_notes` say that on a fresh datastore
+   `get_default_config_id()` returns 0 and `create_config_from_config_id(0)` raises SENZ7221. The
+   no-`data_sources` call returns the seeding snippet that creates one.
+
+   The generated code MUST load the current default config, register each code from step 1, export
+   it, register the new config, and replace the default config ID — and the **whole sequence must be
+   safe to re-run**, so re-runs and multi-source orchestration stay safe.
+
+   ⛔ **Build re-runnability into the sequence; do not make it depend on catching an error (INV-263).**
+   Registering an identical configuration returns the **existing** config ID rather than failing —
+   Senzing's release notes record *"Fix `G2ConfigMgr.addConfig` function to return success and the
+   ConfigID if the configuration already exists"* — so the sequence is idempotent one call **later**
+   than the per-code registration, by construction. ⛔ **No route documents a raised error for
+   re-registering a code, for any binding:**
+   `get_sdk_reference(topic='parameters', filter='register_data_source', language='python')` returns
+   `register_data_source(data_source_code: str) -> str` with warnings only about argument types
+   across bindings and no error condition (server **1.33.0, 2026-08-21**). A per-code error catch is
+   therefore a permitted **fallback** and must not be the mechanism: code whose idempotency rests on
+   it is untested by construction and will fail in exactly the case it was written for. Read the
+   signature for the chosen binding and build for re-runnability; do not name any binding's
+   exception type as a contract (INV-002).
+
+   <!-- SEARCH-DOCS-CATEGORY-PROSE: this names the `sdk` category to describe WHAT IT INDEXES,
+        not to instruct a call, so it carries no `query`. `tests/test_search_docs_calls_pass_a_query.py`
+        exempts a reference carrying this marker; the marker must sit on the line above it. -->
+   ⛔ **`search_docs(category='sdk')` indexes community-maintained wrapper docs alongside the
+   official ones, so an error contract found there may not be your binding's.** `get_capabilities`
+   states the index covers "Python, Java, C# official; Rust, TypeScript/Node.js community … not
+   official Senzing SDKs". A search for this method's failure mode returns, as its top hit, a
+   community Rust trait doc stating `SzError::BadInput` for an already-existing code — which
+   describes that wrapper, not the official Python binding, and the result does not say so.
+   `get_sdk_reference(…, language=<binding>)` is the route that answers per binding. It already warns
+   about name and type divergence; **error-condition divergence is the gap this note covers.**
+
+   ⚠️ **`get_capabilities` is quoted here deliberately, and the reason is now historical: the two
+   sources once disagreed about this index, and the upstream report was acted on.** On server
+   **1.33.0** `find_examples`' declared description — the text a client loads from the manifest —
+   omitted TypeScript and JavaScript from both the language list and the indexed extensions and gave
+   a lower repository count, which was settled by a call rather than by argument
+   (`find_examples(query='add record engine initialization', language='typescript')` returned
+   `brianmacy/sz-napi` → `code-snippets/initialization/engine-priming/index.ts`, so `.ts` **was**
+   indexed) and reported upstream 2026-08-27. **Re-checked on server 1.36.0, 2026-09-02: the server
+   aligned the two.** The declared description now gives the **same** repository count as
+   `get_capabilities`, lists `.py, .java, .cs, .rs, .ts, .js`, and names TypeScript/Node.js. ⚠️ **The
+   count is deliberately not written here** — the rule below forbids quoting it, and a note that
+   exempted itself to say the two figures now match would be the one place in the Power holding a
+   coverage figure. Ask `get_capabilities` if you need it. ⛔ **(INV-280) Do not
+   quote a repository count anywhere in this Power** — **not because the two sources disagree
+   today, but because a coverage figure is volatile server-side state**: the count moves as
+   repositories are indexed, so a number pinned in shipped guidance goes stale on the server's
+   schedule and nothing here notices. That reason survives the alignment; the prohibition is
+   unchanged. Quote `get_capabilities` for what
+   the index covers.
 3. **Build the registration code if the language requires it** (compiled languages — Java, C#,
    Rust, TypeScript), using the same per-language build command as the loader.
 4. **Execute it before the Phase B load.** On success, record the registered codes in
@@ -339,14 +490,21 @@ stop-and-confirm heads-up, NOT a mandatory gate, the bootcamper may always proce
    - **Proceed on SQLite:** record `sqlite_volume_prompt` = `{decided: true, choice: "proceed",
      tier, raw_value}` in preferences, then continue to the Phase B load. Do not re-present this
      prompt for the same load.
+     ⛔ **(INV-296) Proceeding keeps SQLite *and* the serialized writer count step 3 selected for it — say
+     so in one line.** Both options in this question are about **where** the data lands; neither
+     mentions **how** it is written, so "proceed" reads as accepting a known slowdown rather than
+     accepting a loader tuned for this datastore. State that the loader writes serially because
+     SQLite does not support concurrent writes, and that its header comment says what to raise the
+     worker count to on PostgreSQL. If step 3 did **not** apply the reduction — because
+     `database_type` was absent then and is known now — apply it before the load rather than
+     carrying a thread-pooled loader into a datastore this question just confirmed is SQLite.
    - **Migrate to PostgreSQL:** record `sqlite_volume_prompt` = `{decided: true, choice:
      "migrate", tier, raw_value}` in preferences, then hand off to the database-migration
-     guidance (PostgreSQL migration is a production follow-up; see the graduation migration checklist). Do not restate migration steps here.
+     guidance (PostgreSQL migration is a production follow-up; see the graduation migration checklist). Do not restate migration steps here (INV-300).
 
 *(Internal: when this heads-up fires, end the turn on the pinned question in item 4 and wait.)* Use
-only synthetic/persisted values, never echo credentials or connection strings. (The Kiro
-helpers `volume_utils.py`, `preferences_utils.py`, `load_time_warning.py`, and the migration
-guide are later porting phases; apply the logic inline and refer to the graduation migration checklist for PostgreSQL migration for
-now.)
+only synthetic/persisted values, never echo credentials or connection strings. (No volume,
+preferences, load-time, or migration helper is bundled; apply the logic inline and refer to the
+graduation migration checklist for PostgreSQL migration.)
 
 Proceed to Phase B (`phaseB-load-first-source.md`).

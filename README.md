@@ -1,17 +1,46 @@
 # Senzing Bootcamp Kiro Power
 
-This repository contains the Senzing Bootcamp Kiro Power and its development documentation.
+A guided bootcamp for learning [Senzing] entity resolution,
+packaged as a Kiro Power.
+Install it, then say **"start the bootcamp"** to be guided through
+a hands-on, module-by-module tutorial.
 
-The goal of this bootcamp is that you can say to yourself,
-"I can do this!"
+## What the bootcamp covers
 
-## Prerequisites
+A guided sequence of hands-on modules takes you from zero
+to working entity resolution:
 
-1. [Install Kiro](docs/install-kiro.md)
-    - Make sure you are using Kiro 1.0.0 or greater. (`Help` > `About`)
+- ***Bootcamp preparation:*** choose your curriculum, level of detail, and programming language
+- ***Entity Resolution Concepts:*** a primer on how entity resolution works *(optional)*
+- ***Discover the Business Problem:*** describe the problem you are trying to solve
+- ***SDK setup:*** install and configure the Senzing SDK
+- ***System verification:*** end-to-end checks that Senzing works on your machine *(optional)*
+- ***Truth Set visualization:*** an interactive web app of the resolved Truth Set data *(optional)*
+- ***Data collection:*** identify and collect your data sources
+- ***Data Quality, Mapping, and Transformation:*** make your data "Senzing-ready"
+- ***Data processing:*** ingest your Senzing-ready data
+- ***Query, Visualize and Discover:*** see what Senzing can do for you
+- ***Bootcamp graduation:*** wrap up your bootcamp with a bow
 
-## Start Kiro in a Senzing Bootcamp directory
+You finish with working Senzing code and data in your project, a professional
+recap PDF you can keep and share, and a production starter. See
+[What you finish with](#what-you-finish-with) for details.
 
+## Requirements
+
+- Network access to the [Senzing MCP server].
+  The bootcamp cannot proceed without it.
+  It generates SDK code,
+  looks up Senzing facts,
+  and provides working examples.
+- Minimum of 2000 [Kiro credits].
+- *Recommended, but not mandatory:*
+  A business problem requiring Entity Resolution
+  and 5,000 to 20,000 records that illustrate the problem.
+
+## Install and start
+
+1. [Install Kiro]
 1. From a terminal window, start Kiro in a new, empty directory.
    Example:
 
@@ -21,140 +50,35 @@ The goal of this bootcamp is that you can say to yourself,
     kiro .
     ```
 
-1. In macOS, start "Kiro" and open a new project on an empty directory.
+    - In macOS, start "Kiro" and open a new project on an empty directory.
 
-## Configure Kiro
+1. Install the Senzing Bootcamp Power.
+    1. In Kiro's left-hand icon bar, click on the **Powers** icon.
+    1. In the **Powers** panel, under **Installed**, click on "Add Custom Power".
+    1. Select "Import power from GitHub"
+    1. Enter the following GitHub repository URL:
 
-1. In Kiro's agentic chat, switch from "Auto" to "Claude Opus 4.8 high".
+        ```text
+        https://github.com/Senzing/senzing-bootcamp-kiro-power/tree/main/senzing-bootcamp
+        ```
 
-## Install the Senzing Bootcamp Power
+1. In Kiro's agentic chat, enter the following to begin the bootcamp:
 
-1. In Kiro's left-hand icon bar, click on the **Powers** icon.
-1. In the **Powers** panel, under **Installed**, click on "Add Custom Power".
-1. Select "Import power from GitHub"
-1. Enter the following GitHub repository URL:
-
-   ```text
-   https://github.com/Senzing/senzing-bootcamp-kiro-power/tree/main/senzing-bootcamp
-   ```
-
-## Follow the Senzing Bootcamp
-
-In Kiro's agentic chat, enter the following to begin the bootcamp:
-
-```console
-Start the bootcamp
-```
+    ```console
+    Start the bootcamp
+    ```
 
 Kiro's agentic chat will guide you through the Bootcamp.
 
-## Tips
+## What you finish with
 
-1. **Caveat:** At times, the Bootcamp may seem boring.
-   If it wasn't boring,
-   *you* would have to do the work.
-   Your job is to steer the AI to create what you want.
-   Let the AI do the work.
-1. During "Administrative setup", simply hitting the "Allow" button is all that's needed.
-1. Questions posed to the Bootcamper are usually prefaced with "👉"
+The bootcamp is a guided, module-by-module tutorial.
+You end with working Senzing code and data in your project (`src/`, `data/`, `database/`),
+a professional recap PDF you can keep and share (e.g. [bootcamp_recap.pdf], but yours will differ),
+and a `production/` starter project.
 
-## Peccadillos
-
-- The "Roomba effect".
-  The AI-driven bootcamp may head directly into an error, recover, and head in a new direction.
-- Most likely your main Agentic Chat will be in a tabbed panel named "Start the Bootcamp".
-  Occasionally, additional "New Session" tabbed panels will pop up.
-  They are for sub-agents.
-  They do a small task and exit.
-  When you see something like:
-
-  > Est. Credits Used: 0.42 Elapsed time: 9s
-
-  You'll know the sub-agent has completed and the tabbed panel may be closed.
-- Numerous "Ask Kiro Hook" boxes will appear.
-  These boxes and the text following are mostly noise.
-  Unfortunately, there's no way to turn off those boxes.
-- If Kiro seems to be stuck, ask
-
-  ```console
-  What are you working on?
-  ```
-
-## Helpful prompts
-
-Helpful prompts that can may entered any time:
-
-```console
-Where am I in the bootcamp?
-```
-
-```console
-What's next?
-```
-
-```console
-Why am I doing this?
-```
-
-```console
-What was done?
-```
-
-```console
-Why did you do that?
-```
-
-```console
-What does ____ mean?
-```
-
-```console
-Where did you put ____?
-```
-
-```console
-How does what was built in module number ____ help me?
-```
-
-## Reporting Bootcamp improvements
-
-To report a bug or improvement, start your prompt with `Bootcamp Feedback:`.
-Example:
-
-```console
-Bootcamp Feedback: You asked me to recommend a restaurant. That shouldn't be asked in the bootcamp.
-```
-
-## Clean up the Bootcamp
-
-1. Move any files you'd like to keep out of the project directory.
-   Examples:  Backup file(s), prompt history file, source code (`src/`).
-
-1. **Delete the Senzing Bootcamp project directory.**
-
-   Since all of the artifacts created by the bootcamp are in the bootcamp directory,
-   simply delete the bootcamp directory.
-   Examples:
-
-   - **Linux / macOS:**
-
-     ```console
-     rm -rf senzing-bootcamp
-     ```
-
-   - **Windows (Command Prompt):**
-
-     ```console
-     rmdir /s /q senzing-bootcamp
-     ```
-
-   - **Windows (PowerShell):**
-
-     ```powershell
-     Remove-Item -Recurse -Force senzing-bootcamp
-     ```
-
-1. **(Optional) Remove the Senzing Bootcamp Power:**
-   1. In Kiro's left-hand icon bar, click on the **Powers** icon.
-   1. In the **Powers** panel, under **Installed**, find "Senzing Bootcamp".
-   1. In the **Power: Senzing Bootcamp** panel, click the **Uninstall** button.
+[bootcamp_recap.pdf]: powers/senzing-bootcamp/docs/examples/bootcamp_recap.example.pdf
+[Install Kiro]: https://kiro.dev/
+[Kiro credits]: https://kiro.dev/pricing/
+[Senzing MCP server]: https://mcp.senzing.com/mcp
+[Senzing]: https://senzing.com

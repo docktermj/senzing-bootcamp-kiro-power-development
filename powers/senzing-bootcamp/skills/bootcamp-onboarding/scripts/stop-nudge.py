@@ -12,7 +12,8 @@ gate passes:
   2. No config/bootcamp_progress.json -> not a bootcamp; never touch unrelated
      sessions.
   3. The bootcamper opted out (env var or preferences key) -> stay silent. Gives a
-     documented way to disable/quiet the nudge (see hooks/README.md).
+     documented way to quiet the nudge without removing the hook; removing it
+     outright is the `bootcamp-enforcement-setup` skill's `remove` path.
   3b. The bootcamp is complete (``bootcamp_complete: true`` in preferences, set by
      graduation before the terminal "END OF SENZING BOOTCAMP" banner) -> stay silent,
      so the net never nudges for a closing question after the bootcamp is over.
@@ -32,7 +33,8 @@ the partial-flush race seen on tool-using turns; and (c) even if the hook does b
 the block reason tells the model to verify its own last message first and repeat
 nothing, so a false block can never surface as a duplicate question.
 
-Cross-platform: invoked in exec form (``python3 <path>``) so no shell is required.
+Cross-platform: invoked as a ``type: command`` hook whose ``command`` names the
+interpreter and this script, quoted (``python3 "<path>"``), per INV-052.
 """
 import json
 import os
