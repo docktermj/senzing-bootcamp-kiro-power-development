@@ -33,8 +33,8 @@ for each: the problem it solves, the goal, typical data sources, business value.
 never from an earlier turn's results. This is **presentation freshness**
 (`../bootcamp-onboarding/ground-rules.md` → "MCP-first invariant"): the gallery carries an MCP
 attribution line, and the attribution is only truthful for what a tool produced this turn. "Already
-retrieved a few turns ago" does not satisfy it. (The full pattern gallery is a
-later porting phase; that is why this step retrieves rather than reads from a shipped catalog.)
+retrieved a few turns ago" does not satisfy it. No pattern gallery is bundled, which is why this
+step retrieves from MCP rather than reading a shipped catalog.
 
 ⛔ **Query by SECTOR vocabulary, not by the category label.** This is the step's real work, and one
 generic query is not it: the documentation's own words are industry terms, so "entity resolution use

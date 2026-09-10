@@ -1,0 +1,153 @@
+# Publication_Contract — the single source of development-repository -> publication-repository
+# adaptation rules.
+#
+# The Power at powers/senzing-bootcamp/ is built here and consumed there. Those are not
+# the same artifact. A handful of things this repository legitimately carries must not
+# ship to bootcampers: the maintainer's changelog, build provenance that nothing on the
+# installed side reads, and paths that resolve only inside this repository. This file is
+# the whole list, and tools/bootcamp-transform/publish.py executes it.
+#
+# It is data, not prose. No adaptation is hardcoded in Python and none is left to an
+# agent, for the same reason the Transformation_Contract is data: an adaptation with one
+# home survives the next release, and an adaptation applied by hand does not.
+#
+# ---------------------------------------------------------------------------
+# Why the adaptations are applied here and not upstream
+# ---------------------------------------------------------------------------
+# Every rule below is a difference between the two repositories, not a defect in the
+# build. `exclude` names a file the development repository is *required* to produce
+# (R5 AC8) and the publication is required not to ship. `dropKeys` removes a block the
+# Agent Plugins spec permits, the build correctly emits, and the publication repository
+# has decided against. `substitutions` rewrite provenance notes whose subject — the
+# authored template tree — exists only here.
+#
+# So these are not hand-patches waiting for an upstream fix; there is no upstream edit
+# that would make them unnecessary while both repositories keep their current jobs.
+# That is exactly the justification .github/tools/refresh_build_manifest.py asks for in
+# the publication pull request, and `publish.py --report` prints it rule by rule.
+#
+# ---------------------------------------------------------------------------
+# Rule kinds
+# ---------------------------------------------------------------------------
+#   exclude        A path the built Power carries and the publication does not.
+#   dropKeys       A JSON pointer deleted from a published document.
+#   substitutions  A literal find/replace applied to published text. Every rule
+#                  declares the files it applies to, and EVERY declared file must
+#                  contain the needle: a rule that matches nothing is reported as
+#                  E_SUBSTITUTION_UNAPPLIED rather than passing quietly, because a
+#                  silently-inert rule is how an adaptation is lost between releases.
+#   forbidden      A string that must appear nowhere in the published Power once the
+#                  rules above have run. This is the invariant the rules exist to
+#                  establish, checked independently of them, so a rule that stops
+#                  covering its case fails loudly instead of leaking.
+#
+# Every path is relative to the Power root on both sides: powers/senzing-bootcamp/ here,
+# senzing-bootcamp/ there.
+
+publicationContractVersion: 1
+
+# Where the published Power lives. `powerDirectory` is also the path the publication
+# repository's own gate validates and the path its README tells a bootcamper to import,
+# so it is not a free choice.
+publication:
+  repository: Senzing/senzing-bootcamp-kiro-power
+  powerDirectory: senzing-bootcamp
+  defaultBranch: main
+
+exclude:
+  - path: CHANGELOG.md
+    reason: >-
+      The Bootcamp_Power changelog R5 AC8 requires the update path to write. It is the
+      maintainer's record of which Template_Release produced which Power, written in this
+      repository's vocabulary and linking to the upstream release it was built from. The
+      publication repository keeps release notes at its own root CHANGELOG.md, addressed
+      to bootcampers rather than to maintainers. Shipping this file inside the Power would
+      publish a second, differently-scoped changelog, and — because the build deliberately
+      leaves it out of .build-manifest.json — would fail the publication repository's
+      manifest-drift check as unrecorded content.
+
+dropKeys:
+  - path: plugin.json
+    pointer: /extensions
+    reason: >-
+      Build provenance nothing on the installed side reads. Neither Kiro nor the Power
+      itself consults extensions["com.senzing.bootcamp"], and all three of its values are
+      already available where they are actually used: templateRelease and contractVersion
+      in .build-manifest.json, and the template repository as a constant in the
+      Transformation_Contract rather than a per-build value. The update path's version
+      floor is the top-level `version`, which this rule does not touch. The publication
+      repository removed the block in 0.5.1 and its validate_power.py fails if it
+      reappears, so emitting it here and dropping it at publication keeps both gates
+      satisfied without the build lying about what produced it.
+
+substitutions:
+  - id: contract-path-write-gate-matcher
+    reason: >-
+      The note is true and its subject is not published: the Kiro write-tool regex is
+      single-sourced in this repository's Transformation_Contract. Naming that file by
+      path in the published Power points a reader at something the publication repository
+      does not contain. The claim worth keeping is the one about single-sourcing, so the
+      path becomes a description of the contract rather than a path into it.
+    # Single-line scalars on purpose. A folded (`>-`) needle is one editor reflow away
+    # from no longer being the string on disk, and the failure mode is a silently inert
+    # rule — which is the thing this file is arranged to prevent.
+    find: "as this set's replacement value in tools/bootcamp-transform/contract.yaml, and nowhere else in the authored tree."
+    replace: "as that set's replacement value in the transformation contract this Power was built from, and nowhere else in the authored tree."
+    appliesTo:
+      - dev.kiro/hooks/hook-parity-coverage.json
+      - skills/bootcamp-onboarding/assets/kiro-hooks/hook-parity-coverage.json
+
+  - id: authored-source-directory
+    reason: >-
+      `placement.sourceDirectory` records where the hook definitions are authored once
+      before the engine materializes them at both destinations. That directory is in the
+      build repository, so in the published Power the value is a path to nowhere. The
+      `authoredOnce` claim and both `destinations` — which are the parts a reader of the
+      published Power can verify — are unchanged.
+    find: '"sourceDirectory": "tools/bootcamp-transform/templates/kiro-owned/skills/bootcamp-onboarding/assets/kiro-hooks/",'
+    replace: '"sourceDirectory": "(not published; authored once in the build repository that produced this Power)",'
+    appliesTo:
+      - dev.kiro/hooks/hook-parity-coverage.json
+      - skills/bootcamp-onboarding/assets/kiro-hooks/hook-parity-coverage.json
+
+# The invariant, checked after every rule above has run, over every text file in the
+# published tree. Substring match, case-sensitive, no regular expressions: the point is
+# that a reader of the publication repository is never pointed at a repository they
+# cannot open.
+#
+# Deliberately NOT forbidden: the glossary terms this repository's requirements define
+# (Template_Release, Template_Plugin, Bootcamp_Power, Hook_Installer, Test_Checklist) and
+# the upstream template repository URL recorded as build provenance. The first name
+# concepts rather than this repository and appear in shipped prose that predates the
+# publication path; the second is the synchronization fact .build-manifest.json exists to
+# carry. Both are content questions for the template and the Transformation_Contract, not
+# publication adaptations, and rewriting shipped prose at publication time is precisely
+# the hand-patching this contract is arranged to avoid.
+forbidden:
+  - needle: senzing-bootcamp-kiro-power-development
+    why: names the development repository by name
+  - needle: docktermj/senzing-bootcamp-kiro-power
+    why: >-
+      names the development repository by owner and stem, which is also the prefix of its
+      full name, so this catches the bare form and the URL form together
+  - needle: tools/bootcamp-transform
+    why: a path that resolves only inside the development repository
+  - needle: powers/senzing-bootcamp
+    why: >-
+      the Power's path in the development repository; in the publication repository the
+      Power is at senzing-bootcamp/
+  - needle: .kiro/specs/senzing-bootcamp-power
+    why: the development repository's spec directory
+  - needle: senzing-bootcamp-maintainer
+    why: the maintainer Power, which exists only in the development repository
+
+# Exempt from the forbidden scan, with the reason each is exempt. Kept deliberately
+# short: an allowlist is where an invariant goes to die.
+forbiddenAllowlist:
+  - path: .build-manifest.json
+    needles: []
+    reason: >-
+      Reserved. The manifest's sourcePath values name files inside the upstream template
+      release, never this repository, so no needle currently applies. The entry exists so
+      that a future manifest field naming a build-side path is a one-line decision here
+      rather than a scramble during a release.
