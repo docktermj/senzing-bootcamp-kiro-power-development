@@ -1244,14 +1244,35 @@ MAINTAINER_SKILLS_DIR = f"{MAINTAINER_POWER_DIR}/skills"
 #: The Power's `name`, which is also the directory that contains its manifest.
 MAINTAINER_POWER_NAME = MAINTAINER_POWER_DIR.rsplit("/", 1)[-1]
 
-#: The two maintainer skills, each at `<skills>/<name>/SKILL.md`, and the trigger
+#: The maintainer skills, each at `<skills>/<name>/SKILL.md`, and the trigger
 #: phrase the design declares for it. The phrase has to appear in the skill's
 #: `description`: that is the text a Maintainer's statement is matched against, so
 #: a description missing it is a skill with no way to be invoked (R8 AC6).
+#:
+#: `publish-bootcamp-power` is the third, and it is a different kind of skill from the
+#: other two. They produce the Power; it moves an already-produced Power into
+#: `Senzing/senzing-bootcamp-kiro-power`, where bootcampers install from. It therefore
+#: drives `publication.yaml` rather than `contract.yaml`, which is why the contract-metadata
+#: assertions below read the key out of each skill's own frontmatter instead of assuming one
+#: shared value.
 MAINTAINER_TRIGGER_PHRASES = {
     "create-bootcamp-power": "create the senzing bootcamp power",
     "update-bootcamp-power": "update the senzing bootcamp power",
+    "publish-bootcamp-power": "publish the senzing bootcamp power",
 }
+
+#: The two skills that drive the Transformation_Contract. R3 AC1's single-sourcing is a
+#: statement about *these* — create and update must not be able to diverge, because they
+#: produce the same artifact from the same input. It is not a statement that every file in
+#: the maintainer Power names `contract.yaml`.
+TRANSFORMATION_SKILLS = ("create-bootcamp-power", "update-bootcamp-power")
+
+#: The publication half: one skill, one contract, single-sourced the same way and for the
+#: same reason. It is separate because the two contracts answer different questions — what a
+#: template file becomes, versus what differs between this repository and the public one —
+#: and collapsing them would put publication policy in the path of every rebuild.
+PUBLICATION_SKILL = "publish-bootcamp-power"
+PUBLICATION_CONTRACT_PATH = f"{ENGINE_DIR}/publication.yaml"
 
 #: Where each maintainer skill records the contract it drives, under `metadata`.
 SKILL_CONTRACT_METADATA_KEY = "contract"
@@ -1341,8 +1362,8 @@ def test_every_maintainer_skill_exists_at_its_declared_path(skill):
     )
 
 
-def test_the_maintainer_power_holds_its_manifest_and_exactly_the_two_declared_skills():
-    """Artifact B's skill half is a manifest plus two skills, no more (R14 AC2).
+def test_the_maintainer_power_holds_its_manifest_and_exactly_the_declared_skills():
+    """Artifact B's skill half is a manifest plus its declared skills, no more (R14 AC2).
 
     An extra skill directory here is maintainer tooling nothing declares, and a
     stray file in `skills/` is content Kiro would try to read as a skill.
@@ -1368,7 +1389,7 @@ def test_the_maintainer_power_holds_its_manifest_and_exactly_the_two_declared_sk
 # --- Both skills reference the one contract, and restate none of it (R3 AC1) ---
 
 
-@pytest.mark.parametrize("skill", sorted(MAINTAINER_TRIGGER_PHRASES))
+@pytest.mark.parametrize("skill", sorted(TRANSFORMATION_SKILLS))
 def test_every_maintainer_skill_references_the_one_contract_at_the_declared_path(skill):
     """Each skill names, and links to, `tools/bootcamp-transform/contract.yaml` (R3 AC1).
 
@@ -1445,7 +1466,7 @@ def test_the_maintainer_manifest_and_both_skills_name_one_and_the_same_contract(
             f"{MAINTAINER_SKILLS_DIR}/{skill}": (
                 _maintainer_skill_frontmatter(skill).get("metadata") or {}
             ).get(SKILL_CONTRACT_METADATA_KEY)
-            for skill in sorted(MAINTAINER_TRIGGER_PHRASES)
+            for skill in sorted(TRANSFORMATION_SKILLS)
         },
     }
     assert set(declared.values()) == {CONTRACT_PATH}, (
@@ -1454,6 +1475,48 @@ def test_the_maintainer_manifest_and_both_skills_name_one_and_the_same_contract(
     )
     assert (REPO_ROOT / CONTRACT_PATH).is_file(), (
         f"every maintainer declaration names {CONTRACT_PATH}, which does not exist"
+    )
+
+
+def test_the_publish_skill_names_the_one_publication_contract_and_the_manifest_agrees():
+    """The publication half is single-sourced too, and at its own path.
+
+    The same argument as R3 AC1, applied to the other contract: if the publication
+    adaptations had more than one home, the set applied at release time and the set
+    written down would drift, and the symptom would be a development-repository
+    reference appearing in the public repository — which is the one thing
+    `publication.yaml` exists to prevent.
+
+    The manifest declares it under its own key rather than reusing `contract`, so the
+    single-contract assertion above stays a statement about the transformation rules.
+    """
+    frontmatter = _maintainer_skill_frontmatter(PUBLICATION_SKILL)
+    metadata = frontmatter.get("metadata")
+    assert isinstance(metadata, dict), (
+        f"{MAINTAINER_SKILLS_DIR}/{PUBLICATION_SKILL}: frontmatter declares no `metadata` block"
+    )
+    assert metadata.get(SKILL_CONTRACT_METADATA_KEY) == PUBLICATION_CONTRACT_PATH, (
+        f"{MAINTAINER_SKILLS_DIR}/{PUBLICATION_SKILL}: "
+        f"`metadata.{SKILL_CONTRACT_METADATA_KEY}` must name {PUBLICATION_CONTRACT_PATH}; "
+        f"found {metadata.get(SKILL_CONTRACT_METADATA_KEY)!r}"
+    )
+
+    namespace = (_maintainer_plugin_manifest().get("extensions") or {}).get(EXTENSION_NAMESPACE)
+    assert isinstance(namespace, dict)
+    assert namespace.get("publicationContract") == PUBLICATION_CONTRACT_PATH, (
+        f"{MAINTAINER_PLUGIN_PATH} must record `publicationContract` as "
+        f"{PUBLICATION_CONTRACT_PATH}; found {namespace.get('publicationContract')!r}"
+    )
+    assert (REPO_ROOT / PUBLICATION_CONTRACT_PATH).is_file(), (
+        f"the publish skill and the manifest both name {PUBLICATION_CONTRACT_PATH}, "
+        "which does not exist"
+    )
+
+    # The skill links to the contract, so the adaptations are one click away and are
+    # read there rather than paraphrased here.
+    text = _maintainer_skill_file(PUBLICATION_SKILL).read_text(encoding="utf-8")
+    assert "publication.yaml" in text, (
+        f"{MAINTAINER_SKILLS_DIR}/{PUBLICATION_SKILL} must reference publication.yaml"
     )
 
 

@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "senzing-bootcamp-maintainer",
-  "version": "1.0.0",
-  "description": "Maintainer tooling for the Senzing Bootcamp Kiro Power. Use when creating the Senzing bootcamp power from a template release, or when updating it to a newer template release.",
+  "version": "1.1.0",
+  "description": "Maintainer tooling for the Senzing Bootcamp Kiro Power. Use when creating the Senzing bootcamp power from a template release, when updating it to a newer template release, or when publishing it to the public Senzing/senzing-bootcamp-kiro-power repository.",
   "author": { "name": "Senzing", "url": "https://senzing.com" },
   "license": "Apache-2.0",
   "homepage": "https://github.com/docktermj/senzing-bootcamp-kiro-power-development",
@@ -12,6 +12,8 @@
     "com.senzing.bootcamp": {
       "role": "maintainer-tooling",
       "contract": "tools/bootcamp-transform/contract.yaml",
+      "publicationContract": "tools/bootcamp-transform/publication.yaml",
+      "publicationRepository": "Senzing/senzing-bootcamp-kiro-power",
       "requiresWorkspace": "docktermj/senzing-bootcamp-kiro-power-development"
     }
   }

@@ -547,7 +547,7 @@
       "ruleId": "skills-modules",
       "owner": "template",
       "sourcePath": "plugins/senzing-bootcamp/skills/module-01-business-problem/phase1-discovery.md",
-      "sha256": "01066128af7e0e44dd4ce96a40df0ae19dac97a29c158217ee180e3aa282184c"
+      "sha256": "6aa5ff3e65ada026008fd715161d485368304612939b749ece47007d36d71bf5"
     },
     {
       "path": "skills/module-01-business-problem/phase2-document-confirm.md",

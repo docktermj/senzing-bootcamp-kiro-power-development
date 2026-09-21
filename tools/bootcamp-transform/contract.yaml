@@ -962,12 +962,34 @@ substitutionSets:
         2. Present the matching pitfall/fix for this module. There is no bundled `common-pitfalls`
            reference, so use `search_docs` to look up the symptom.
       literal: true
+    # ⛔ TWO SPELLINGS OF THE SAME ASIDE, AND BOTH ENTRIES ARE LOAD-BEARING.
+    #
+    # Release 0.5.1 wrote "catalogue"; release 0.5.3 writes "catalog". Because these
+    # entries are `literal: true`, that one letter took the rule from applying to
+    # matching nothing, and a substitution that matches nothing is not an error here — so
+    # the build succeeded, the Schema_Validator passed, 0.5.3 was tagged, and the port-
+    # status aside this set exists to delete shipped in
+    # skills/module-01-business-problem/phase1-discovery.md. It was caught by the
+    # publication path's forbidden-reference scan, which is downstream of everything that
+    # should have caught it first.
+    #
+    # Both entries stay. Deleting the "catalogue" form would make a 0.5.1 rebuild go
+    # inert in exactly the way 0.5.3 just did, and this repository rebuilds older releases
+    # on purpose. Each replacement keeps the spelling of the release it matches, so
+    # neither one changes the prose around it.
     - find: |2
         (The full pattern gallery is a
         later porting phase; that is why this step retrieves rather than reads from a shipped catalogue.)
       replace: |2
         No pattern gallery is bundled, which is why this
         step retrieves from MCP rather than reading a shipped catalogue.
+      literal: true
+    - find: |2
+        (The full pattern gallery is a
+        later porting phase; that is why this step retrieves rather than reads from a shipped catalog.)
+      replace: |2
+        No pattern gallery is bundled, which is why this
+        step retrieves from MCP rather than reading a shipped catalog.
       literal: true
     - find: |2
         *(The Kiro helper `business_case_offer.py` encodes these invariants; the script port is a later
