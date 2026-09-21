@@ -307,6 +307,16 @@ contract's `invariantDiscounts` register. Like a conflict, a flag blocks nothing
 If step 3 did not fetch the older tree, say that the drift comparison did not run, so an empty
 flag list means "not compared".
 
+Then complete the dual-evaluation by reviewing the Kiro-native invariants. `flaggedInvariantDiscounts`
+covers the *inherited* half — what the port did with each upstream `INV-NNN`. The other half is the
+`KINV-NNN` ledger at `specs/INVARIANTS.md`: the guarantees that are true of the Kiro Power itself and
+correspond to no upstream invariant (the single-command-string hook schema, the non-blocking `Stop`,
+`${PLUGIN_ROOT}`, the Agent Plugins manifest location, model and effort pickers). Confirm that every
+`KINV-NNN` still holds for the staged tree at the new release, and that the release changed nothing a
+`KINV` relies on. A failed `KINV` is a release blocker, exactly as a failed discount is. The structural
+checks on the ledger are mechanized in `specs/check_invariants.py`; this review is the behavioral half
+it cannot run for you.
+
 ## Step 7 — Validate the staged tree
 
 ```

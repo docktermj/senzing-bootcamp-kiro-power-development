@@ -129,6 +129,16 @@ template:
 # edits the text of an invariant recorded here, the Update_Skill flags that entry for
 # Maintainer re-evaluation rather than carrying the judgment forward unexamined
 # (R15 AC10).
+#
+# BOUNDARY WITH specs/INVARIANTS.md. This register governs *inherited* invariants:
+# for each upstream INV-NNN it records what the port did with it (honored,
+# preserved-restated, or discounted). It does NOT hold Kiro-native guarantees.
+# Guarantees that are true of the Kiro Power itself and correspond to no upstream
+# INV-NNN — the single-command-string hook schema, the non-blocking Stop, the
+# ${PLUGIN_ROOT} token, the Agent Plugins manifest location, model/effort pickers —
+# live in the KINV-NNN namespace at specs/INVARIANTS.md. Neither record restates
+# the other (the parent's INV-300 no-fork discipline): a KINV never reproduces an
+# INV-NNN or an entry here, and an entry here never states a Kiro-native rule.
 invariantDiscounts: []
 
 # ---------------------------------------------------------------------------
