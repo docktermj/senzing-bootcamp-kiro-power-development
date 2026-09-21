@@ -1259,6 +1259,7 @@ MAINTAINER_TRIGGER_PHRASES = {
     "create-bootcamp-power": "create the senzing bootcamp power",
     "update-bootcamp-power": "update the senzing bootcamp power",
     "publish-bootcamp-power": "publish the senzing bootcamp power",
+    "parity-check": "check the senzing bootcamp power for parity",
 }
 
 #: The two skills that drive the Transformation_Contract. R3 AC1's single-sourcing is a
