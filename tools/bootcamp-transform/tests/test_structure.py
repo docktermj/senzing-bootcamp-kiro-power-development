@@ -1698,6 +1698,51 @@ def test_the_two_maintainer_trigger_phrases_stay_distinct():
         f"phrase; these carry another skill's: {crossed}"
     )
 
+
+# --- The porting-framework map points at homes that exist (issue #10) -------
+
+#: The framework map is an index of the nine porting components (A–I), not a second
+#: copy of them — so the one thing that can rot is a link to a home that moved or
+#: went. This checks the links resolve; it deliberately does not check the map's
+#: prose against each artifact's content, which lives in the artifact.
+FRAMEWORK_DOC = "docs/porting-framework.md"
+
+#: The map links all nine components (a couple share a home, so the real link count
+#: is higher); this floor is the anti-vacuity guard, so a map that stopped linking
+#: its artifacts fails here rather than passing empty.
+FRAMEWORK_MIN_COMPONENT_LINKS = 9
+
+
+def test_the_porting_framework_map_links_resolve():
+    """Every artifact the framework map links to still exists (issue #10).
+
+    The map (`docs/porting-framework.md`) is the durable form of the convergence
+    tracker. Its value is the pointers, and a moved or renamed artifact is exactly
+    what silently breaks them, so the targets are derived by scanning the document
+    rather than hardcoded here.
+    """
+    doc_path = REPO_ROOT / FRAMEWORK_DOC
+    assert doc_path.is_file(), f"{FRAMEWORK_DOC} is missing"
+    text = doc_path.read_text(encoding="utf-8")
+    targets = [
+        target
+        for target in _MARKDOWN_LINK.findall(text)
+        if not target.startswith(("http://", "https://", "#"))
+    ]
+    assert len(targets) >= FRAMEWORK_MIN_COMPONENT_LINKS, (
+        f"{FRAMEWORK_DOC} links {len(targets)} artifact(s); it must link at least "
+        f"{FRAMEWORK_MIN_COMPONENT_LINKS}, one per framework component"
+    )
+    broken = sorted(
+        target
+        for target in targets
+        if not (doc_path.parent / target).resolve().is_file()
+    )
+    assert broken == [], (
+        f"{FRAMEWORK_DOC} links to homes that do not resolve to a file: {broken}"
+    )
+
+
 # ===========================================================================
 # 7. Test_Checklist shape (R6 AC1, AC4, AC5, AC12, AC13) — task 13.4
 # ===========================================================================
