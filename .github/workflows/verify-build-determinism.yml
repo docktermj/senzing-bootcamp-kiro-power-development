@@ -1,0 +1,150 @@
+# Prove the committed Bootcamp_Power is the deterministic transform of its
+# pinned Template_Release — issue #9, part H.
+#
+# WHAT THIS WORKFLOW DOES: it rebuilds the Power from the parent release the
+# committed Power records as its provenance, into a scratch directory, and fails
+# if the result differs from what is committed under powers/senzing-bootcamp/.
+# Requirement 3 AC5 requires the transform to be byte-for-byte reproducible; this
+# is the continuous proof of it. A drift means either the committed tree was
+# hand-edited (it must be regenerated, never patched) or an engine change moved
+# the output without the committed Power being rebuilt.
+#
+# WHAT IT DOES NOT DO: it does not open a PR, it does not push, and it does not
+# transform at a NEWER release. Detecting a newer upstream release is
+# watch-upstream-release.yml's job and stays separate; this gate rebuilds at the
+# *currently pinned* tag only. It writes nothing anywhere.
+#
+# The pinned tag is read from the Power's own provenance — plugin.json
+# extensions["com.senzing.bootcamp"].templateRelease, with .build-manifest.json
+# as the fallback — the single provenance convention documented in
+# docs/provenance-convention.md. The upstream repository is the contract's to
+# own; resolve_release.py reads template.repository from contract.yaml.
+name: Verify build determinism
+on:
+  pull_request:
+    paths:
+      - 'powers/senzing-bootcamp/**'
+      - 'tools/bootcamp-transform/**'
+      - '.github/workflows/verify-build-determinism.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'powers/senzing-bootcamp/**'
+      - 'tools/bootcamp-transform/**'
+      - '.github/workflows/verify-build-determinism.yml'
+  workflow_dispatch:
+# Read-only: this workflow commits nothing, opens no PR, and files no issue.
+permissions:
+  contents: read
+concurrency:
+  group: verify-build-determinism-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  rebuild-and-compare:
+    name: Rebuild at the pinned tag and compare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        # Pinned to the commit behind the release tag, not the floating major ref.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so the checkout credential is unnecessary.
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # The rendered bytes depend on the jinja2/pyyaml versions, so the pins
+          # in pyproject.toml are what make this comparison meaningful.
+          python-version: '3.12'
+      - name: Install the pinned tooling dependencies
+        # The `dev` extra keeps every version pin in pyproject.toml and nowhere
+        # else; the transform renders templates through the pinned jinja2.
+        run: python -m pip install --disable-pip-version-check ".[dev]"
+      - name: One provenance convention — no competing top-level file
+        # docs/provenance-convention.md makes the in-manifest extensions block the
+        # single spelling. A bare top-level PARENT_VERSION / UPSTREAM_VERSION /
+        # UPSTREAM_COMMIT would be a second, drift-prone home for the same fact.
+        run: |
+          set -euo pipefail
+          competing=""
+          for name in PARENT_VERSION UPSTREAM_VERSION UPSTREAM_COMMIT; do
+            if [ -e "$name" ]; then
+              competing="$competing $name"
+            fi
+          done
+          if [ -n "$competing" ]; then
+            echo "::error::competing provenance file(s):$competing — provenance lives in" \
+              "plugin.json extensions[\"com.senzing.bootcamp\"] (docs/provenance-convention.md)"
+            exit 1
+          fi
+      - name: Read the pinned Template_Release from the committed Power
+        id: pinned
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          power = pathlib.Path("powers/senzing-bootcamp")
+          plugin, manifest = power / "plugin.json", power / ".build-manifest.json"
+          version, source = "", ""
+          if plugin.is_file():
+              data = json.loads(plugin.read_text(encoding="utf-8"))
+              extension = (data.get("extensions") or {}).get("com.senzing.bootcamp") or {}
+              candidate = str(extension.get("templateRelease") or "").strip()
+              if candidate:
+                  version, source = candidate, f'{plugin} extensions["com.senzing.bootcamp"].templateRelease'
+          if not version and manifest.is_file():
+              data = json.loads(manifest.read_text(encoding="utf-8"))
+              candidate = str(data.get("templateRelease") or "").strip()
+              if candidate:
+                  version, source = candidate, f"{manifest} templateRelease"
+          if not version:
+              raise SystemExit(
+                  "no committed Power records a Template_Release; nothing to rebuild against"
+              )
+          print(f"rebuilding at Template_Release {version}, read from {source}")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"version={version}\n")
+          PY
+      - name: Fetch the upstream source tree at the pinned tag
+        id: fetch
+        env:
+          # Lets resolve_release list the upstream public repo's releases without
+          # hitting the anonymous rate limit; the fetch itself is a public clone.
+          GH_TOKEN: ${{ github.token }}
+          PINNED_VERSION: ${{ steps.pinned.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 tools/bootcamp-transform/resolve_release.py \
+            --tag "$PINNED_VERSION" \
+            --out "$RUNNER_TEMP/upstream" > "$RUNNER_TEMP/resolved.json"
+          extracted="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["extractedTo"])' "$RUNNER_TEMP/resolved.json")"
+          echo "extractedTo=$extracted" >> "$GITHUB_OUTPUT"
+      - name: Rebuild the Power into a scratch tree
+        env:
+          PINNED_VERSION: ${{ steps.pinned.outputs.version }}
+          EXTRACTED_TO: ${{ steps.fetch.outputs.extractedTo }}
+        run: |
+          set -euo pipefail
+          python3 tools/bootcamp-transform/transform.py \
+            --contract tools/bootcamp-transform/contract.yaml \
+            --source "$EXTRACTED_TO" \
+            --tag "$PINNED_VERSION" \
+            --staging "$RUNNER_TEMP/rebuilt"
+      - name: Compare the rebuild against the committed Power
+        run: |
+          set -euo pipefail
+          # CHANGELOG.md is the Power's own maintainer-appended update log (R5 AC8) —
+          # the contract ignores the template's changelog, and the update skill writes
+          # this one outside the transform — so a create-equivalent rebuild never
+          # produces it. It is the sole exclusion; everything else, including
+          # plugin.json's provenance block and .build-manifest.json, must match a
+          # fresh transform.
+          if ! diff -r --exclude=CHANGELOG.md \
+              powers/senzing-bootcamp "$RUNNER_TEMP/rebuilt"; then
+            echo "::error::the committed Power is not the deterministic transform of its" \
+              "pinned Template_Release. Regenerate it with the create/update maintainer" \
+              "skill rather than hand-editing powers/senzing-bootcamp/."
+            exit 1
+          fi
+          echo "the committed Power matches a fresh transform of its pinned Template_Release"
