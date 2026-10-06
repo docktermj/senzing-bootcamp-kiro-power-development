@@ -109,8 +109,9 @@ TABS = {
     "probe": ("search-probe", "Search / Probe"),
 }
 
-# Captured when --tabs is not given. Ordered as the app presents them. A tab whose
-# data is absent simply renders its empty state; the caller keeps what is useful.
+# Captured when --tabs is not given. Ordered as the app presents them. A tab the app
+# suppresses because its data does not exist is not captured: it is recorded under
+# `not_applicable` in the manifest and never counted in `captured` (INV-232).
 DEFAULT_TABS = ("graph", "stats", "matchkeys", "features", "overlap", "probe")
 
 # The RESERVED ids, split out from TABS so no user-visible string can enumerate them as
@@ -135,11 +136,13 @@ SINGLE_PAGE_LABEL = "Full page"
 # `--single` inherited the tabbed path's fixed viewport, where the premise does not hold: a
 # tab's content is designed to fit a screen, but a single-page deliverable is a *document*
 # and is as tall as its content. So the mode cropped to 1440×900 and printed "Full page"
-# regardless — and INV-123 names that printed label as the designated input to the caption a
-# caller writes, so obeying INV-123 exactly produced "Full page" over the top third of a
-# page. Only measuring the page's height against the PNG's revealed it, which nothing asked
-# for. (Observed 2026-08-14: a three-source quality page ~2100px tall captured at 900px, two
-# of three sources absent, exit 0, real 84 KB PNG, manifest entry, label "Full page".)
+# regardless — and a caller that took that printed label as its caption wrote "Full page"
+# over the top third of a page. INV-123 derives the caption from the opened image and the
+# tab it shows, so the label is never the caption's source, but a false label still misleads
+# every reader of this helper's output. Only measuring the page's height against the PNG's
+# revealed it, which nothing asked for. (Observed 2026-08-14: a three-source quality page
+# ~2100px tall captured at 900px, two of three sources absent, exit 0, real 84 KB PNG,
+# manifest entry, label "Full page".)
 SINGLE_PAGE_LABEL_VIEWPORT = "Top of page (viewport only)"
 #: (INV-298) Whether the captured page reported its animated layout as SETTLED.
 #: `settled` the signal was present, `unsettled` an animated tab was captured without it,

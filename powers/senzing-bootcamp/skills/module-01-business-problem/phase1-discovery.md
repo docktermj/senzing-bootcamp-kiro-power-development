@@ -36,19 +36,27 @@ attribution line, and the attribution is only truthful for what a tool produced 
 retrieved a few turns ago" does not satisfy it. No pattern gallery is bundled, which is why this
 step retrieves from MCP rather than reading a shipped catalog.
 
-⛔ **Query by SECTOR vocabulary, not by the category label.** This is the step's real work, and one
-generic query is not it: the documentation's own words are industry terms, so "entity resolution use
-cases" reaches about four categories and leaves the rest looking uncovered when they are not. Two
+⛔ **(INV-212) Query by the document's own title or heading, not by the category label or a generic
+phrase.** This is the step's real work, and one generic query is not it: the documentation's own
+words are industry terms, so "entity resolution use cases" reaches about four categories and leaves
+the rest looking uncovered when they are not. Two
 routes carry most of the material. Everything from here to the end of this step **is** the retrieval
 strategy INV-212 requires — the vocabulary, the documents that hold the material, the queries that
-return confidently wrong content, and what to do with a topic the searches do not reach:
+return confidently wrong content, and what to do with a topic the searches do not reach. Each
+measured route names what it returned and at what rank (INV-291):
 
-- **Business value, for nearly every category** — `search_docs(query='total economic cost mismatched
-  identity data by sector …')` returns `economic-cost-mismatched-identity-data.md`, whose
-  *"Estimated Annual Cost of Mismatched Identity Records"* table quantifies ten sectors. Its
-  appendix breaks several sectors into ER-attributable typologies. **Cite the figures as returned by
-  `search_docs`, never from this file** — the numbers live in the document, so a revision changes
-  them in one place.
+- **Business value, for nearly every category** — `search_docs(query='Estimated Annual Cost of
+  Mismatched Identity Records')` returns the *"Estimated Annual Cost of Mismatched Identity
+  Records"* table of `economic-cost-mismatched-identity-data.md` at **rank 1** (MCP server 1.37.16,
+  docs index 2026-09-29 22:00 UTC, measured 2026-10-01). The table quantifies ten sectors, and the
+  document's appendix breaks several sectors into ER-attributable typologies. **Cite the figures as
+  returned by `search_docs`, never from this file** — the numbers live in the document, so a
+  revision changes them in one place.
+
+  ⚠️ **A sector-worded query reaches the document but not the table.** On the same measurement,
+  `'total economic cost mismatched identity data by sector'` returned the document's intro at
+  rank 1 and its *"Remaining Sectors"* section at rank 2, with the table only at rank 3. Use the
+  table's own heading.
 
   ⚠️ **Two of the ten rows are "All Sectors" rows, and one of them is the row most bootcamper
   scenarios actually need.** Lead with **`All Sectors: Cross-Industry Data Quality`** whenever the
@@ -71,6 +79,42 @@ return confidently wrong content, and what to do with a topic the searches do no
   Detection), the USCIS fraud case study, the MDM integration FAQ (Vendor MDM: free resolution vs
   forced separation via a Trusted ID), and the non-person-entity-types FAQ (asset, claim and
   vehicle linking).
+
+  - **The use-cases page, Customer 360** — `search_docs(query='Senzing use cases Customer 360')`
+    returns the *"Customer 360°"* section of *"Senzing Use Cases"*
+    (`senzing.com/entity-resolution-use-cases/`) at **rank 1** (MCP server 1.37.16, docs index
+    2026-09-29 22:00 UTC, measured 2026-10-01).
+  - **The use-cases page, Fraud Detection** — `search_docs(query='Senzing use cases Fraud
+    Detection')` returns the *"Fraud Detection"* section of *"Senzing Use Cases"* at **rank 1**
+    (MCP server 1.37.16, docs index 2026-09-29 22:00 UTC, measured 2026-10-01).
+
+    ⚠️ **Rank 2 of both is the same page's bare link stub** (`[Read More](/customer-360/)` and
+    `[Read More](/risk-fraud-detection)`, under *"Explore More Senzing Use Cases"*). That is a
+    miss, not a second source: read the rank-1 section, which states the category's goal in a
+    sentence before its link.
+  - **The USCIS fraud case study** — `search_docs(query='USCIS Improves Fraud Analytics with
+    Senzing Entity Resolution')` returns *"USCIS Improves Fraud Analytics with Senzing Entity
+    Resolution"* (the case-study page) at **rank 1** (MCP server 1.37.16, docs index 2026-09-29
+    22:00 UTC, measured 2026-10-01), and ranks 2 and 3 are the same page's *"USCIS Selected
+    Senzing Entity Resolution for Fraud Detection"* and *"USCIS Project Goals"* sections. The
+    case-study PDF is indexed separately under the title *"CASE STUDY"*.
+  - **The MDM integration FAQ** — `search_docs(query='How does Senzing integrate with MDM
+    (Master Data Management) systems?', category='faq')` returns *"How does Senzing integrate
+    with MDM (Master Data Management) systems?"* at **rank 1** (MCP server 1.37.16, docs index
+    2026-09-29 22:00 UTC, measured 2026-10-01). It names the two integration styles, free
+    resolution and forced separation via a Trusted ID. Without the `category`, the FAQ is still
+    rank 1 and the server article *"MDM Integration Patterns with Senzing"* is rank 2.
+  - **The non-person-entity-types FAQ** — `search_docs(query='Adding Non-Person Entity Types to
+    Senzing', category='faq')` returns *"Adding Non-Person Entity Types to Senzing"*
+    (`non-person-entity-types-faq.md`) at **rank 1** (MCP server 1.37.16, docs index 2026-09-29
+    22:00 UTC, measured 2026-10-01).
+
+    ⚠️ **Rank 2 is a different document, and looser queries put it first:** the FAQ *"Can I use
+    Senzing for product matching, vehicle matching, or other non-person entities?"*. Its caution,
+    that this needs work with Senzing R&D, concerns **matching** non-person entities to each other.
+    This pattern is about **linking** people and organizations to assets, claims and vehicles,
+    which is what the non-person-entity-types FAQ describes. Do not let that caution drop the
+    pattern.
 
 ⛔ **Two category names are homonym traps that return confidently WRONG content, not nothing** —
 which is worse, because a wrong-looking result invites a re-query and a plausible one does not:
@@ -203,7 +247,8 @@ bootcamper explicitly accepts option 3.)*
 
 Treat the Senzing MCP server as the ONLY source of CORD facts: never training data. Call
 `get_sample_data` and/or `search_docs(query='CORD datasets: names, contents, and availability
-for entity resolution scenarios')` to learn which datasets exist and what they contain. Present
+for entity resolution scenarios')` (its top hit is *Collections Of Relatable Data (CORDs)* →
+"What Is a CORD?") to learn which datasets exist and what they contain. Present
 values exactly as returned. Wait up to 30s; retry once.
 
 ⛔ **`truthset` is NOT eligible to back a generated scenario, for two independent reasons.**

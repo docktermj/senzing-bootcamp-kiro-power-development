@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.3
-  templateRelease: 0.5.3
+  version: 0.6.1
+  templateRelease: 0.6.1
   templateSkill: module-00-entity-resolution-concepts
 ---
 
@@ -109,7 +109,9 @@ in the recap** (INV-092), quietly — no bootcamper-facing end-of-module summary
    `**Programming language:**`, `**Path:**`, `**Plugin version:**`). Appending a `## ` section
    without it produces a recap with no preamble, and the failure surfaces only at graduation, on the
    certificate. Run **2d** as well (finalize the in-progress checkpoint) — it applies here exactly
-   as it does to any other module; nothing about this module exempts it.
+   as it does to any other module; nothing about this module exempts it. So does **2e**: save this
+   module's B-roll entry under `entity_resolution_concepts`, with `images: []` and `facts: {}`
+   when the primer showed nothing, so the graduation video still gets its title card.
 
 Then invoke the `module-01-business-problem` skill to begin Module 1 — **Discover the Business
 Problem** (name the module to the bootcamper, never "Module 1") — applying the module-start banner

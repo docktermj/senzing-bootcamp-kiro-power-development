@@ -45,6 +45,7 @@ import hashlib
 import json
 import os
 import sys
+import textwrap
 import zipfile
 from pathlib import Path
 
@@ -350,8 +351,153 @@ def build_manifest(profile, members, skipped, project_root, date):
     }
 
 
+#: The width the prose of OPEN_ME_FIRST.md is wrapped to. 85 reproduces the line breaks of the
+#: wording a complete package has always carried, so that wording is kept byte for byte.
+WRAP_WIDTH = 85
+
+#: Restore step for a database backup, by file type -- from `graduation/database-backup.md`'s
+#: "Restore" section. A backup of any other type is named by path with no restore step.
+SQLITE_RESTORE = "a SQLite file; copy it back to `database/` to restore it"
+PG_DUMP_SUFFIX = ".dump"
+#: The file is named by an argument, never a `<` redirection, which Windows PowerShell 5.1 rejects.
+PG_RESTORE = ("a `pg_dump` file; restore it into a fresh database with "
+              "`pg_restore -U <user> -d <db> <file>` (or `psql -U <user> -d <db> -f <file>` for a "
+              "plain dump), never with a `<` redirection")
+
+
+def _para(text):
+    return textwrap.wrap(text, WRAP_WIDTH, break_long_words=False, break_on_hyphens=False)
+
+
+def _series(items, last="and"):
+    """``a``, ``a and b``, ``a, b and c`` -- the shape the original wording uses."""
+    items = list(items)
+    if len(items) < 2:
+        return "".join(items)
+    return "%s %s %s" % (", ".join(items[:-1]), last, items[-1])
+
+
+def included_parts(manifest):
+    """Which named parts the archive carries, from the manifest's ``included`` list ONLY.
+
+    ⛔ Included means "listed in ``included``", never "exists on disk": a part that exists but
+    was excluded (unreadable, or it matched a secret pattern) is not in the archive, and
+    OPEN_ME_FIRST.md must not say it is (#321). Paths are the manifest's posix paths, so the
+    result is the same on Windows.
+    """
+    paths = [entry["path"] for entry in manifest.get("included", [])]
+
+    def under(prefix):
+        return [p for p in paths if p.startswith(prefix)]
+
+    keepsakes = [p for p in paths if p.startswith("docs/") and p.count("/") == 1
+                 and p.lower().endswith(".pdf")]
+    return {
+        "recap": "docs/bootcamp_recap.pdf" in paths,
+        "database": sorted(under("backups/revisit/database/")),
+        "state": "backups/revisit/RESUME_STATE.json" in paths
+                 or bool(under("backups/revisit/state/")),
+        "guide": "docs/REVISIT_BOOTCAMP.md" in paths,
+        "config": bool(under("config/")),
+        "mappings": bool(under("docs/mapping/")),
+        "src": bool(under("src/")),
+        "keepsakes": bool(keepsakes),
+        "visualizations": bool(under("docs/visualizations/")),
+        "production": bool(under("production/")),
+    }
+
+
+def _restore_step(path):
+    suffix = Path(path).suffix.lower()
+    if suffix in DATABASE_SUFFIXES:
+        return SQLITE_RESTORE
+    if suffix == PG_DUMP_SUFFIX:
+        return PG_RESTORE
+    return None
+
+
+def _share_block(parts):
+    named = (
+        ("keepsakes", "the keepsake documents", "the keepsake documents"),
+        ("visualizations", "the visualizations", "the visualizations"),
+        ("production", "the generated `production/` project", "the generated production project"),
+    )
+    carried = [label for key, label, _ in named if parts[key]]
+    missing = [label for key, _, label in named if not parts[key]]
+    head = "Profile **`share`** — the results, for reading."
+    if not missing:
+        text = "%s It carries %s." % (head, _series(carried))
+    elif carried:
+        text = ("%s It carries %s. It does not carry %s; `PACKAGE_MANIFEST.json`'s `included` "
+                "list names every file it does carry." % (head, _series(carried),
+                                                          _series(missing, "or")))
+    else:
+        text = ("%s It carries none of %s yet; `PACKAGE_MANIFEST.json`'s `included` list names "
+                "every file it does carry." % (head, _series(missing, "or")))
+    return _para(text) + [""] + _para(
+        "It deliberately carries **no database, no source data and no credentials**, so it is "
+        "safe to hand to someone who should see the results but not the inputs.")
+
+
+def _transfer_block(parts):
+    database, state, guide = parts["database"], parts["state"], parts["guide"]
+    results = parts["keepsakes"] or parts["visualizations"] or parts["production"]
+    resume = _para(
+        "**To resume:** open **`docs/REVISIT_BOOTCAMP.md`** — it carries the restore and "
+        "re-initialization commands for this project's database and state.")
+    if (results and database and state and guide
+            and parts["config"] and parts["mappings"] and parts["src"]):
+        return _para(
+            "Profile **`transfer`** — everything needed to continue the bootcamp on another "
+            "machine: the results, plus the revisit bundle (state snapshot and database backup), "
+            "`config/`, the mappings and `src/`.") + [""] + resume
+
+    named = [("the results", "the results", results)]
+    if database and state:
+        named.append(("the revisit bundle (state snapshot and database backup)", None, True))
+    else:
+        named.append(("a database backup", None, bool(database)))
+        named.append(("a state snapshot", "a state snapshot", state))
+    named += [
+        ("`config/`", "the project config", parts["config"]),
+        ("the mappings", "the mappings", parts["mappings"]),
+        ("`src/`", "the source code", parts["src"]),
+    ]
+    carried = [label for label, _, present in named if present]
+    missing = [label for _, label, present in named if not present and label]
+    text = "Profile **`transfer`** — for continuing the bootcamp on another machine. "
+    text += ("This package is partial: it carries %s." % _series(carried) if carried
+             else "This package is partial.")
+    if missing:
+        text += " It does not carry %s." % _series(missing, "or")
+    lines = _para(text) + [""]
+
+    if guide:
+        lines += resume
+        if not database:
+            lines += [""] + _para(
+                "This package carries **no database backup**, so there is no database to restore "
+                "from it: set up the database and redo the load on the new machine instead.")
+        return lines
+    if database:
+        for path in database:
+            step = _restore_step(path)
+            lines += _para("**Database backup:** `%s`%s." % (path, " is " + step if step else ""))
+            lines += [""]
+        return lines + _para(
+            "No full restore guide is included: it is written at graduation. Set up the SDK on "
+            "the new machine first, then restore the %s above."
+            % ("backup" if len(database) == 1 else "backups"))
+    return lines + _para(
+        "This package carries **no database backup and no restore guide**, so on the new "
+        "machine you must redo SDK setup, the database and the load.")
+
+
 def open_me_first(manifest, project_root):
+    """OPEN_ME_FIRST.md. Every statement about what the archive contains is built from the
+    manifest's ``included`` list, so it can never contradict PACKAGE_MANIFEST.json (#321)."""
     profile = manifest["profile"]
+    parts = included_parts(manifest)
     problem = business_problem_line(project_root)
     lines = [
         "# Open me first",
@@ -361,32 +507,18 @@ def open_me_first(manifest, project_root):
     ]
     if problem:
         lines += ["**The business problem it addresses:** %s" % problem, ""]
-    lines += [
-        "## Start here",
-        "",
-        "Open **`docs/bootcamp_recap.pdf`** first — it is the guided tour of what was built,",
-        "in order, with the visualizations embedded.",
-        "",
-        "## What this package is",
-        "",
-    ]
-    if profile == "share":
-        lines += [
-            "Profile **`share`** — the results, for reading. It carries the keepsake documents,",
-            "the visualizations and the generated `production/` project.",
-            "",
-            "It deliberately carries **no database, no source data and no credentials**, so it is",
-            "safe to hand to someone who should see the results but not the inputs.",
-        ]
+    lines += ["## Start here", ""]
+    if parts["recap"]:
+        lines += _para(
+            "Open **`docs/bootcamp_recap.pdf`** first — it is the guided tour of what was built, "
+            "in order, with the visualizations embedded.")
     else:
-        lines += [
-            "Profile **`transfer`** — everything needed to continue the bootcamp on another",
-            "machine: the results, plus the revisit bundle (state snapshot and database backup),",
-            "`config/`, the mappings and `src/`.",
-            "",
-            "**To resume:** open **`docs/REVISIT_BOOTCAMP.md`** — it carries the restore and",
-            "re-initialization commands for this project's database and state.",
-        ]
+        lines += _para(
+            "The recap PDF is written at graduation and is not in this package. Start with "
+            "`PACKAGE_MANIFEST.json` instead: its `included` list names every file this "
+            "package carries.")
+    lines += ["", "## What this package is", ""]
+    lines += _share_block(parts) if profile == "share" else _transfer_block(parts)
     lines += [
         "",
         "## What is NOT here, and why",

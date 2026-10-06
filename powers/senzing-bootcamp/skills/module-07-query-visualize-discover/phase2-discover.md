@@ -54,8 +54,10 @@ deliverable in INV-050's layout tree.
 ### Step 4a: Data pattern analysis
 
 Analyze the bootcamper's loaded data to identify interesting entities for the Discover
-demonstrations. Use the bootcamper's known record IDs (in `config/bootcamp_progress.json` under
-the Module 5 loading results, or from the data sources in `config/data_sources.yaml`).
+demonstrations. Use the bootcamper's known record IDs, taken from the files Module 6 loaded: for
+each source, read its `file_path` from `config/data_sources.yaml` (in `data/senzing-ready/` for a
+mapped source, the original `data/raw/` file for a fast-pathed one) and take `DATA_SOURCE` and
+`RECORD_ID` from its records.
 
 1. **Identify multi-record entities (3+ records):** iterate over the loaded record IDs and, via
    generated SDK code, call `get_entity_by_record_id(data_source, record_id)` for each. Collect
@@ -65,20 +67,25 @@ the Module 5 loading results, or from the data sources in `config/data_sources.y
    entities whose constituent records originate from two or more distinct data sources. These
    are candidates for the Why Analysis demonstration (step 4b). An entity qualifies if its
    records array contains entries with different `DATA_SOURCE` values.
-3. **Identify relationship clusters:** check the entity responses for disclosed relationship
-   data. Entities with one or more disclosed relationships are candidates for the Relationship
-   Network demonstration (step 4d). Use relationship flags when calling
-   `get_entity_by_record_id` so the response includes relationship information (look up the
-   flag names via `get_sdk_reference(topic='flags', filter='get_entity_by_record_id')`, and the
-   response structure via `get_sdk_reference(topic='response_schemas',
-   filter='get_entity_by_record_id')` before parsing it — INV-115).
+3. **Identify entities with relationships:** check the entity responses for relationship data.
+   Count every entity with **one or more relationships of any kind, disclosed or discovered**:
+   disclosed relationships are stated in the source data (like 'employer'), discovered ones are
+   inferred by Senzing from shared attributes (like a common address). Both kinds count, because
+   step 4d demonstrates both, and data that has only discovered links would otherwise skip it.
+   These entities are candidates for the relationship network demonstration in step 4d; keep
+   each one's relationship count, since step 4d starts from the entity with the most. Use relationship
+   flags that return both kinds when calling `get_entity_by_record_id` (look up the flag names via
+   `get_sdk_reference(topic='flags', filter='get_entity_by_record_id')`), and read where the
+   relationships sit in the response, and how a disclosed one is marked, via
+   `get_sdk_reference(topic='response_schemas', filter='get_entity_by_record_id')` before counting
+   them (INV-115).
 4. **SDK flag usage:** explain your flag choices as you go. For example: "I'm using
    `get_entity_by_record_id` with relationship flags so we can see which entities connect to
    others. This helps me find good candidates for the relationship network demonstration."
 5. **Present a summary:** "I found N large entities (3+ records), M cross-source matches
-   (records from multiple data sources), and K relationship clusters in your data." List the
-   most interesting candidates by entity ID with a brief reason (e.g. "Entity 1234 has 5
-   records from 2 sources" or "Entity 5678 has 3 disclosed relationships").
+   (records from multiple data sources), and K entities with relationships in your data." List
+   the most interesting candidates by entity ID with a brief reason (e.g. "Entity 1234 has 5
+   records from 2 sources" or "Entity 5678 has 3 relationships, 1 disclosed and 2 discovered").
 6. **Graceful fallback for limited data:** if fewer than 2 multi-record entities exist,
    explain: "Your data has limited resolution results, most records resolved as singletons
    (one record per entity). This is common with small or homogeneous datasets." Adapt the
@@ -91,7 +98,9 @@ the Module 5 loading results, or from the data sources in `config/data_sources.y
 `module_7_query.steps.4a`, using this structure:
 `{"status": "completed", "patterns_found": {"multi_record": N, "cross_source": M, "relationships": K}}`
 where N, M, and K are the actual counts of multi-record entities, cross-source entities, and
-relationship clusters found. Also set top-level `current_step` to `"4a"`.
+entities with relationships (disclosed or discovered) found. The `relationships` key keeps its name,
+but K is a count of **entities**, not of clusters or of relationships. Also set top-level
+`current_step` to `"4a"`.
 
 ### Step 4b: Why Analysis introduction
 
@@ -371,6 +380,12 @@ Demonstrate How Analysis using a concrete multi-record entity (3+ records) ident
    with scores]. Step 3: Record C from [Source] was added because [features matched with
    scores]." Walk through each step so the bootcamper can follow the entity's growth from a
    single record to its current multi-record state.
+
+   ⚠️ **Read `HOW_RESULTS.FINAL_STATE` in the same response before narrating (INV-115):** if
+   `NEED_REEVALUATION` is non-zero or `VIRTUAL_ENTITIES[]` has more than one element, say so,
+   name the sign, and point to Data processing's How-state audit (INV-334)
+   (`../module-06-data-processing/phaseD-validation.md` → "How-state audit") rather than
+   presenting the history as one settled construction.
 4. **Why-vs-How comparison:** explain the difference:
    - **Why Analysis:** compares two specific records or entities and explains the current
      resolution decision, "why are these together right now?"

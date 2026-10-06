@@ -155,17 +155,15 @@ INV-080), create an engine, and release it.
    configuration points. Send the bootcamper to Module 2's Step 8 SUPPORTPATH check (on Windows/Scoop,
    the sibling-directory case). Verified against the Senzing FAQ on MCP server 1.32.2, 2026-07-30.
 3b. **If the code is `SENZ7426`**, relay what `explain_error_code` returned (step 2 already says to)
-   and send them to the *same* Step 8 check. Re-verified on **MCP server 1.32.9, 2026-08-12**: it
-   now names the **macOS**-cask and **Windows**-Scoop `SUPPORTPATH` cases and points at
-   `sdk_guide(topic='install', …)` for the per-platform detail, ranking *"SUPPORTPATH points at a
-   directory with no transliteration modules … a configuration error, NOT a broken install"* as
-   `common_causes[0]` and *"Check SUPPORTPATH FIRST"* as `resolution_steps[0]`. So the tool now
-   agrees with Step 8 instead of contradicting it, and Step 8 is corroboration rather than a
-   correction. Its input-encoding cause is ranked **last** and conditioned on the error appearing
-   *"on a record operation after the engine has initialized successfully"* — not this failure, which
-   fires at engine construction, before any record is submitted.
-   ⛔ Never restate this as an unconditioned rule: stripped of the platform condition and that
-   record-level exception it becomes the over-generalization INV-169 forbids.
+   and send them to the *same* Step 8 check. How the tool compares with
+   `sdk_guide(topic='install', …)` on this code is stated once, in Module 2 Step 8's *"Both tools
+   agree on the diagnosis and the fix — not on the macOS literal"* block
+   (`../module-02-sdk-setup/SKILL.md`); follow it there rather than a copy here (INV-300). One
+   clause travels with the relay: on **macOS**, the tool's cask cause quotes a `SUPPORTPATH` literal
+   that holds for cask 4.4.x and earlier only, so never tell the Bootcamper that literal is what
+   their ini says. Step 8's `*TransRules.sz` content test applies whatever the literal.
+   ⛔ Never restate this as an unconditioned rule (INV-169): stripped of the platform condition and
+   of the record-level exception that block names, it becomes the over-generalization it forbids.
 4. Do not diagnose from the code alone beyond that: any other code goes through `explain_error_code`
    and `search_docs` per this module's Error handling section.
 
@@ -249,9 +247,11 @@ Verify the Senzing SDK initializes correctly and connects to the database.
 2. **Fetch the snippet, then** save it to `src/system_verification/verify_init.[ext]` where `[ext]`
    matches the chosen-language file extension (`.py`, `.java`, `.cs`, `.rs`, `.ts`).
    <!-- MCP-NEGATIVE: generate_scaffold(language='python', workflow='initialize') — its snippets[] carry file_path, source_url, repo, raw_url, size_bytes and line_count with no content field at all — owner: generate_scaffold IS the route that would return source text, and it returns a listing plus an ordered access_steps (fetch raw_url, else git clone) instead, so fetching raw_url is the documented route (routing negative) — server 1.36.0, 2026-09-02 -->
-   ⛔ `generate_scaffold` returns a **listing**, not code — `file_path`, `source_url`, `raw_url`,
+   ⛔ (INV-234) `generate_scaffold` returns a **listing**, not code — `file_path`, `source_url`, `raw_url`,
    `size_bytes`, `line_count` per snippet, with no source text. Follow its own `access_steps` step
-   1 and fetch each `raw_url`; use step 2's `git clone` if the fetch is blocked. **Never pass
+   1 and fetch each `raw_url`; use step 2's `git clone` if the fetch is blocked. If both fail,
+   take the terminal step in `../bootcamp-onboarding/ground-rules.md` → "Once `raw_url` and
+   `git clone` have both failed" (INV-160). **Never pass
    `inline=true`** — the tool's `access_steps` advertises it but its declared schema has no such
    parameter (only `language`, `version`, `workflow`), so the call cannot work (INV-160's rule,
    confirmed live for `generate_scaffold` on server 1.32.2, 2026-07-29). And never reconstruct the
@@ -310,8 +310,9 @@ Verify the MCP server can generate a full pipeline script in the chosen language
      `src/system_verification/verification_data.jsonl`. That path does not exist in a bootcamp
      project, so leaving it crashes Step 6.
    - **Fetch before saving.** As in Step 3: the listing carries no source text, so fetch each
-     `raw_url` (or `git clone` per `access_steps` step 2). **Never pass `inline=true`** — undeclared
-     in the schema (INV-160).
+     `raw_url` (or `git clone` per `access_steps` step 2). If both fail, take the terminal step in
+     `../bootcamp-onboarding/ground-rules.md` → "Once `raw_url` and `git clone` have both failed".
+     **Never pass `inline=true`** — undeclared in the schema (INV-160).
 
    Why this is a ⛔ and not a preference: **Step 6 executes this file "pointing it at
    `src/system_verification/verification_data.jsonl`"**, which presupposes a script that takes a
@@ -572,7 +573,7 @@ Each validation check has a 30-second timeout.
      then this is a real finding. Report fail with expected versus actual, include the `why_*` output,
      and suggest re-running the load or confirming the synthetic data file loaded completely.
 
-   ⚠️ **This check is reported separately from the other seven**, which are install checks. A
+   ⚠️ **This check is reported separately from the other checks**, which are install checks. A
    mismatch the engine explains must not turn the module's overall result into a failure.
 
 **Checkpoint:** write to `config/bootcamp_progress.json`:
@@ -643,9 +644,12 @@ and visualizes it. When it is not selected, the next module is Data collection.
 
 System Verification is successfully complete when ALL of the following are true:
 
-- All 8 System Verification checkpoint entries report "passed" status (`mcp_connectivity`,
-  `sdk_initialization`, `code_generation`, `build_compilation`, `data_source_registration`,
-  `data_loading`, `results_validation`, `database_operations`).
+- Every installation checkpoint entry reports "passed" status (`mcp_connectivity`,
+  `engine_initialization`, `sdk_initialization`, `code_generation`, `build_compilation`,
+  `data_source_registration`, `data_loading`, `database_operations`).
+- The `results_validation` checkpoint entry is reported separately and is not required to be
+  "passed": `passed` and `expectation_mismatch` both complete the module, and only `failed` (a
+  mismatch the engine's explanation does not account for) blocks it (INV-229, Step 7).
 - The Verification Report is persisted to `config/bootcamp_progress.json` with a valid ISO 8601
   timestamp.
 - The synthetic verification records are purged from the database (zero `VERIFY` entities remain).

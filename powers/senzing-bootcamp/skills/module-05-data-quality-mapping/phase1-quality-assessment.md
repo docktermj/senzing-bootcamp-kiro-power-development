@@ -63,8 +63,8 @@ call returns `mode: "url"` and a `resources` array whose entry carries `filename
 a `url` — and **no content**. There is nothing in the response to "save", so a guide that writes the
 response itself to the canonical path leaves Steps 4, 5, 5a and 6 reading attribute names out of a
 file that has none — and because a file still exists at the expected path, the failure is silent.
-`download_resource` is the third MCP tool with this shape; `ground-rules.md` → "Working examples"
-states the rule once for all three (INV-234).
+`download_resource` is the third MCP tool with this shape; `ground-rules.md` → "Three tools answer
+with a listing" states the rule once for all three (INV-234).
 
 **Retrieve it in two steps:**
 
@@ -73,8 +73,9 @@ states the rule once for all three (INV-234).
    platform (INV-001).
 2. **Save the body** to the single canonical copy at
    `docs/reference/senzing_entity_specification.md` (do not create duplicate copies elsewhere), then
-   **check the saved file's size against the response's `size_bytes`** before using it. On
-   2026-08-14 that was **73,051 bytes**, and a fetched-then-saved copy matched it exactly. A
+   **check the saved file's size against the response's `size_bytes`** before using it. Compare
+   with the figure in **this** response, never one remembered from an earlier run: the file changes
+   on the server's schedule, so a size written down goes stale silently (INV-080). A
    truncated fetch, or a saved error page, is caught here in one comparison instead of surfacing in
    Step 4 as attribute names that are merely absent. (INV-228's count-check discipline, applied to a
    resource fetch rather than a dataset.)
@@ -88,7 +89,9 @@ states the rule once for all three (INV-234).
    - ⚠️ **The same names render the other way through a different route, which is what makes this a
      trap rather than a typo.** `search_docs(query='entity specification attribute names feature
      tables NAME_ORG ADDR_LINE1 PHONE_NUMBER', category='data_mapping')` returns those same tables
-     with the names **backticked** (`` `OTHER_ID_TYPE` ``). A parse tuned on a `search_docs` excerpt
+     with the names **backticked** (`` `OTHER_ID_TYPE` ``): its top hit is the specification's
+     *Entities, features and attributes* section, and reading past the first hit reaches *Name >
+     Feature: NAME* with its attribute table. A parse tuned on a `search_docs` excerpt
      works there and under-collects here — and this saved document is what Step 4 reads.
    - ⛔ **(INV-080) Do not pin an attribute count in this file** — whatever the document holds today, a figure
      written into shipped prose is one nobody re-measures, and it goes stale silently because it
@@ -96,16 +99,44 @@ states the rule once for all three (INV-234).
      missing `NAME_ORG` is a parse failure, not a specification change.
 
 ⚠️ **If the URL fetch fails, `inline=true` is the sanctioned fallback for this tool — and for this
-tool only.** `download_resource`'s declared schema carries `filename`, `filenames`, `inline` and
-`version`, so INV-136 permits `inline` here, and the resource's own `on_failure` names it: *"Fallback:
+tool only.** `download_resource`'s declared schema carries `filename`, `filenames`, `inline`,
+`offset` and `version`, so INV-136 permits `inline` here, and the resource's own `on_failure` names it: *"Fallback:
 call download_resource with this filename and inline=true."* Use it only **after** the URL fetch
 fails — the parameter's own description says to try the default `inline=false` first — and expect it
-to cost context, since the full 73 KB then arrives inside the response. This is the **opposite** of
+to cost context. This is the **opposite** of
 the rule for `generate_scaffold` and `find_examples`, whose schemas do not declare `inline` at all,
 so passing it there is a call that cannot work. The difference is not about the word `inline`; it is
 about what each tool's schema declares (INV-136).
 
-**How to consult it: targeted lookup, never end to end.** The file is **73 KB**. Look up the
+⛔ **(INV-234) The inline reply carries the file in bounded chunks, not in one response, so put it back together before Step 4 reads it.**
+The reply's shape is stated once in `ground-rules.md` → "Three tools answer with a listing"
+(INV-300); this is the one step that assembles a file from it:
+
+1. Call `download_resource(filename="senzing_entity_specification.md", inline=true)`. Request the
+   file on its own, with `filename`: a batch (`filenames`) leaves out a file too large for one
+   chunk and lists it under `oversize`.
+2. Write the reply's `content` to the canonical copy, `docs/reference/senzing_entity_specification.md`,
+   as UTF-8 with the text unchanged (no line-ending conversion). **Ignore the reply's `dest`** and
+   its instruction to save there: it names a `/tmp` path, which is not the canonical copy and does
+   not exist on Windows (INV-001).
+3. While the latest reply says `truncated: true`, call again with `offset` set to its `next_offset`,
+   and **append** that reply's `content` to the same file, in order. Stop at the reply that says
+   `truncated: false` (or carries no `next_offset`).
+4. **Check the assembled file against `total_chars`** before using it. This is the inline route's
+   counterpart of the `size_bytes` check above, and it catches a dropped or repeated chunk.
+   ⚠️ Despite its name, `total_chars` counts the file's **UTF-8 bytes**, and so do the offsets:
+   verified on server **1.37.15, 2026-09-29**, where `total_chars` equaled the URL route's
+   `size_bytes`, and a chunk decoded to fewer characters than the offsets it spanned, because the
+   file holds non-ASCII text such as em dashes. So compare the saved file's **size in bytes** with
+   `total_chars`; a character count comes out short and fails a correct assembly.
+
+⚠️ **For a single lookup, `search_docs` is cheaper than paging.** It serves the Entity
+Specification already split by section, so one attribute or feature is one `search_docs` call
+naming it, with `category='data_mapping'`. It does not replace the saved copy: Steps 4, 5, 5a and 6 read the file, so paging stays the
+fallback for fetching it.
+
+**How to consult it: targeted lookup, never end to end.** The file is large: its size is the
+response's `size_bytes` (or `total_chars` inline), not a figure written here (INV-080). Look up the
 specific feature or attribute in question — grep for the attribute code, or open the single section
 that covers it. Do **not** read it front to back. `mapping_workflow` says so itself, at both its
 step 2 and step 3 (verbatim, server 1.32.9, 2026-08-14): *"Do NOT attempt to read it end-to-end —
@@ -116,7 +147,7 @@ the rest of their session, not merely some tokens.
 attribute names, types and structures — Steps 4, 5, 5a and 6 all compare against it. From
 `mapping_workflow` step 2 onward the workflow delivers its own **distilled inline mapping
 reference** (the feature catalog, the identifier-classification workflow, and the exact attribute
-keys), and *that* is the working reference for the mapping phase; the tool states the 73 KB file "is
+keys), and *that* is the working reference for the mapping phase; the tool states the file "is
 available only as an optional deep-dive" for an edge case the inline reference does not cover. Phase
 2 already cites the inline reference — relay this rather than leaving a guide holding two references
 with no basis for preferring either.
@@ -153,9 +184,9 @@ compliant attribute names.)
 - **Entity Specification-compliant:** Data already uses attribute names and structures that
   match the Entity Specification. CORD sources (the already-Senzing-ready fast-path class) are
   **eligible to be considered** for the fast-path (Step 5a, offered only for `provenance: cord`);
-  Step 5a decides, and it offers the skip only when the source is both structurally loadable
-  **and** fully mapped (INV-198) — a CORD source carrying fields that resolve to no specification attribute
-  goes through mapping like any other. Do not route a source past mapping from this
+  Step 5a decides, and its sub-step 5 is the one statement of the conditions the skip is offered
+  on (INV-300) — a CORD source carrying fields that resolve to no specification attribute
+  goes through mapping like any other (INV-198). Do not route a source past mapping from this
   categorization; that is Step 5a's call. Other compliant sources, including non-CORD data that
   looks Senzing-ready, continue to Phase 2, which confirms compliance and records lineage before
   loading.
@@ -210,7 +241,8 @@ obtained via the `get_sample_data` MCP tool in Module 4):
 
    ⛔ **This is the entry condition, not the fast-path condition.** Structurally loadable means the
    engine will accept the record; it does not mean every field in it has been decided about. Step 3
-   below answers that second question, and the offer in step 5 is gated on **both**. Classifying a
+   below answers that second question, and the offer in step 5 is gated on this check **and** on
+   two more: step 3 (fully mapped) and step 3a (zero type/name candidates). Classifying a
    partially-mapped source as ready on this test alone is what let a source with eleven
    undispositioned columns skip the module (see step 3).
 
@@ -297,7 +329,7 @@ obtained via the `get_sample_data` MCP tool in Module 4):
    category='data_mapping')` for the usage-type half and
    `search_docs(query='NAME_FULL NAME_ORG parsed person name single field', category='data_mapping')` for
    *Feature: NAME*, MCP server 1.32.8, docs index 2026-08-11; both queries re-verified as top hits
-   on 1.33.0, 2026-08-23). Resolve each
+   on 1.37.19, docs index 2026-10-02 18:46 UTC, 2026-10-04). Resolve each
    key against the specification you hold, and where a key is a catalog attribute carrying such a
    label, count it as a specification attribute. ⛔ The label **encoding** on a flat attribute name
    is an observed shape, not something the indexed specification states — so where you cannot
@@ -326,6 +358,15 @@ obtained via the `get_sample_data` MCP tool in Module 4):
      `truthset` class the fast-path was built for — has zero unrecognized keys and still fast-paths
      with no extra question. Nothing changed for it.
 
+3a. **Perform the type/name check: are any PERSON-typed records named like organizations?** Run
+   Step 6's type/name check over every record of this source now (the canonical statement is Step
+   6's "Type/name check" — INV-300), and keep its count and candidate names for Step 6 to report.
+   ⛔ (INV-198) **One or more candidates means no fast-path offer, even for a source that is
+   structurally loadable and fully mapped.** (INV-335) The offer skips the mapping phase, which is where a
+   retype is applied, so it would send the source to loading with its record types undecided.
+   Route it through sub-step 6 instead. Zero candidates, or zero PERSON-typed records, changes
+   nothing: the offer proceeds on sub-steps 2 and 3 alone.
+
 4. **Record the result:** In `config/data_sources.yaml`, set the source's `senzing_loadable` and
    `fully_mapped` fields to `true` or `false`, record `unmapped_fields` as the sorted list of
    unrecognized keys (an empty list when `fully_mapped` is `true`), and update `updated_at`.
@@ -335,8 +376,10 @@ obtained via the `get_sample_data` MCP tool in Module 4):
    `senzing_ready`, read it as `senzing_loadable` and treat `fully_mapped` as unknown — re-run
    step 3 rather than inferring it, since the old field never measured coverage.)*
 
-5. **If structurally loadable AND fully mapped: present the fast-path offer.** State the coverage
-   figure, so skipping is an informed choice rather than a silent default:
+5. **If structurally loadable, fully mapped AND free of type/name candidates: present the fast-path offer.**
+   It is offered only when sub-step 3a also found **zero** type/name candidates; a source with one
+   or more goes to sub-step 6. State the coverage figure, so skipping is an informed choice rather
+   than a silent default:
 
    👉 **Your CORD source [SOURCE_NAME] is already in Senzing-loadable form, and all [N] of its fields resolve to the Senzing Entity Specification — there is nothing left to map. Would you like to skip the mapping phase and proceed directly to loading in the Data processing module?**
 
@@ -363,6 +406,14 @@ obtained via the `get_sample_data` MCP tool in Module 4):
    telling them what it is about. For `PPP_LOANS` those columns are `Business_Type`, `CD`,
    `DateApproved`, `JobsReported`, `Lender`, `Loan_Range`, `NAICS_Code`, `NonProfit`, `OwnedBy`,
    `OwnedByRaceEthnicity`, `OwnedByVeteran` — eleven real decisions the fast-path used to skip.
+
+   **This branch also takes a source that sub-step 3a held back**: one with type/name candidates,
+   even when it is fully mapped. Its statement names the candidate count, after any unrecognized
+   fields when it has those too:
+
+   > "[SOURCE_NAME] will load as-is, but [N] of its [M] PERSON-typed records have names that end
+   > like an organization's, so their record type needs a decision. We'll look at them in the
+   > quality assessment next, and map this one."
 
 7. **If NOT structurally loadable or MCP unavailable:** Continue through the normal quality
    assessment and mapping workflow. Do NOT present the fast-path offer.
@@ -411,7 +462,7 @@ transformations:
     records_rejected: 0
     quality_score: null  # Quality assessment skipped
     fast_pathed: true
-    fast_path_reason: "CORD source structurally loadable and fully mapped: no unrecognized fields"
+    fast_path_reason: "CORD source structurally loadable, fully mapped (no unrecognized fields) and with zero type/name candidates"
 ```
 
 **Invariants:** every fast-path lineage entry MUST satisfy: `source_file == output_file` (the
@@ -545,10 +596,14 @@ not exist.
 
 ⛔ **A GROUP score is not evidence that two sources share an ATTRIBUTE, and MUST NOT be read as a
 cross-source join prediction.** Completeness for a grouped family — the Entity Specification's
-*Identifiers* section groups `NATIONAL_ID`, `PASSPORT`, `TAX_ID`, `LEI_NUMBER` and `TRUSTED_ID`
+*Identifiers* section groups identifiers such as `NATIONAL_ID`, `PASSPORT`, `TAX_ID` and
+`LEI_NUMBER`; `TRUSTED_ID` is not one of them, and is filed under its own *Trusted ID* heading
 (verified via `search_docs(query='Identifiers NATIONAL_ID PASSPORT TAX_ID TRUSTED_ID feature group',
-category='data_mapping')`, server 1.32.9, 2026-08-17; query re-verified on 1.33.0, 2026-08-23,
-returning the *Identifiers* feature sections) — counts the group
+category='data_mapping')`, server 1.32.9, 2026-08-17; query re-verified on 1.37.19, docs index
+2026-10-02 18:46 UTC, 2026-10-04, returning the *Identifiers* feature sections, *Identifiers >
+Feature: TAX_ID* and *Identifiers > Feature: NATIONAL_ID*; the same measurement served
+*Identifiers > Feature: PASSPORT*, *Identifiers > Feature: LEI_NUMBER* and *Trusted ID > Feature:
+TRUSTED_ID*) — counts the group
 as present when **any** member is populated. That is the right answer to *does this record carry an
 identifier at all*. It is not evidence for *will these two sources join*, because a join needs
 presence-of-**same**, not presence-of-any.
@@ -566,7 +621,7 @@ intact.
 
 **So, before naming any expected cross-source pair:** count the **distinct values shared on the named
 attribute**, not the group scores. The profiling pass already holds the values, so this is cheap. If
-that count was not run, write the pair as a *candidate on group coverage, overlap unmeasured* — a
+that count was not run, write the pair as a *candidate, overlap unmeasured* — a
 prediction is still useful, but an unmarked one is what did the damage.
 
 This is not a corner case. Mixed person/organization sources are the norm in KYC, AML, sanctions
@@ -580,7 +635,8 @@ wrong with it.
 
 **Derive applicability from the Entity Specification, not from a list in this file.** The
 specification states the type in its own wording, so `search_docs(query='what features to map',
-category='data_mapping')` answers it directly — read the feature's description and section heading:
+category='data_mapping')` answers it directly in the specification's *What features to map*
+section — read the feature's description and section heading:
 
 | What the specification says | Applies to |
 |---|---|
@@ -591,10 +647,10 @@ category='data_mapping')` answers it directly — read the feature's description
 | `NAME` (organization) — "Organization legal or trade name… `NAME_ORG`" | ORGANIZATION |
 | `ADDRESS`, `PHONE`, `EMAIL`, identifiers | either — do not exclude these |
 
-(Verified against MCP server 1.32.2, 2026-07-30. Re-read it for the source you are assessing rather
-than trusting this table — it is an illustration of *how the specification marks type*, not a
-substitute for asking, and it is deliberately partial: features not listed here still have to be
-checked the same way, INV-080.)
+(Verified against MCP server 1.37.14, docs indexed 2026-09-28 03:23 UTC, 2026-09-28. Re-read it for
+the source you are assessing rather than trusting this table — it is an illustration of *how the
+specification marks type*, not a substitute for asking, and it is deliberately partial: features not
+listed here still have to be checked the same way, INV-080.)
 
 **Records with no `RECORD_TYPE`.** The specification calls `RECORD_TYPE` *"Recommended"*, not
 required, and says to leave it blank when the type is unknown — so a record may legitimately have
@@ -665,12 +721,14 @@ Source: CUSTOMERS_CRM
   Format consistency:  90%
   Duplicate rate:       3%
   Overall quality:     78%  ⚠ Acceptable — some gaps (see below)
+  Type/name check:     0 of 4,210 PERSON-typed records are candidates
 
 Source: VENDORS_LEGACY
   Field completeness:  45%  (name: 90%, phone: 20%, email: 15%)
   Format consistency:  55%
   Duplicate rate:      12%
   Overall quality:     42%  ⚠ Recommend fixing before mapping
+  Type/name check:     3 of 12 PERSON-typed records are candidates (see below)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -682,6 +740,104 @@ rather than copying one from this example; a `✅` beside a 78% tells the bootca
 > **Data source registry:** After computing the quality score, update the source's
 > `quality_score` field in `config/data_sources.yaml` and set `updated_at`. If the score is
 > below 70, add an `issues` list entry describing the quality concern.
+
+<a id="type-name-check"></a>
+
+### Type/name check: PERSON-typed records with organization names
+
+⛔ (INV-300) **This is the canonical statement of the type/name check.** (INV-335) Step 5a sub-step 3a, Step
+7's report and Phase 2 steps 10, 11, 13 and 18 point here and add only what their own site needs.
+
+**Why it exists.** The Entity Specification says `RECORD_TYPE` *"prevents records of different
+types from resolving"* (*Feature: RECORD_TYPE*, via `search_docs(query='RECORD_TYPE PERSON
+ORGANIZATION prevent records of different types from resolving', category='data_mapping')`, MCP
+server 1.37.14, docs index 2026-09-28). So a record typed PERSON that is really an organization
+cannot merge with that organization's records in another source, however exactly the name and
+address agree. Nothing above sees it, because every per-type guard trusts the type. On 2026-09-25,
+26 of one CORD source's 31 PERSON-typed records had names ending `LLP`, `LP`, `PLC` or `LIMITED`.
+That one conflict held apart 17 of the 50 cross-source possible-match pairs, and it was found only
+after loading, when a near-miss was explained.
+
+Run it over **every record** of each source, not a sample: the count is the source's own figure.
+
+1. **Which records are tested.** Those whose `RECORD_TYPE` is `PERSON`: the record's own attribute
+   on a Senzing-ready source, and on a raw source the field Step 4 matched to `RECORD_TYPE`. A
+   source with no such field has zero PERSON-typed records.
+2. **Which name is read.** Whichever name attribute the record carries: `NAME_FULL`, `NAME_ORG`, or
+   the parsed person fields joined in order. That includes a name attribute carrying a leading
+   label (the sense Step 5a's coverage check allows for) and the `NAME` objects inside a `FEATURES`
+   array. On a raw source, read the field Step 4 matched to a name.
+3. **The test.** A record is a **candidate** when its name's **final whole token** is on the list
+   below: split on whitespace, trailing punctuation removed, compared case-insensitively. Only a
+   whole final token counts, so `LIMITED EDITIONS SMITH` and `PHILIP` are not candidates.
+
+   `LLP`, `LP`, `PLC`, `LIMITED`, `LTD`, `LLC`, `INC`, `CORP`, `CORPORATION`, `GMBH`
+
+   ⚠️ **This suffix list is the Power's own heuristic, not a Senzing fact (INV-080).** No MCP route
+   serves one: `search_docs(query='organization name suffix tokens LLC LTD INC person or
+   organization name classification')` returns the Entity Specification's NAME rules and libpostal
+   scripts, none of them a suffix list (MCP server 1.37.14, docs index 2026-09-28). If a route
+   serves one later, switch to it. The list is short on purpose. It leaves out tokens that are also
+   surnames or name particles, because a false candidate costs the Bootcamper a question and a
+   wrong retype costs a real person their matches.
+4. **Report it for every source, as candidates.** Put the count in the assessment above, zero
+   included (`Type/name check: 0 of 4,210 PERSON-typed records are candidates`). For a source with
+   one or more, give the count out of the PERSON-typed total and up to ten candidate names, and say
+   where they came from:
+
+   > "[SOURCE_NAME]: [N] of [M] PERSON-typed records have a name that ends like an organization's,
+   > for example [names]. These are candidates from a suffix test, not confirmed errors."
+
+   With zero candidates, or zero PERSON-typed records, report the zero and ask nothing.
+5. **Ask about each source with one or more candidates**, one source per turn:
+
+   👉 **How should the mapping type the [N] candidate records in [SOURCE_NAME]? Reply with a number:**
+
+   1. Retype them to ORGANIZATION, except any you name as a real person.
+   2. Keep them as PERSON.
+
+   *(Internal: end the turn on this question and wait.)*
+
+   - **Option 1:** ask which candidates, if any, are real people, and take "none" as an answer.
+     Every other candidate is retyped. Write the section below with the rule and those exceptions.
+   - **Option 2:** write the section below with the cost stated, and change nothing else.
+6. **Write the decision to `docs/mapping/{source_name}_mapper.md`**, under a `## Record Type
+   Check` section. If the file does not exist yet, create it with its `# Mapping Specification:
+   {SOURCE_NAME}` title and this section only. Phase 2 step 18 writes the rest of it and keeps this
+   section as written.
+
+   ```markdown
+   ## Record Type Check
+
+   - **Candidates:** [N] of [M] PERSON-typed records (suffix heuristic, Module 5 Phase 1 step 6)
+   - **Decision:** Retype / Keep as-is
+   - **Rule (retype):** a record whose `RECORD_TYPE` is `PERSON` and whose name's final whole
+     token (trailing punctuation removed, case-insensitive) is one of [the list above] is emitted
+     with `RECORD_TYPE` `ORGANIZATION`, and its name is mapped as `NAME_ORG` only, never as parsed
+     person fields and never as `NAME_FULL`. The `NAME_ORG` value is the single name field's value
+     as-is, or the parsed person fields joined with single spaces, in the order Module 5 Phase 1
+     Step 6 sub-step 2 reads them. Exceptions, kept `PERSON`: [the names or RECORD_IDs given, or
+     none]
+   - **Cost (keep):** these [N] records stay `PERSON`, so they cannot merge with organization
+     records in other sources. Such pairs stay possible matches, held apart by the record type.
+   ```
+
+   Write only the rule line for a retype and only the cost line for a keep. The name rule (INV-336)
+   follows the Entity Specification's *Feature: NAME*: *"use `NAME_ORG` for organizations"*, and
+   *"do not mix `NAME_ORG` with parsed person fields in the same object"* (the same suffix query
+   above returns that section, MCP server 1.37.14, docs index 2026-09-28).
+
+A source already checked in Step 5a sub-step 3a reuses that count and those names here. Do not run
+the check again. Its report and question belong here, because Step 5a routes such a source on to
+this step.
+
+⛔ (INV-048) **The check reports and asks; it never blocks the module.** If it cannot run, for
+example because no name attribute can be identified, say so in Step 7's report and continue.
+
+⛔ (INV-173) **Never undo the Bootcamper's retype to turn a validation gate green.** If Phase 2's
+verbatim check flags a retyped record's `NAME_ORG` joined from parsed name fields, follow that
+step's exemption procedure (`phase2-data-mapping.md`, "What to do — in this order"): record the
+derivation and its reason in the mapper notes, then proceed.
 
 **Checkpoint:** write step 6.
 
@@ -717,6 +873,13 @@ the third; both are the statements of record, so read them rather than reconstru
 4. **Verify the rendered page, not the exit status** (INV-129): open it and confirm the bars and the
    per-field numbers actually drew. Best-effort and non-blocking, like every check in this module.
 
+**Capture it for the recap, right after the page is written and verified.** Follow
+`../bootcamp-onboarding/module-completion.md` → "Capturing visualization screenshots", using its
+`--single` case: this page has no tabs, so it is one image, with `{name}` the page's file name
+without `.html`. That section is the statement of record for the helper, its exit codes and the skip
+rules (INV-300). Record the PNG path in the step-6 checkpoint, rewriting it in the same turn
+(INV-146). It is embedded in this module's recap at module close.
+
 ## 7. Summarize findings and save the evaluation report
 
 Create `docs/data_source_evaluation.md`:
@@ -747,6 +910,9 @@ Create `docs/data_source_evaluation.md`:
 
 **Reason:** [Why it needs mapping or is compliant]
 
+**Record type check:** [N] of [M] PERSON-typed records are type/name candidates. Decision:
+[Retype / Keep as-is / none needed]
+
 **Next step:** [Phase 2 (mapping) / Data processing (loading)]
 
 ### Data Source 2: [Name]
@@ -761,6 +927,11 @@ Create `docs/data_source_evaluation.md`:
   - Shared attribute: [the named attribute, e.g. `LEI_NUMBER`]
   - Distinct values shared: [count] (of [A count] in A, [B count] in B)
 ```
+
+Write the **Record type check** line for every source, zero included: `0 of [M]`, or `0 of 0` for a
+source with no PERSON-typed records, with the decision `none needed`. A fast-pathed source gets the
+line too, from Step 5a sub-step 3a. The count and the decision come from Step 6's type/name check,
+the canonical statement (INV-300), and the decision is the one written to the source's mapper notes.
 
 ⛔ **Every named cross-source pair in this report carries one of two labels, and neither is
 optional (INV-261).** `measured` requires a **distinct-value overlap count on the named attribute**; anything
@@ -779,7 +950,8 @@ counted, say so in the report rather than omitting the pair.
 
 After presenting the quality assessment, guide the user's decision.
 
-**Where the score gates — 70-79% and below 70% — ask exactly one 👉 question to close the turn.**
+**Where the score gates — 70-79% and below 70% — ask exactly one 👉 question to close the turn**,
+except on a fixed dataset with nothing mechanical left to fix, which Step 7b continues without one.
 At **≥80% there is no decision to make**: state the result and continue straight into Phase 2 in the
 same turn, letting Phase 2's first step supply that turn's single 👉.
 
@@ -789,7 +961,7 @@ improvising one breaches INV-056, which pins every gate question's wording preci
 drift at runtime. The ≥80% branch is the common one for curated data — a CORD source routinely
 scores there — so this is the path most runs take.
 
-⛔ **(INV-284) On a `provenance: synthesized` source, disclose before the 👉 — those gaps are deliberate.**
+⛔ **(INV-345) On a `provenance: synthesized` source, disclose before the 👉 — those gaps are deliberate.**
 Read `provenance` for this source from `config/data_sources.yaml`. When it is `synthesized`, Module
 4's Step 2 was **required** to manufacture exactly these gaps (INV-239: *"missing values in non-key
 fields, enough to put at least one source in the 70-79% band… That band opens the remediation
@@ -803,30 +975,35 @@ question, because anything meant to inform the answer goes before it
 > Improving them means regenerating data we authored a few minutes ago. That is a fair choice, it
 > is just not the same as fixing a real dataset."
 
-Then present the pinned question **unchanged, with both options live** (INV-056). ⛔ **Never
-silently regenerate.** Rewriting the Bootcamper's data as the answer to a question they were not
-told meant that is the failure this disclosure exists to prevent.
+Then present the applicable pinned question — the band's question below, or its no-progress variant
+in Step 7b — **unchanged, with both options live** (INV-056).
+
+⛔ **(INV-345) Never silently regenerate.** Rewriting the Bootcamper's data as the answer to a question they
+were not told meant that is the failure this disclosure exists to prevent.
 
 - **Quality ≥80%:** "Your data quality is strong. Let's continue to mapping." **(statement, no 👉;
   continue into Phase 2 this turn)**
-- **Quality 70-79%:** "Your data quality is acceptable but has some gaps. You can continue to
-  mapping now, or improve the weakest fields first."
+- **Quality 70-79%** *(where mechanical work remains; with nothing mechanical left to fix, present
+  this band's no-progress variant in Step 7b instead)*: "Your data quality is acceptable but has
+  some gaps. You can continue to mapping now, or improve the weakest fields first."
 
   👉 **Your data quality is acceptable but has some gaps. What would you like to do? Reply with a number:**
 
   1. Improve the weakest fields first.
   2. Continue to mapping now.
 
-- **Quality <70%:** "Your data quality needs attention before mapping will produce good
-  results. I'd recommend focusing on [specific issues: e.g., filling missing phone numbers,
-  standardizing address formats]."
+- **Quality <70%** *(where mechanical work remains; with nothing mechanical left to fix, present
+  this band's no-progress variant in Step 7b instead)*: "Your data quality needs attention before
+  mapping will produce good results. I'd recommend focusing on [specific issues: e.g., filling
+  missing phone numbers, standardizing address formats]."
 
   👉 **Your data quality needs attention before mapping will produce good results. What would you like to do? Reply with a number:**
 
   1. Work on improving the data first.
   2. Proceed anyway, knowing the results may be limited.
 
-*(Internal: in the two gating branches, end the turn on the applicable question and wait. In the
+*(Internal: in the two gating branches, end the turn on the applicable question and wait — Step 7b's
+fixed-dataset statement excepted, which continues into Phase 2. In the
 ≥80% branch no question applies — do not manufacture one; continue into Phase 2 this same turn and
 end on its first 👉.)*
 
@@ -854,8 +1031,10 @@ advisory, so treat this as executable, not advisory.
    - ⛔ **(INV-284) Not fixable here — `completeness`** (0.70 of the score, and usually what put the source in
      the band). **A missing value cannot be invented**, and offering to fill one is offering to
      fabricate data. Say that plainly. The honest route is a better export from the source system,
-     which is Data collection's job: offer a return to that module for this source, and say the
-     bootcamp will pick up here with the new file.
+     or for a generated source a regeneration, which is Data collection's job. Name it, and say it
+     is offered at the re-presented gate as Step 7b's return to Data collection, once nothing
+     mechanical is left to fix. Its wording, its handling and where the bootcamp picks up are stated
+     in Step 7b, not here (INV-300).
 
 3. **Write the improved data as a NEW file; never overwrite what was collected.** Put it beside the
    original as `data/raw/<source>-improved.<ext>` and record the original `file_path` in the same
@@ -892,17 +1071,127 @@ advisory, so treat this as executable, not advisory.
    one.** INV-006 forbids re-asking a question already answered about the same state; the score has
    changed, so this is a new question about a new state, and the Bootcamper's earlier answer was
    about the old figure. Present whichever band's pinned question the **new** score selects — a
-   source that crossed into ≥80% gets no question at all and continues into Phase 2 this turn.
+   source that crossed into ≥80% gets no question at all and continues into Phase 2 this turn. A
+   pass that fixed everything leaves nothing mechanical, so the band's form is Step 7b's.
 
 6. **When nothing was fixable, say so rather than looping.** If the gaps are entirely completeness,
-   there is no mechanical work to do: state that, name the return-to-collection route from step 2,
-   and present the gate again with the score **unchanged and identified as unchanged**. Never
-   re-present an unchanged score as an improvement.
+   there is no mechanical work to do: say so, and never re-present an unchanged score as an
+   improvement. Step 7b now applies; it states how the unchanged score is identified and what the
+   gate offers instead (INV-284).
 
 ⚠️ **On a `provenance: synthesized` source this path is still available and still honest** — the
 disclosure above has already told the Bootcamper the gaps are deliberate. Normalizing formats in
-generated data is real work with a real re-score; if they ask to regenerate instead, that is Module
-4's Step 2, and it is their call to make with the disclosure in hand.
+generated data is real work with a real re-score; if they ask to regenerate instead, that is Step
+7b's return route, and it is their call to make with the disclosure in hand.
+
+### 7b. Return to Data collection — when nothing mechanical is left to fix
+
+⛔ **(INV-300) This is the canonical statement of the gate's no-progress variant and of the return
+route it offers.** The gate above, Step 7a and Module 4's receiving branch point here; none of them
+restates it.
+
+**When it applies.** Check every time a gating band's question (70-79% or <70%) is about to be
+presented: the first time, after a Step 7a pass that fixed everything, and after one that found
+nothing. **Nothing mechanical is left to fix** when Step 6's measures for this source show
+`format_consistency` at 100% **and** no repeated `(DATA_SOURCE, RECORD_ID)` pair, the only two
+dimensions Step 7a step 2 calls fixable here, or when a Step 7a pass has just found nothing it
+could fix. Then this step's form of the band replaces the band's question. Where mechanical work
+remains, present the band's question above unchanged.
+
+⛔ **(INV-284) Never offer an improvement option when nothing mechanical is left to fix.** Step 7a
+would find nothing to do and hand back the same gate, so the option is a dead choice that loops.
+Observed 2026-10-01: STORE_POS (synthesized) went 73.5 → 79.0 on format normalization, and the
+Bootcamper then chose "Improve the weakest fields first" twice more with nothing left to improve.
+
+**After a pass that found nothing, say first that the score is unchanged** (one statement line,
+before the 👉): "The score is unchanged at [score]: there was nothing mechanical left to fix."
+
+**Read `provenance` for this source from `config/data_sources.yaml`**; it selects the form.
+
+**`synthesized`, `own` or `unknown` → the pinned no-progress variant (INV-056).** The synthesized-source
+disclosure above still precedes it on a `synthesized` source. The question line is the band's own:
+
+- **Quality 70-79%:** "Your data quality is acceptable but has some gaps. What is left is missing
+  values, which this module cannot fill; a better export, or a regeneration of generated data, can."
+
+  👉 **Your data quality is acceptable but has some gaps. What would you like to do? Reply with a number:**
+
+  1. Return to Data collection for this source.
+  2. Continue to mapping now.
+
+- **Quality <70%:** "Your data quality needs attention before mapping will produce good results.
+  What is left is missing values, which this module cannot fill; a better export, or a
+  regeneration of generated data, can."
+
+  👉 **Your data quality needs attention before mapping will produce good results. What would you like to do? Reply with a number:**
+
+  1. Return to Data collection for this source.
+  2. Proceed anyway, knowing the results may be limited.
+
+*(Internal: end the turn on the applicable question and wait.)*
+
+**`cord` or `free_data` → no return; a statement, and no 👉 at this gate.** Both are fixed datasets,
+one from `get_sample_data` and one from the free-data catalog, so completeness cannot change and a
+return would offer nothing (INV-012). Say the band's line, then continue into Phase 2 in the same
+turn, letting Phase 2's first step supply that turn's 👉:
+
+- **Quality 70-79%:** "Your data quality is acceptable but has some gaps. What is left is missing
+  values, and this is a fixed dataset, so its completeness cannot change. Let's continue to
+  mapping." **(statement, no 👉; continue into Phase 2 this turn)**
+- **Quality <70%:** "Your data quality needs attention before mapping will produce good results.
+  What is left is missing values, and this is a fixed dataset, so its completeness cannot change,
+  and the results may be limited. Let's continue to mapping." **(statement, no 👉; continue into
+  Phase 2 this turn)**
+
+**Handling each option (INV-284).**
+
+- **Option 2** is the band's own second option and is handled as it is there: continue into Phase 2
+  this turn. Nothing is written for the return.
+- **Option 1** runs the return route below. ⛔ **(INV-006) Option 1 IS the return route's pinned
+  question: the answer is the go-ahead, so ask no second confirmation.** The same route runs when the
+  Bootcamper asks, in their own words, for a regeneration or a new export of this source.
+
+**The return route, for this source only:**
+
+1. **Record the return in one quiet write** to `config/bootcamp_progress.json`: set `current_step`
+   to `"7b"` and add
+
+   ```json
+   "collection_return": {
+     "source": "<DATA_SOURCE>",
+     "provenance": "synthesized | own | unknown",
+     "from_band": "70-79 | <70",
+     "resume_step": 6,
+     "started_at": "<ISO 8601>"
+   }
+   ```
+
+   with `resume_step` from the table below. ⛔ **(INV-284) `current_module` is not changed:** the
+   Bootcamper stays in this module, and the key is what lets an interrupted return resume.
+
+2. **Run Module 4's receiving branch** —
+   [`../module-04-data-collection/SKILL.md`](../module-04-data-collection/SKILL.md#receiving-a-collection-return)
+   Step 2 → "Receiving a `collection_return`", which says how each provenance is collected. Only the
+   steps in this table run:
+
+   | `provenance` | Module 4 steps that run | Module 5 resumes at |
+   |---|---|---|
+   | `synthesized` | Step 2's synthesized branch, regenerating this source only to `>=80` | **Step 6** (re-score): the schema is unchanged |
+   | `own` | Step 2's provision question for this source, then Step 3 (verify) and Step 8 (tracking); Step 8a's volume check for this source only when the record count changed | **Step 4** (compare with the Entity Specification): a new export can change shape. Steps 5, 6 and the gate follow |
+   | `unknown` | exactly as `own`; the answer sets `provenance` | **Step 4**, as `own` |
+
+   ⛔ **(INV-284) Module 4's Step 9 does not run at all on a return:** no Module Completion, no
+   second Module 4 recap section, no progress update and no transition question. Module Completion
+   would move `current_module` past this module, and there is no module transition to ask about.
+
+3. **Resume here.** When those steps finish, clear `collection_return` and set `current_step` to the
+   resume step in one write, then continue at that step for this source. The gate is re-presented
+   with the new score: ⛔ **(INV-284) that is a new state, NOT an INV-006 repeat**, so present
+   whichever form the new score and this step's check select. At ≥80% there is no question.
+
+4. **An interrupted return** resumes from `current_step: "7b"` with `collection_return` present:
+   continue the return for the named source from the first Module 4 step not yet done, and do not
+   re-present the gate, whose answer is already recorded.
 
 **Success indicator:** ✅ All data sources categorized + `docs/data_source_evaluation.md`
 created.

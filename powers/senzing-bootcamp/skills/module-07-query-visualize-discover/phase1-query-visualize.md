@@ -58,6 +58,18 @@ entities.
 
 For each query type, create a program in `src/query/` using the bootcamper's chosen language.
 
+⛔ **(INV-152) Before factoring engine setup into a shared helper, read the factory-lifetime
+rule.** Writing several query programs is exactly when that helper gets written, and getting
+what it returns wrong yields an engine that is already dead: it fails at the **first** engine
+call, far from the helper that caused it, with `SzSdkError - engine object has been destroyed
+and can no longer be used, create a new one`. The message names a symptom, not the cause, so
+it is easy to debug in the wrong place. [`ground-rules.md`](../bootcamp-onboarding/ground-rules.md)
+states the rule and its fix in full; follow it rather than restating it here (INV-300).
+
+On Java, a shared helper is a shared class, whose filename rule is in
+[`ground-rules.md`](../bootcamp-onboarding/ground-rules.md) → "File placement" (INV-237); do not
+restate it here (INV-300).
+
 Use `generate_scaffold` with `workflow='query'` and the chosen language. For entity-view
 patterns (get/why/how), consult `reporting_guide(topic='entity_views', language='<lang>',
 version='current')`. For network/path patterns, consult `reporting_guide(topic='graph',
@@ -129,7 +141,7 @@ sub-flags that one carries.** Before parsing an entity field out of a response, 
 composite's `composite_members` and confirm the flag that populates *that* field is in it.
 Three confirmed cases, all of which apply when you pass **no** `flags` argument at all, because
 these are the signature defaults (`get_sdk_reference(topic='flags', filter=…, language='python')`,
-server 1.32.2, verified 2026-07-29; the `why_*` row re-verified 2026-07-31):
+all four rows re-verified on MCP server 1.37.14, 2026-09-28):
 
 | Composite | Carries | Does **not** carry |
 |---|---|---|
@@ -177,20 +189,27 @@ as equivalent to `SZ_INCLUDE_FEATURE_SCORES` (each **checked individually**, not
 its sibling — INV-169).
 
 ⛔ **When `topic='flags'` returns a composite with NO `composite_members`, the check is not
-unrunnable — you asked the wrong tool.** For all three `why_*` default composites
-`get_sdk_reference(topic='flags', …)` returns only a one-line description, no
-`composite_members` and no `response_paths`, with `applies_to` as the literal glob
-`["why_entities*"]` and a `source_file` of the V3→V4 breaking-changes document rather than the
-flags reference. The membership **is** documented — in the flags documentation, reachable with
-`search_docs(query='SZ_WHY_ENTITIES_DEFAULT_FLAGS default recommended flags')`, which returns
-the "Equivalent to:" line quoted above (source: `senzing.com/docs/flags/4/flags_why`). So:
+unrunnable — you asked the wrong tool.** (This section's earlier example, the three `why_*`
+default composites returning no `composite_members`, was seen at server 1.32.2 on 2026-07-31 and
+does not reproduce at 1.37.14 on 2026-09-28: they now list `SZ_INCLUDE_FEATURE_SCORES`.) A
+composite can come back with a description and no structured membership.
+`SZ_SEARCH_BY_ATTRIBUTES_DEFAULT_FLAGS` does: `get_sdk_reference(topic='flags',
+filter='SZ_SEARCH_BY_ATTRIBUTES_DEFAULT_FLAGS', language='python')` returns no `composite_members`,
+only a description: *"It is defined as SZ_SEARCH_BY_ATTRIBUTES_ALL"*, and *"the two produce
+identical responses"*. Meanwhile `SZ_SEARCH_BY_ATTRIBUTES_ALL`'s own row does list its members
+(MCP server 1.37.14, 2026-09-28).
+The membership was there all along, one lookup away. So:
+
+<!-- MCP-NEGATIVE: get_sdk_reference(topic='flags', filter='SZ_SEARCH_BY_ATTRIBUTES_DEFAULT_FLAGS', language='python') — the SZ_SEARCH_BY_ATTRIBUTES_DEFAULT_FLAGS row carries no composite_members field, while its description names the composite it is defined as — owner: get_sdk_reference(topic='flags') IS the route that owns composite membership, and the same response's SZ_SEARCH_BY_ATTRIBUTES_ALL row lists its members and the method_signatures default for search_by_attributes is SZ_SEARCH_BY_ATTRIBUTES_ALL, so the membership is reachable from this one response rather than absent (routing negative) — server 1.37.14, 2026-09-28 -->
 
 1. Ask `topic='flags'` first — it is authoritative and structured.
-2. If `composite_members` is absent, ask `search_docs` before concluding anything.
+2. If `composite_members` is absent, read the description first — it may name the composite it
+   equals — then ask `search_docs` before concluding anything.
 3. Corroborate with the method signature: the same response's `method_signatures` shows the
-   binding's default, and for `why_entities` Python reads
-   `flags: int = <SzEngineFlags.SZ_INCLUDE_FEATURE_SCORES: 67108864>` — independent
-   confirmation that the composite is that one flag.
+   binding's default. For `why_entities` Python reads
+   `flags: int = <SzEngineFlags.SZ_INCLUDE_FEATURE_SCORES: 67108864>`, and for
+   `search_by_attributes` it reads `<SzEngineFlags.SZ_SEARCH_BY_ATTRIBUTES_ALL: 201340943>`, independent
+   confirmation of what the composite is.
 4. Only if **both** tools come back empty do you OR the needed sub-flags in explicitly and
    record what you could not confirm (INV-080/INV-149).
 
@@ -419,12 +438,17 @@ raising (`get_sdk_reference(topic='response_schemas', filter='why_entities', lan
 the document shared by `why_entities`, `why_records` and `why_record_in_entity` — server 1.33.0,
 2026-08-21).
 <!-- MCP-NEGATIVE: get_sdk_reference(topic='response_schemas', filter='why_entities', language='python') — no MATCH_KEY, ERRULE_CODE or MATCH_KEY_DETAILS field appears under WHY_RESULTS[] at any depth — owner: get_sdk_reference(topic='response_schemas', filter='why_entities') IS the route that owns the why response document (shared by why_entities, why_records and why_record_in_entity), so its field list is the answer rather than a miss; the same document carries the renamed trio one level in, at WHY_RESULTS[].MATCH_INFO — WHY_KEY, WHY_ERRULE_CODE and WHY_KEY_DETAILS, of which only WHY_KEY_DETAILS is flag-gated (requires_flags SZ_INCLUDE_MATCH_KEY_DETAILS) — which is what makes the absence a rename rather than a gap (absence negative) — server 1.36.0, 2026-09-02 -->
-⚠️ **Getting
-`WHY_KEY_DETAILS` to appear may require `SZ_INCLUDE_MATCH_KEY_DETAILS` plus a relations flag**: no
-flag is *documented* to populate it, yet it was absent without that flag on two SDK builds
-(observation-only). If it is missing for the flags in force, say so explicitly and fall back to
-`FEATURE_SCORES` rather than rendering an empty section — the full statement is in
-`phase2-discover.md` step 4b.3, which states it once (INV-179, INV-300).
+⚠️ **`WHY_KEY_DETAILS` needs `SZ_INCLUDE_MATCH_KEY_DETAILS`, and that flag needs a relations
+flag — the server documents both.** Read the first from `response_schemas` for the Bootcamper's
+binding: `get_sdk_reference(topic='response_schemas', filter='why_entities',
+language='<chosen_language>')` marks `WHY_RESULTS[].MATCH_INFO.WHY_KEY_DETAILS` with
+`requires_flags: ["SZ_INCLUDE_MATCH_KEY_DETAILS"]`. Read the second from that flag's own row:
+`get_sdk_reference(topic='flags', filter='SZ_INCLUDE_MATCH_KEY_DETAILS')` says it is *"dependent on
+using one of the following flags: SZ_ENTITY_INCLUDE_ALL_RELATIONS,
+SZ_ENTITY_INCLUDE_POSSIBLY_SAME_RELATIONS, …"* (server **1.37.19**, 2026-10-02). If the field is
+missing for the flags in force, say so explicitly and fall back to `FEATURE_SCORES` rather than
+rendering an empty section — the full statement is in `phase2-discover.md` step 4b.3, which states
+it once (INV-179, INV-300).
 
 **Checkpoint:** write step 3a.
 
@@ -502,7 +526,9 @@ Based on the assessment — evidence first, wording second:
   merged on [match keys], and each is the same [person/organization]. Possible matches are [x]% of
   entities. Quality looks good — let's proceed to visualizations."
 - **Marginal:** "I see some potential issues. Here are the specific entities to review." (Show the
-  sampled entities and pairs with their match keys, then ask whether to proceed or iterate.)
+  sampled entities and pairs with their match keys, then ask whether to proceed or iterate.) On
+  "proceed", continue to **3c**. On "iterate", enter
+  [the quality-iteration route](#the-quality-iteration-route) below, as its Marginal clause says.
 - **Poor:** a high possible-match rate is a **finding, not a verdict on the mapping.** Show the
   possible-match pairs and name the match-key pattern they share, then run the test below before
   saying anything about mapping. ⛔ **The band says to look hard; it does not say what you will
@@ -565,22 +591,81 @@ mapping" is worth keeping — and a finding that routed nowhere must not be sile
 
 **Module 5 feedback loop (when quality is poor or the bootcamper requests iteration):**
 
-Explain first, as a statement: their loaded data and query programs will be preserved; after
-remapping, they'll reload the affected sources and re-evaluate here. Then end the turn on this
-single question:
+Explain first, as a statement: name the sources the finding implicates, and say that their loaded
+data and query programs will be preserved; after remapping, they'll reload the affected sources and
+re-evaluate here. Then end the turn on this single question:
 
 👉 **Would you like to return to the Data Quality, Mapping, and Transformation module to refine your data mapping?**
 
 *(Internal: end the turn on this question and wait.)*
 
-If accepted:
+**Handling each answer (INV-284).**
 
-1. Note which data sources need remapping in `config/bootcamp_progress.json` under a
-   `quality_iteration` key.
-2. Set `current_module` to `data_quality_mapping` (Module 5's name token — `current_module` holds
-   a name token, never a catalog number, per INV-086) and `current_step` to the Phase 2 start step.
-3. Load `../module-05-data-quality-mapping/phase2-data-mapping.md` and begin at its Phase 2
-   (step 8, "Start") for the source being refined.
+- **Declined:** record the finding for the module recap and continue to **3c**, whose pinned
+  visualization offer closes the turn.
+- **Accepted:** run the quality-iteration route below. ⛔ **(INV-006) The pinned question's yes IS the
+  route's go-ahead, so ask no second confirmation.**
+- **Marginal's "iterate":** give the explanation statement above, then enter the route directly with
+  `from_verdict: "marginal"`. ⛔ **(INV-006) The Module 5 question above is not asked as well:** the
+  "iterate" answer is already the go-ahead.
+
+<a id="the-quality-iteration-route"></a>
+
+**The quality-iteration route, for the named sources only.** ⛔ **(INV-300) This is the canonical
+statement of the route:** which stages run, in what order, and where the flow resumes. Module 5's and
+Module 6's receiving branches say only how their stage is done, and cite this step. The model is
+Module 5's `collection_return` (`../module-05-data-quality-mapping/phase1-quality-assessment.md`
+Step 7b): the Bootcamper stays in this module throughout, and no module is re-entered or re-completed.
+
+1. **Record the return in one quiet write** to `config/bootcamp_progress.json`: set `current_step` to
+   `"3b"`, add
+
+   ```json
+   "quality_iteration": {
+     "sources": ["<DATA_SOURCE>", "..."],
+     "from_verdict": "poor | marginal",
+     "stage": "remap | reload",
+     "completed": [],
+     "started_at": "<ISO 8601>"
+   }
+   ```
+
+   and append `{"sources", "from_verdict", "started_at", "before"}` to
+   `module_7_query.quality_iterations`, where `before` holds the three indicators of the quality
+   summary above. `sources` lists the sources named in the explanation statement. `stage` starts at
+   `remap`. `completed` lists the sources whose current stage has finished. ⛔ **(INV-284)
+   `current_module` is not changed:** the Bootcamper stays in this module, and the key is what lets an
+   interrupted return resume.
+
+2. **Run the two stages, in order, for the named sources only:**
+
+   | `stage` | What runs | Stated in |
+   |---|---|---|
+   | `remap` | Module 5 Phase 2 Steps 8–18 for each named source, with Step 19's relocation guard between sources. Phase 1, Phase 3 and Step 20 do not run | [Module 5 → Receiving a `quality_iteration`](../module-05-data-quality-mapping/phase2-data-mapping.md#receiving-a-quality-iteration) |
+   | `reload` | Module 6: the RECORD_ID-set comparison and delete, then each named source's reload with the existing loading program, then redo. Phase A runs only when a source's input path changed. Phase D and the completion step do not run | [Module 6 → Receiving a `quality_iteration`](../module-06-data-processing/phaseB-load-first-source.md#receiving-a-quality-iteration) |
+
+   When every named source is remapped, set `stage` to `reload` and `completed` to `[]` in one write,
+   then continue into Module 6's branch.
+   ⛔ **(INV-284) No module is completed on a return:** no Module Completion for Module 5 or Module 6,
+   nothing added to `modules_completed` again, no recap section for either, no progress update and no
+   transition question. Neither branch writes a checkpoint of its own module, so `current_module` and
+   `current_step` stay as this step set them.
+
+3. **Resume here.** When the reload stage finishes, clear `quality_iteration` and set `current_step`
+   to `"3b"` in one write. Then re-run step 3b in full on the reloaded data: the sampled entities,
+   the quality summary and the verdict. ⛔ **(INV-284) That is a new state, NOT an INV-006
+   repeat**, so present whichever branch the new indicators select. The return may be offered again,
+   with no cap, because each return measures a new state. At step 3b's checkpoint, record the new
+   indicators as `after` on the latest `module_7_query.quality_iterations` entry.
+
+4. **An interrupted return** resumes from `current_step: "3b"` with `quality_iteration` present: this
+   module's `SKILL.md` **First:** routes by `stage` to the first source not listed in `completed`. Do
+   not re-present the step-3b question, whose answer is already recorded.
+
+5. **The recap.** Module 7's own recap section records the iteration, as
+   "Module completion" at the end of this file says.
+
+Outcomes 2 and 3 of the Poor band never reach this route (INV-264, above).
 
 **Checkpoint:** write step 3b.
 
@@ -632,9 +717,15 @@ of the Truth Set. It MUST:
   it. Nothing looked broken. This step's own warning applies to itself here: *the bootcamper cannot
   tell a bad default from bad data*, so check what the colors encode rather than assuming the
   reference got it right.
-  - ⛔ **Run the encoding self-check here too, and here it is not vacuous (INV-270, INV-259, INV-265).** Compare the legend's
-    distinct color-key count against `encoding_check.distinct_source_set_keys` from the graph
-    endpoint (the contract's "The encoding self-check"). ⚠️ The Truth Set build **also** exercises
+  - ⛔ **Run the encoding self-check here too, and here it is not vacuous (INV-270, INV-259, INV-265).** Compare the number of
+    **combination rows** the source legend names against `len(encoding_check.combination_keys)`
+    from the graph endpoint (the contract's "The encoding self-check"; `distinct_source_set_keys`
+    is the total those combinations are drawn from). ⛔ Count combination rows only (INV-270): the per-source
+    rows are not source-set keys, and on this data the node cap routinely leaves a source in view
+    only inside combinations, so counting every row raises a false mismatch on a correct encoding.
+    ⛔ Uncheck "Show only entities with relationships" before reading it (INV-270) — above 400 nodes the graph
+    opens in relationship mode, whose legend has no source colors; captures are taken as before.
+    Report `not exercised`, never passed, when no combination key is in view. ⚠️ The Truth Set build **also** exercises
     this check — it registers three data sources, so a `not_exercised` result back in Module 3b was a
     signal rather than the norm — and the bootcamper's data exercises it again at larger scale. Do
     not treat a clean Module 3b verdict as covering this run: different data, different encoding
@@ -742,7 +833,7 @@ of the Truth Set. It MUST:
 
   ```bash
   python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/capture_screenshots.py" \
-    --url "http://localhost:<the port 3b actually bound>" \
+    --url "http://localhost:<the port 3c actually bound>" \
     --name results_visualization --tabs all --query "<a name present in the loaded data>"
   ```
 
@@ -788,19 +879,10 @@ Let them explore at their own pace, then continue through the Discover phase and
 Completeness Gate **with the server still running** — the Discover demonstrations pair naturally
 with a live app to look at.
 
-⛔ **Before stopping it, ask the teardown gate**, pinned verbatim (INV-056), and end the turn on it:
-
-> 👉 **Ready for me to stop the visualization server?**
-
-The gate names the server and **only** the server: unlike the Truth Set module, nothing here is
-purged — the bootcamper's loaded data stays exactly where it is, and later modules and the recap
-depend on it. Say so when asking, and mention that the saved snapshot keeps every tab except the
-live `why`/`how`/`search`.
-
-*(Internal: end the turn on this question and wait.)* On "no" or "not yet", leave it running, say so,
-and wait for their go-ahead; do not re-ask on a loop. Never leave the bootcamper having to request a
-restart for a server they never agreed to stop. If the module ends with the server still up, say
-plainly that it is still running and how to stop it, rather than stopping it unasked.
+⛔ **Do not ask about stopping the server here (INV-251).** Step 3c ends without a teardown
+question: the next question is the Discover opt-in, and one turn carries one 👉 question. The stop
+question has exactly one place — "Visualization server teardown", after the Query Completeness Gate
+below, in a turn of its own.
 
 ⛔ **(INV-001, INV-002) On macOS, start it as a DIRECT CHILD of the shell that sourced the env script — never
 through `nohup`, `env`, or a nested `bash -c`.** SIP strips `DYLD_*` when a protected binary execs a child,
@@ -911,13 +993,13 @@ cover Latin-1 only, so any character outside it — Cyrillic, Greek, CJK, Arabic
 the page**, and box-drawing connectors (`│`, `▼`, `└`) go with it. So when an entity's primary name
 is non-Latin, write the **verified** Latin-script name or alias the loaded data already carries for
 it (GLEIF/OFAC/OPEN-SANCTIONS records routinely hold both) and say which you used; and draw ASCII
-diagrams with `|` and `v`. ⛔ **Never transliterate or invent a name you have not confirmed in the
-data** — a wrong name in a shared report is worse than an awkward one (INV-065's principle: never
-fabricate to fill a field). The generator now reports every character it had to drop, naming them
+diagrams with `|` and `v`. ⛔ **(INV-323) Never transliterate or invent a name you have not confirmed
+in the data** — a wrong name in a shared report is worse than an awkward one. The generator now
+reports every character it had to drop, naming them
 and the first affected passage on stderr, so a slip is visible rather than silent — but it reports
 the loss, it cannot undo it: the characters are gone from that PDF.
 
-Then render the PDF with the bundled generator. ⛔ **It ships inside the Power, not in the
+Then render the PDF with the bundled generator. ⛔ **(INV-185) It ships inside the Power, not in the
 bootcamp project** — resolve it the same way every other bundled script is resolved, and never as a
 bare `scripts/…` path, which resolves against the project working directory where no top-level
 `scripts/` exists (INV-050 puts the project's own utilities under `src/scripts/`):
@@ -961,12 +1043,55 @@ Before wrapping up the module, confirm:
    bootcamper was told why. Never silently absent.
 5. **Ready to proceed?**
 
+## Visualization server teardown (its own turn)
+
+**Skip this step silently if no server was started** — the Bootcamper declined the step-3c
+visualization (`m7_visualizations` records `"accepted": false`), so there is nothing to stop and
+nothing to say about it. Go straight to module completion below.
+
+Otherwise, this is the one place the stop question is asked: after the Query Completeness Gate and
+before the Module Completion process, whether the Discover phase was completed, declined, or exited
+early.
+
+⛔ **This question is its own turn (INV-251).** Ask it, end the turn on it, and do not combine it
+with the graduation offer or any other 👉 question. The graduation offer comes in a later turn,
+after this answer.
+
+The gate names the server and **only** the server: unlike the Truth Set module, nothing here is
+purged — the bootcamper's loaded data stays exactly where it is, and later modules and the recap
+depend on it. Say so before asking (INV-211), and mention that the saved snapshot keeps every tab
+except the live `why`/`how`/`search`. Then ask the teardown gate, pinned verbatim (INV-056):
+
+> 👉 **Ready for me to stop the visualization server?**
+
+*(Internal: end the turn on this question and wait.)*
+
+- **Yes:** stop it by the pid recorded in the `m7_visualizations` checkpoint and confirm the port is
+  free, as step 3c's "Stop it by the pid captured when it was started" requires, then continue to
+  module completion below.
+- **No or not yet:** leave it running, say so, and wait for their go-ahead; do not re-ask on a loop
+  (INV-006). Never leave the bootcamper having to request a restart for a server they never agreed
+  to stop. Continue to module completion below with the server up. No second teardown question is
+  asked, including when the bootcamper keeps exploring after the graduation offer. If the module ends
+  with the server still up, say plainly that it is still running and how to stop it, rather than
+  stopping it unasked.
+
+## Module completion
+
 Module 7 is the **last content module before graduation** (required in every path). Once the gate
-is satisfied, run the standard **Module Completion** process in
-`../bootcamp-onboarding/module-completion.md` (update progress, append the Module 7 recap section
-to `docs/bootcamp_recap.md`, and present the end-of-module summary). Because this is the last
-content module, the completion process ends with the graduation offer rather than a next-module
-transition:
+is satisfied and the teardown step above is done or skipped, run the standard **Module Completion**
+process in `../bootcamp-onboarding/module-completion.md` (update progress, append the Module 7 recap
+section to `docs/bootcamp_recap.md`, and present the end-of-module summary).
+
+**The Module 7 recap section records every quality iteration.** For each entry in
+`module_7_query.quality_iterations` (step 3b's
+[quality-iteration route](#the-quality-iteration-route)), record which sources were remapped and
+reloaded, the verdict that sent them (`from_verdict`), and the indicators before and after.
+⛔ **(INV-284) This section is the only record of it:** the return wrote no Module 5 or Module 6
+recap section and added nothing to `modules_completed`.
+
+Because this is the last content module, the completion process ends with the graduation offer
+rather than a next-module transition:
 
 👉 **Would you like to graduate now and generate your production project and recap?**
 
@@ -1007,4 +1132,5 @@ The caller knows the record IDs and data source codes they loaded; entity IDs ar
 Senzing.
 
 Present the integration options and help the bootcamper choose the pattern that fits their use
-case: batch reports, a REST API, streaming events, database sync, or duplicate detection.
+case: batch reports, a REST API, streaming events, database sync, duplicate detection, or
+watchlist screening.

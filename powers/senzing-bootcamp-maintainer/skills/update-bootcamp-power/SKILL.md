@@ -202,6 +202,13 @@ under `tools/bootcamp-transform/templates/kiro-owned/`, so an adaptation the con
 Kiro-owned survives the rebuild rather than being reset to the template's version *(R5 AC5)*.
 Omit it and you have run the create path against a newer release.
 
+The exception is a `kiro-owned` rule that declares `carryForward: false` in the contract. Its
+authored file under `templates/kiro-owned/` is the source of truth, so the engine never reads the
+Power's copy for it, and step 5 classifies its path by hash rather than preserving it. That is
+how an **edit** to an authored file reaches the Power on this path: without the flag the
+Power's existing copy wins in the transform and is preserved again by the reconciler, so the
+edit could only land by a create-path rebuild. `docs/model-selection.md` carries the flag.
+
 `--contract` defaults to the contract beside the script, which is the single shared source both
 maintainer skills invoke — pass it explicitly only to point at a copy for debugging. To see the
 match plan against the newer release without writing anything at all, add `--plan-only` first;
@@ -480,6 +487,8 @@ at a time. Each entry names the gate that reports it, so a failure points at its
 | A ported document that moved or was renamed | `E_UNRESOLVED_REFERENCE` | nothing in the contract: the link lives in ported prose, so raise it upstream. A `kiro-owned` skill of ours pointing at it is ours to fix |
 | Text of an invariant recorded in the discount register | `flaggedInvariantDiscounts` in the reconciliation report *(R15 AC10)* | a re-read of that discount, and either a revised entry or its removal |
 | A local edit meeting an upstream change | `conflicts` in the reconciliation report *(R5 AC6)* | a decision: promote the adaptation into the contract as a rule, a substitution set, or a `kiro-owned` file, and the conflict stops recurring |
+| An upstream change to a document the contract supersedes with an authored `kiro-owned` file (`docs/model-selection.md`) | nothing directly; a stale model name surfaces as a KINV-013 failure in step 6 review, or `W_RESIDUAL_CLAUDE_REF` if an API id leaks | diff the template's copy across the two release trees, bring the authored file level, and make sure its rule declares `carryForward: false` so the edit lands on this path |
+| A renamed model tier | `W_RESIDUAL_CLAUDE_REF` naming an API id such as `claude-opus-5-5` | revise the `model-guidance` set's ids **and** the model names in its `replace` sides, so a per-stage row never recommends one model and points at another |
 
 Two rules cover the whole table. **The fix belongs at the single point of change** — the
 contract, the authored `kiro-owned` tree, or `install_hooks.py` — and **never in

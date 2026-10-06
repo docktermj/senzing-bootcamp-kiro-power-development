@@ -17,7 +17,11 @@ Usage — identical to the script it wraps::
     python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_document_pdf.py" \
         --input docs/business_problem.md \
         --output docs/business_problem.pdf \
-        --require-sections "the problem;why it matters;success criteria"
+        --require-sections "the problem;why it matters;success criteria" \
+        --subtitle "The problem this bootcamp set out to solve"
+
+⛔ **Pass `--subtitle`.** The cover subtitle otherwise defaults to the discoveries line,
+"What Senzing found in your data", which is wrong on any other document's cover.
 
 ⛔ **Pass `--require-sections` naming that document's own H2 headings.** Omitting it
 applies the *discoveries* defaults and the document will be refused. `--no-section-check`
@@ -27,9 +31,10 @@ document that silently lost its structure.
 ⚠️ The section list is not what stops this rendering unrelated Markdown — the content
 retention floor is, and neither flag relaxes it (INV-110).
 
-Success signal, exit codes, renderer tiering (fpdf2 then stdlib) and character handling are
-whatever `generate_discoveries_pdf.py` does; this file adds no behavior of its own, so the
-two can never drift.
+Success signal, exit codes, defaults, renderer tiering (fpdf2 then stdlib) and character
+handling are whatever `generate_discoveries_pdf.py` does. The one thing this file supplies is
+its own `--help` description, the first line of this docstring, passed to the wrapped `main`.
+It parses no arguments and renders nothing itself, so the two can never drift.
 """
 import sys
 from pathlib import Path
@@ -46,4 +51,4 @@ except ImportError as exc:  # pragma: no cover - a broken install, not a data ca
     raise SystemExit(2)
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(description=__doc__.splitlines()[0]))

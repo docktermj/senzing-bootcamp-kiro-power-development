@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.3
-  templateRelease: 0.5.3
+  version: 0.6.1
+  templateRelease: 0.6.1
   templateSkill: module-04-data-collection
 ---
 
@@ -40,24 +40,29 @@ branches produce the run, and each is correct in its own right:
   a settled decision.
 - **Step 8a's volume-skip** passes without a question when the collected total is inside the license
   limit, which that step calls the common case.
-- **Step 8b** says nothing when the loadable total is below its threshold.
+- **Step 8b** says nothing when the loadable total is at or below the SQLite threshold that
+  item 3 of Module 6 Phase A's [SQLite volume pre-load check](../module-06-data-processing/phaseA-build-loading.md#sqlite-volume-pre-load-check-stop-and-confirm-heads-up-not-a-mandatory-gate)
+  sources from the Senzing MCP server, or when the server does not return that threshold.
 
 ⛔ **This is path-dependent, not fixed — and that is the half most likely to catch you out.** On the
 **bring-your-own-data** path, Step 2 *does* ask (the pinned "How would you like to provide the data
-for this source?" question), so a guide who learned this module there will meet the run of nine
-unexpectedly on a generated scenario. Check the provenance before assuming which shape you are in.
+for this source?" question), so a guide who learned this module there will meet the whole
+non-yielding run unexpectedly on a generated scenario. Check the provenance before assuming which
+shape you are in.
 
 **Checkpoint consequence:** the non-yielding steps' checkpoints collapse into **one** write at the end
-of the shared turn, carrying the **last completed step** — not nine writes inside it. If the turn stops
-early, write what actually completed, so a resume lands on the right step rather than replaying work
-or skipping it.
+of the shared turn, carrying the **last completed step** — not one write per step inside it. If the
+turn stops early, write what actually completed, so a resume lands on the right step rather than
+replaying work or skipping it.
 
 See `../bootcamp-onboarding/ground-rules.md` → the 👉 protocol, which defines the non-yielding step
 and the single-write checkpoint that follows from it; it is stated once, there, and not restated here (INV-300).
 
 **First:** Read `config/bootcamp_progress.json`, then (per ground-rules) show the module start
 banner, journey map, before/after framing, a brief numbered overview of this module's steps, an estimated time-to-complete (INV-096), and the recommended model/effort nudge (INV-063), before any module work. Read `current_step` and
-resume at the right step.
+resume at the right step. **When it carries a `collection_return`, none of this runs:** go straight
+to Step 2 → [Receiving a `collection_return`](#receiving-a-collection-return). A return runs only the
+steps it names, so the steps it leaves out are not skipped steps.
 
 > **User reference:** There is no separate background document for this module. Teach the
 > steps directly from this skill.
@@ -124,14 +129,13 @@ limit: never from a remembered or hardcoded figure:
   nothing about the installed license** — it is a measurement that did not happen.
   Treating that silence as "no custom license" is what steers a bootcamper whose license has **no
   cap** toward a smaller dataset, here, in the module where the sampling decision is actually made.
-  - **Measure it** by Step 8a's own procedure (sub-step 7 below): generate a scaffold calling
-    `SzProduct.get_license()`, save the returned JSON, read it to confirm the shape before parsing
-    (INV-115), and parse `recordLimit`. Follow that step rather than restating it (INV-300).
-    (`get_sdk_reference(topic='response_schemas', filter='get_license')`, server 1.32.9,
-    2026-08-14, confirms the method in every binding — `SzProduct.getLicense() -> String`,
-    `get_license() -> str`.)
-  - **Persist it** as `license_record_limit` in `config/bootcamp_progress.json`, so this module's
-    later steps, Module 6 and graduation all see a detected value instead of the same absence.
+  - **Measure it** by Step 8a sub-step 7 below, which calls `getLicense()`/`get_license()` on
+    `SzProduct` and parses `recordLimit`. Follow that step rather than restating it (INV-300).
+  - **Persist it** as `license_record_limit` in `config/bootcamp_progress.json`, together with
+    `license_record_limit_measured_at: "module-04 sampling decision (engine configuration in force)"`
+    (INV-295), so this module's later steps, Module 6 and graduation all see a detected value
+    instead of the same absence, and can tell it was taken with a complete view rather than SDK
+    setup's provisional one.
   - **Then re-enter the two branches above** with the measured value. `recordLimit: 0` lands on the
     no-cap branch and no sampling is recommended for license reasons.
   - **Only if the measurement fails** (no engine yet, SDK error) fall back to the **built-in
@@ -208,6 +212,59 @@ complete list.
 
 ### 2. For each data source, collect the data
 
+<a id="receiving-a-collection-return"></a>
+
+**Receiving a `collection_return` (from Data Quality, Mapping, and Transformation).** ⛔ **(INV-284)
+Check for it before anything else in this step.** When `config/bootcamp_progress.json` carries a
+`collection_return`, the Bootcamper chose the return route at Module 5's no-progress gate, and this
+is not a run of this module: show no start banner, journey map or overview, write no Module 4
+checkpoint (leave `current_module` and `current_step` as Module 5 set them, so its progress is not
+overwritten), and collect only the one source the key names. Which steps run and where Module 5
+resumes are stated once, in
+`../module-05-data-quality-mapping/phase1-quality-assessment.md` Step 7b (INV-300); this block says
+only how the source is collected.
+
+- **`provenance: synthesized` → regenerate this source only, targeting `>=80`.** The marker guard
+  below would regenerate from the recorded `quality_intent` and land back in the same band, so this
+  regeneration replaces the target rather than repeating it.
+  - **Keep the same records:** the same `RECORD_ID`s and entities, with the gap fields filled in.
+    That keeps the cross-source overlap Modules 6 and 7 demonstrate, and leaves the record count
+    unchanged, so Step 8a's license decision still stands and is not re-run.
+  - **Generate no off-pattern values**, so the format normalization Module 5 already did is not
+    undone.
+  - Write `data/raw/<source>-regenerated.<ext>`. The original and any `-improved` file stay where
+    they are.
+  - ⛔ **(INV-239) Both self-checks in this step apply to the regeneration:** verify it against the
+    band (if it misses `>=80`, narrow the gaps further and regenerate; never adjust a score), and
+    count identifier collisions (on any count above zero, regenerate the affected values).
+  - ⛔ **(INV-243) Repoint the registry entry using Module 5 Step 7a step 4's field list**, and record
+    the previous `file_path` in the same entry.
+  - Record the regeneration by rewriting these keys of the source's `quality_intent` (the sample
+    under *Record the intended band per source* below shows the whole block):
+
+    ```yaml
+    target_band: ">=80"           # was the band the original generation targeted
+    regenerated:
+      from_band: "70-79"          # the band the gate fired in: "70-79" or "<70"
+      reason: "Bootcamper chose the return route at Module 5's no-progress gate"
+      at: "<ISO 8601>"
+    gaps: [...]                   # the narrowed rates actually generated
+    measured_score: 86.0          # written by the self-check, never by hand
+    ```
+
+    ⚠️ **This lifts the source out of the 70-79% band INV-239 requires**, at the Bootcamper's request
+    after the gate has fired. The original generation already met that requirement, and the
+    `regenerated` record is what shows a later run the departure was asked for.
+- **`provenance: own` or `unknown` → ask the provision question below for this source**, even though
+  a provenance is recorded; `unknown` is handled exactly as `own`. Save the new export beside the
+  original under a new name, never over it (INV-050), record the previous `file_path` in the entry,
+  set `provenance` from the answer as *CORD Provenance Recording* below does, then run the
+  remaining steps Step 7b names for this source.
+- `cord` and `free_data` sources never arrive here: Step 7b offers a fixed dataset no return.
+
+When the source is collected, go back to Module 5 at the step Step 7b names. Step 9 does not run on a
+return.
+
 ⛔ **First check whether Module 1 already answered this for this source — and if so, do NOT ask.**
 
 **The signal is the MARKER; the provenance selects the ACTION.** Those are two different questions
@@ -251,8 +308,8 @@ made** for every source in it. Then read the source's entry in `config/data_sour
   (`NAME_FIRST`/`NAME_LAST`/…) when available; use `NAME_ORG` for organizations; use `NAME_FULL` only
   when the type is unknown or only a single field exists"*
   (`search_docs(query='NAME_FULL NAME_ORG parsed person name single field', category='data_mapping')`
-  → *Name > Feature: NAME*, top hit; server 1.32.9, 2026-08-17, query re-verified on 1.33.0,
-  2026-08-23). So a
+  → *Name > Feature: NAME*, top hit; server 1.32.9, 2026-08-17, query re-verified on
+  1.37.19, docs index 2026-10-02 18:46 UTC, 2026-10-04). So a
   source carrying **one** name field maps to `NAME_FULL` — a direct field-to-attribute mapping. ⛔ **A
   joined name is therefore NOT a transformation waiting to happen**, and generating one on the
   assumption that the next module will split it builds the scenario on a plan the specification does
@@ -306,6 +363,11 @@ made** for every source in it. Then read the source's entry in `config/data_sour
     it missed the band, **widen the gaps and regenerate** — never adjust a score. Inventing or nudging
     a measurement the Bootcamper is told is real is the line INV-239 draws; correcting the data before
     anything scores it is this generator's own job.
+    ⛔ **In the same pass, count identifier collisions (INV-239)** — the distinct invented entities
+    sharing an email, phone or identifier-number value that no `shared_features` entry declares (the
+    identifier rule below). On any count above zero, **regenerate the affected values or the source
+    before anything loads or scores it** — never patch the ground truth, the scores or the results
+    afterward.
   - **off-pattern values in at least one field per source** — a date in a second format among
     ISO ones, an unformatted phone among formatted ones, a lowercase state code — so
     `format_consistency` is genuinely below 100 and the "report the fields that drag it down"
@@ -324,6 +386,21 @@ made** for every source in it. Then read the source's entry in `config/data_sour
   The per-campaign duplicate pair required above keeps its **distinct** keys, exactly as today — the
   duplication is in the entity, never in the key.
 
+  ⛔ **Give each invented entity its own identifiers (INV-239).** An **email**, a **phone** and every
+  **identifier number** (SSN, passport, driver's license, account or loyalty number) belong to exactly
+  one invented entity, person or organization, unless the scenario shares one on purpose and records
+  it under `quality_intent.shared_features` with the reason; an unlisted share is a collision. An
+  entry covers only the shares its reason describes, never every value of that feature. The
+  unit is the **entity, not the record**: the per-campaign duplicates and the cross-source overlap are
+  records of one entity and keep that entity's features, because that match is what the scenario
+  intends. **Names may repeat** across distinct entities — they are the intended **hard negatives** —
+  and so may an address or a date of birth (a household, a coincidence); the rule covers only the
+  identifiers. ⚠️ **The anti-pattern to avoid:** building a "unique" value from the name plus a small
+  number (`first.last<1-99>@…`) collides as soon as the name pool is smaller than the population.
+  Observed 2026-10-01: 7,000 people drawn from 1,197 distinct names gave 53 pairs of different people
+  the same name and email, every pair resolved together on that evidence, and the scenario's own
+  ground truth then called each merge false — a correct result reported as an error.
+
   **Record the intended band per source** in `config/data_sources.yaml`, as `quality_intent` beside
   the source's other fields:
 
@@ -341,6 +418,9 @@ made** for every source in it. Then read the source's entry in `config/data_sour
         - "postal_code missing ~35%"
         - "state missing ~30%"
         - "created_date in two formats"   # lowers format_consistency, not completeness
+      shared_features:              # deliberate sharing only; an unlisted share is a collision
+        - feature: phone
+          reason: "household landline shared by the two adults at one address"
       measured_score: 78.0          # written by the self-check, never by hand
   ```
 
@@ -391,8 +471,9 @@ source, so it is not a textually identical question — it escapes a literal INV
 being exactly the repetition INV-006 exists to prevent.
 
 Only when the source has **no** recorded provenance — the Bootcamper is bringing their own data —
-ask how they want to provide it. Pin this question verbatim (INV-051), never joining the choices
-with "or":
+or on a `collection_return` for an `own` or `unknown` source
+([above](#receiving-a-collection-return)), ask how they want to provide it. Pin this question
+verbatim (INV-051), never joining the choices with "or":
 
 👉 **How would you like to provide the data for this source? Reply with a number:**
 
@@ -415,7 +496,8 @@ data to practice with — recommend CORD data as the primary alternative:
 > learning, because the matching problems in them are the ones real data actually has.
 >
 > I can pull CORD datasets (Las Vegas, London, Moscow) using the `get_sample_data` tool: these
-> are ready-to-use Senzing JSONL files.
+> are Senzing JSONL files the engine can load, though some sources may still need mapping, which
+> Module 5 checks for you.
 >
 > Learn more about CORD: <https://senzing.com/senzing-ready-data-collections-cord/>"
 
@@ -568,8 +650,8 @@ before they map it.** Checked directly against `docktermj/senzing-bootcamp-free-
    it (Senzing Entity Specification, *Feature: REL_ANCHOR* and *Feature: REL_POINTER*; confirmed via
    `search_docs(query='REL_ANCHOR_KEY REL_POINTER disclosed relationship keys',
    category='data_mapping')` against MCP server 1.32.8, docs index 2026-08-11 — query re-verified
-   on 1.33.0, 2026-08-23, returning *Disclosed relationship mapping guidance* and both feature
-   sections). Mapping
+   on 1.37.19, docs index 2026-10-02 18:46 UTC, 2026-10-04, returning *Disclosed relationship
+   mapping guidance* and both feature sections). Mapping
    `relationships-sample.csv` anyway fails silently: the files parse, the mapping validates, the
    load succeeds, and nothing relates.
 3. **The workable alternative on this source is `service_provider`**, populated on all 10 rows of
@@ -656,6 +738,18 @@ Module 5 can evaluate.
 > `validation_status` (`pending` | `passed` | `failed`) and `validation_checks` (one key per check
 > with its outcome) are written by the Data File Validation step below and read back by Step 7 —
 > Step 7 cannot confirm what this entry never recorded, so both fields belong in the schema here.
+>
+> `sample` (optional) is written only when this module creates a working sample of the collected
+> file — Step 6's smaller-slice path or Step 8b's sample choice:
+> `sample: {file_path, record_count, strategy, reason}` (INV-326) — the sample file under `data/samples/`, the
+> record count **measured** from that written file (never the target that was asked for), the
+> sampling strategy, and why it was chosen. It is the record Module 6 Phase B Step 7 cites for the
+> collected → sample step of its load reconciliation (INV-243); a sample recorded nowhere leaves that
+> step nothing to cite, so Module 6 reports the gap as unexplained. ⛔ (INV-243) **Writing it never
+> touches the source's top-level `record_count` or `expected_record_count`**, which keep describing
+> the collected file: overwriting them with the sample's figures would destroy the baseline the load
+> is reconciled against. A smaller **substitute dataset** is a new collection, not a sample: record
+> it as its own collected file with its own measured `record_count`, and write no `sample:` block.
 
 > **Data File Validation:** After each file is saved to `data/raw/`, sanity-check it (readable,
 > non-empty, expected format/encoding, and — wherever an independent expected count exists — a record
@@ -809,11 +903,17 @@ gate (INV-093) and the Senzing MCP server.
 - Create smaller sample files (sampling, a CORD subset, or a smaller substitute dataset).
 - Save samples to `data/samples/[datasource_name]_sample.[extension]`.
 - **Select for cross-source overlap when 2+ sources are present** — see the
-  [sampling rule](#overlap-preserving-sampling) earlier in this step. Do not choose a random slice
-  by default.
+  [sampling rule](#overlap-preserving-sampling) in *"License limit and dataset size (canonical
+  framing)"* at the top of this module. Do not choose a random slice by default.
 - **Document the sampling method AND why it was chosen** in the data-source registry, not just the
-  method name. "Random sample" alone is exactly what leaves Module 6 unable to tell a
-  no-overlap-in-the-data finding from a no-overlap-in-the-sample artifact.
+  method name: write the source's `sample:` block (INV-326) in `config/data_sources.yaml` (Step 2's registry
+  schema) — the sample's `file_path`, its `record_count` **measured** from the written file,
+  `strategy`, and `reason`. "Random sample" alone is exactly what leaves Module 6 unable to tell a
+  no-overlap-in-the-data finding from a no-overlap-in-the-sample artifact, and a sample recorded
+  nowhere leaves Module 6's load reconciliation nothing to cite (INV-243). Leave the top-level
+  `record_count` and `expected_record_count` untouched: they describe the collected file.
+- **A smaller substitute dataset is a new collection, not a sample.** Record it as its own collected
+  file with its own measured `record_count` (Step 2's registry), and write no `sample:` block.
 - Ensure the sample exercises what the **business problem** needs: for a cross-source problem that
   means shared entities, which is not the same as being statistically representative of each source.
   ⛔ A sample that is representative of every source individually can contain no cross-source matches
@@ -921,10 +1021,19 @@ training data.
 5. **Apply a Senzing License Key (options 1–2).** 🚨 Never ask the bootcamper to paste a license key
    into chat. Decode/place it to `licenses/g2.lic`:
    - **Base64 string** — Linux/macOS: `echo '<BASE64_STRING>' | base64 --decode > licenses/g2.lic`;
-     Windows (PowerShell):
-     `[System.Convert]::FromBase64String('<BASE64_STRING>') | Set-Content -Path licenses\g2.lic -AsByteStream`.
-     Verify it is binary with `file licenses/g2.lic`.
-   - **`.lic` file** — `cp /path/to/g2.lic licenses/g2.lic`.
+     Windows (PowerShell 5.1 and 7):
+     `[System.IO.File]::WriteAllBytes((Join-Path (Get-Location) 'licenses\g2.lic'), [System.Convert]::FromBase64String('<BASE64_STRING>'))`.
+     The path must be absolute: `WriteAllBytes` resolves a relative path against .NET's working
+     directory, not PowerShell's current location.
+   - **`.lic` file** — Linux/macOS: `cp <path-to>/g2.lic licenses/g2.lic`; Windows:
+     `Copy-Item <path-to>\g2.lic licenses\g2.lic`.
+   - **Check that it is binary.** Linux/macOS: `file licenses/g2.lic`; Windows:
+     `Format-Hex licenses\g2.lic | Select-Object -First 1`. Either shows only that the file exists,
+     is non-empty and is not Base64 text; it says nothing about the license itself. Sub-step 7's
+     limit detection is the authoritative check on every platform.
+
+   ⚠️ The Windows forms above are written for PowerShell 5.1 and 7 but are unverified on Windows:
+   no test runs them there.
 
    Then add `LICENSEFILE` to the engine config PIPELINE section
    (`"PIPELINE": { "LICENSEFILE": "licenses/g2.lic" }`) and record `license: custom` in
@@ -932,7 +1041,8 @@ training data.
 
 6. **Obtain a Senzing License Key (option 3, or option 4's in-flow request).** Consult the Senzing
    MCP server first: `search_docs(query='temporary evaluation license for a dataset larger than the
-   default limit')` and present the returned guidance. Present the available paths as distinct,
+   default limit')`, whose top hit is the EULA's *Senzing Non-Production License* section, and
+   present the returned guidance. Present the available paths as distinct,
    individually selectable options — the in-flow MCP request (sub-step 6a below), the external
    channel, and apply-an-existing-key (sub-step 5). Source the request channel's address and any
    capacity/validity figures from MCP at runtime rather than this file (they have changed before, and
@@ -986,7 +1096,7 @@ training data.
 
    Those are the
    Bootcamper's personal details, not diagnostic context, so the bug-report rule that strips every
-   identifier (INV-065, `../bootcamp-onboarding/feedback.md` Step 3c) cannot apply here — the call
+   identifier (INV-321, `../bootcamp-onboarding/feedback.md` Step 3c) cannot apply here — the call
    does not work without them. What carries over is the **consent discipline**, and it applies with
    more force, not less:
 
@@ -994,7 +1104,7 @@ training data.
       request exactly the fields it needs and no more. Never collect a field "in case".
    2. **Ask for the values, one 👉 question per turn (INV-251)**, saying plainly that a work email is required
       and that a personal address will be rejected. Never put them in a config file, the recap, or
-      the feedback file (INV-065) — hold them for the call alone.
+      the feedback file (INV-135) — hold them for the call alone.
    3. **Show the exact request, then ask permission**, pinned verbatim (INV-056), ending the turn on
       it. State what is sent, to whom, and what comes back:
 
@@ -1017,12 +1127,24 @@ training data.
 7. **Detect the active license's record limit (after a custom key is applied in sub-step 5).**
    Confirm the SDK facts via `sdk_guide(topic='configure', platform='<user_platform>',
 language='<chosen_language>', version='current')` (`recordLimit`: `0` = unlimited, positive = the
-   cap). Generate a scaffold that calls `SzProduct.get_license()`, save the returned JSON to
-   `config/license.json` — `get_license` has **no** `response_schemas` entry (an empty `data` array
-   is the expected result there, not a failed lookup), so read the saved JSON to confirm the shape
-   before parsing it (INV-115) — parse `recordLimit`, and write `license_record_limit` into
-   `config/bootcamp_progress.json`. Report the detected limit to the bootcamper (e.g. "Your license
+   cap). Confirm the response shape via `get_sdk_reference(topic='response_schemas',
+   filter='get_license')`, which documents `recordLimit` (integer) (MCP server 1.37.14, 2026-09-28);
+   an empty or shallow result from that lookup is coverage, not a failed call, so do not retry it
+   (INV-149). Generate a scaffold that calls `getLicense()`/`get_license()` on `SzProduct`, save
+   the returned JSON to `config/license.json` — later steps read that file — parse `recordLimit`,
+   and write `license_record_limit` into `config/bootcamp_progress.json`, together with
+   `license_record_limit_measured_at: "module-04 step 8a (engine configuration in force)"`
+   (INV-295). Only if `recordLimit` is absent from
+   the saved JSON, read that file to find the name the field actually carries before parsing it
+   (INV-115). Report the detected limit to the bootcamper (e.g. "Your license
    allows up to N records," or "no record cap (unlimited)" when `0`).
+
+   **When a figure was already recorded and this measurement disagrees with it**, apply SDK
+   setup's (Module 2) Step 5a sub-step 3 rule rather than restating it (INV-300): replace the
+   recorded figure and say the earlier one was withdrawn, naming both numbers. ⚠️ **A correction
+   that RAISES the limit is said aloud too** (INV-295). It is the direction most likely to be
+   swallowed, and anything already sized against the smaller figure was sized against a ceiling
+   that does not exist.
 
 This gate is non-blocking on the obtain paths (the bootcamp proceeds on the evaluation license while
 a key is pending). Once resolved — or when the volume was within the limit — clear
@@ -1068,10 +1190,24 @@ about a roughly half-hour load, for a load of about two minutes.
      up on the check.
 
 2. **Decide whether to warn.** Warn only when the database is SQLite **and the LOADABLE total** is
-   above the load-time threshold. Otherwise (loadable at or below the threshold, any non-SQLite
-   engine, or indeterminate inputs) say nothing about load time and continue to the Step 9
-   transition. A 19,500-record collection under a 500-record cap therefore says **nothing**, which
-   is correct: 500 records is not a long load.
+   above **the SQLite threshold of Module 6 Phase A's pre-load check** — item 3 of the
+   [SQLite volume pre-load check](../module-06-data-processing/phaseA-build-loading.md#sqlite-volume-pre-load-check-stop-and-confirm-heads-up-not-a-mandatory-gate),
+   which sources it from the Senzing MCP server through `search_docs(query="loading",
+   category="anti_patterns")` → "Do Not Use SQLite in Production", in its second hit, *Senzing
+   Anti-Patterns: Architecture and Performance* (read past the first hit).
+   Ask that route at request time and compare against what it returns. Item 3 is the one statement of this threshold, so no
+   figure for it is written here (INV-300). Otherwise (loadable at or below the threshold, any
+   non-SQLite engine, or indeterminate inputs) say nothing about load time and continue to the
+   Step 9 transition. A 19,500-record collection under a 500-record cap therefore says
+   **nothing**, which is correct: 500 records is not a long load.
+   - ⛔ **(INV-331) One threshold for both SQLite heads-ups.** This step and Module 6's pre-load check compare
+     against the same MCP-sourced threshold, so a load this step warns about is a load Module 6
+     would ask about, and the choice sub-step 4 records is one Module 6 honors. Never compare
+     against another figure here: not `sdk_guide`'s template switch, and not the caution in its
+     license note (see the `sdk_guide` note below).
+   - **The server does not return the threshold, or the call errors:** the threshold is
+     indeterminate. Say nothing about load time and continue to the Step 9 transition, as item 3
+     does. Never substitute a remembered figure (INV-080).
    - **Warn:** consult the **Senzing MCP server** at request time for the timing figures
      (expected throughput, throughput degradation, expected load duration, redo-phase
      duration). Any figure the server does not return, or that errors, stays unavailable: never
@@ -1081,11 +1217,13 @@ about a roughly half-hour load, for a load of about two minutes.
      That query returns the **Hardware Sizing FAQ**, which is where the timing material lives:
      throughput per engine core, the three load phases (Phase 1 runs 10-100x faster than Phase 3,
      so a Phase-3 estimate is conservative), and worked load-time examples. `sdk_guide(topic='load',
-     record_count=…)` returns the license note and the record-count threshold but **no timing
-     figures at all**, so it is the wrong route for this. ⚠️ Nearby wordings do **not** find the FAQ
-     — "hardware sizing capacity planning records per second load time" returns flag docs and code
-     snippets instead — so use the query as written rather than paraphrasing it (verified on MCP
-     server 1.32.9, docs indexed 2026-08-11 20:52 UTC, 2026-08-14).
+     record_count=…)` is the wrong route for this. It returns the license note and a record count,
+     but that count is the **template switch**, the volume above which it serves the threaded
+     loader instead of the single-threaded demo. It is **not this warning's threshold**, and
+     neither is the license note's caution about its own container environment. It returns **no
+     timing figures at all** (template switch and license-note caution re-checked on MCP server
+     1.37.16, 2026-10-01). ⚠️ Use the query as written rather than paraphrasing it: a paraphrase
+     is unmeasured, and the words in a query are not evidence about what it returns (INV-291).
      <!-- MCP-NEGATIVE: sdk_guide(topic='load', language='python', record_count=19500) — returns no load-duration or throughput figures — owner: search_docs(query='hardware sizing capacity planning') carries them, in the Hardware Sizing FAQ (routing negative — the fact exists, go there) — server 1.36.0, 2026-09-02 -->
    - ⛔ **State both numbers whenever they differ**, so the estimate is legible rather than
      mysterious: "19,500 collected, 500 loadable under the evaluation license — the load will take
@@ -1116,20 +1254,39 @@ about a roughly half-hour load, for a load of about two minutes.
      entity-resolution-demonstrating strategy that preserves cross-source overlaps and known
      match clusters; also accept a bootcamper-described strategy. **Where 2+ sources are present,
      present the overlap-preserving strategy as the recommended one and say why the others lose
-     cross-source matches — see the [sampling rule](#overlap-preserving-sampling) in Step 6, which
+     cross-source matches — see the [sampling rule](#overlap-preserving-sampling) in *"License
+     limit and dataset size (canonical framing)"* at the top of this module, which
      is the canonical statement; do not restate it here (INV-300).** Validate the target record
      count (a positive integer strictly less than the collected total) and re-ask until valid.
-     Create the sample with the chosen strategy, write it under `data/samples/`, and document
-     the strategy **and the reason for it** in a sample manifest. Then record the decision
-     (sub-step 4).
+     Create the sample with the chosen strategy and write it under `data/samples/`. Then write
+     each sampled source's `sample:` block (INV-326) in `config/data_sources.yaml` (Step 2's registry
+     schema): the sample's `file_path`, its `record_count` **measured** from the written file, the
+     `strategy` **and the `reason` for it** — the record Module 6 cites when it reconciles the load
+     (INV-243). Leave the top-level `record_count` and `expected_record_count` untouched. Then
+     record the decision (sub-step 4).
    - **Switch to an alternative database (e.g. PostgreSQL):** route the bootcamper to the
      migration guidance from `search_docs` and the graduation migration checklist. No migration
      guide is bundled. Do not inline or restate the migration steps here. Then record the decision
      (sub-step 4).
 
-4. **Record the decision.** Write a load-decision marker capturing the choice
-   (`proceed`, `sample`, or `switch_db`) keyed to the collected dataset identity, so the
-   Module 6 SQLite heads-up does not redundantly re-ask about this same load.
+4. **Record the decision.** Write `sqlite_load_time_prompt`, this step's marker in
+   `config/bootcamp_preferences.yaml`, modeled on Module 6's `sqlite_volume_prompt`:
+   `{decided: true, choice, loadable, collected_total, effective_limit}`.
+   - `choice` is `proceed`, `sample` or `switch_db`.
+   - `collected_total` is the registry total the formula used: each source's `sample:`
+     `record_count` where it has a `sample:` block (sub-step 3 writes one when it samples),
+     otherwise its `record_count`.
+   - `effective_limit` is the limit sub-step 1 resolved, `0` when unbounded (as
+     `license_record_limit` uses it).
+   - `loadable` is `min(collected_total, effective_limit)`, with `0` read as unbounded.
+
+   It records the load-time question as asked once (INV-006), so the Module 6 SQLite heads-up
+   does not re-ask about this same load. Its `loadable` keeps this step's meaning, pre-mapping and
+   license-capped, and is never the mapped-file total Module 6 counts. Whether a later load is
+   this same load is decided by item 2 of Module 6 Phase A's
+   [SQLite volume pre-load check](../module-06-data-processing/phaseA-build-loading.md#sqlite-volume-pre-load-check-stop-and-confirm-heads-up-not-a-mandatory-gate),
+   which recomputes this formula and is the one statement of that matching rule (INV-300). When
+   sub-step 2 says nothing, write no marker: an absent one means "not asked" (INV-244).
 
 Refer to the Senzing MCP server by name only (never a URL). Use only synthetic/persisted values
 : never echo credentials or connection strings. _(No volume or load-time helper is bundled;
@@ -1138,6 +1295,11 @@ apply the behavior directly.)_
 **Checkpoint:** write step 8b to `config/bootcamp_progress.json`.
 
 ### 9. Module completion and transition to Module 5
+
+**Not on a `collection_return`.** ⛔ **(INV-284) When `config/bootcamp_progress.json` carries one,
+this step does not run at all:** no Module Completion, no second Module 4 recap section, no progress
+update and no transition question. The Bootcamper never left Module 5, so return there at the step
+Module 5's Step 7b names ([Step 2](#receiving-a-collection-return)).
 
 Run the standard **Module Completion** process in `../bootcamp-onboarding/module-completion.md`
 (update progress, append the Module 4 recap section to `docs/bootcamp_recap.md`, and present the
@@ -1173,8 +1335,8 @@ if it's already in the right format for Senzing."
   design whenever no CORD collection fits the chosen category, and which Step 2 handles by generating
   the files without asking. Applying "last resort" there would re-open a settled decision and push
   CORD at a category Module 1 already ruled it out for.
-- **If they pick ICIJ Offshore Leaks from the free-data catalog, give the dated caveat** stated in
-  full at the secondary-options step above: as of **2026-08-11** its four sample files do not join —
+- **If they pick ICIJ Offshore Leaks from the free-data catalog, give the dated caveat:** as of
+  **2026-08-11** its four sample files do not join —
   not one of the 10 rows in `relationships-sample.csv` has an endpoint present in the node files —
   so the disclosed-relationship (`REL_ANCHOR`/`REL_POINTER`) exercise is unavailable from that file;
   offer `service_provider` on `nodes-entities-sample.csv` as the workable alternative, and do not

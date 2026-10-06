@@ -163,7 +163,9 @@ graduation's reconcile backfill (INV-085/INV-086/INV-087):
    embedded `![…](visualizations/…png)` image(s) in Actions Taken — the path is relative to
    `docs/bootcamp_recap.md`, so `visualizations/…` and never `docs/visualizations/…` (INV-161;
    the recap already lives in `docs/`, so a `docs/`-prefixed path resolves to `docs/docs/…` and
-   embeds nothing).
+   embeds nothing). Then save this module's B-roll entry under `truthset_visualization`, per
+   `module-completion.md` 2e, listing the same screenshots by their project-relative
+   `docs/visualizations/…` paths.
 3. **Present the completion line + end-of-module summary** (INV-032):
    `✅ Module complete: Truth Set visualization` and its four-part summary, per `module-completion.md`
    Step 3. (This module's module-start banner/journey/before-after/step-overview were already shown at

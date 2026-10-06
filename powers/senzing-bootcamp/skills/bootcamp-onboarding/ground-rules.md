@@ -25,8 +25,8 @@ steering files.)
   best-value recommendation (see "Module start banners and transitions" below): a single 👉 switch
   question when the recommendation differs from what they are running, otherwise a brief statement.
   The code-heavy stages — SDK setup, Truth Set visualization, and everything from Data Quality,
-  Mapping, and Transformation through graduation — warrant Opus 5 + high effort; the lighter
-  conversational and collection stages Sonnet 5.
+  Mapping, and Transformation through graduation — warrant Opus 5.5 + high effort; the lighter
+  conversational and collection stages Sonnet 5.5.
   Do not change the session yourself — only the bootcamper can.
 
 ## Conversation protocol (the 👉 rules)
@@ -46,7 +46,8 @@ steering files.)
   step presented alone ends a turn with **zero** 👉, and folded in it looks like advancing two
   steps, so the guide must break one rule or the other and learns to read ⛔ as advisory.
   - **A run of them is the same case, not a worse one.** Non-yielding steps often come several in a
-    row — Module 1 Phase 1's 4a/4b/5/5a, SDK setup's 1b/4/5/6 on an existing install,
+    row — Module 1 Phase 1's 4a/4b/5/5a, SDK setup's 3/4/5/6 on an existing install (its Step 3 there
+    being only Phase 3 and the environment script),
     **the whole of System verification**, which contains exactly one 👉 (its module-transition
     question), and **Data collection's generated-scenario path, whose Steps 1-8b ask nothing** (that
     one is path-dependent: the bring-your-own-data path does ask, at Step 2). A faithful turn there
@@ -207,7 +208,7 @@ steering files.)
   MCP server; the internal-channels claim was the guide's own inference about how Senzing employees
   obtain licenses. Their words: *"I don't want assumptions presented as fact."* The sourced and the
   unsourced arrived in one paragraph, indistinguishable.
-- ⛔ **(INV-274, INV-065) The bootcamper's identifying context is for IDENTIFICATION and for fields a tool
+- ⛔ **(INV-274) The bootcamper's identifying context is for IDENTIFICATION and for fields a tool
   requires —
   never a premise for your reasoning about what they should choose.** Their name, email address and
   account details are collected to identify them and to satisfy a call that cannot run without them.
@@ -231,7 +232,7 @@ steering files.)
   the stricter one governs — call the tool.
 - **Tool routing:** attribute names / JSON mappings -> `mapping_workflow`; SDK code ->
   `generate_scaffold` or `sdk_guide`; **method signatures and parameter types** ->
-  `get_sdk_reference` topic `methods` (aliases `functions` / `classes` / `api`), which searches the
+  `get_sdk_reference` topic `parameters`, which searches the
   SDK docs for signatures, parameters and examples — narrow with `filter='<method or class>'`;
   flags **and response structures** ->
   `get_sdk_reference` (topics `flags` and `response_schemas`; narrow with `filter='<method>'`);
@@ -240,17 +241,22 @@ steering files.)
   tool discovery -> `get_capabilities`.
 - ⛔ **Always pass `language` to `reporting_guide` — every call, whatever the topic** (INV-192).
   Most topics withhold their content until it is supplied, answering instead with a **`needs_input`**
-  object naming the parameter they want, while the content arrays in that same reply come back
-  **empty**. ⚠️ **Recognize the gate by `needs_input.parameter` — never by a particular field being
-  empty.** Which arrays a topic carries is the server's to rename, so a list of them here is the
-  same liability as the list of gating topics this rule already refuses to keep. Observed on MCP
+  object naming the parameter they want, and that same reply carries **no content**: the content
+  keys are absent. ⚠️ **Recognize the gate by `needs_input.parameter` — never by a particular field
+  being empty or absent.** Which arrays a topic carries is the server's to rename, so a list of them
+  here is the same liability as the list of gating topics this rule already refuses to keep.
+  Earlier servers returned the content arrays present but empty. Observed on MCP
   server 1.32.9, docs indexed 2026-08-11 20:52 UTC, 2026-08-13: `topic='evaluation'` and
   `topic='graph'` each returned `needs_input.parameter` of `language` with empty `sdk_patterns`,
-  `sql_patterns` and `visualization`, while `topic='dashboard'` returned its content ungated. The
+  `sql_patterns` and `visualization`, while `topic='dashboard'` returned its content ungated.
+  Observed on MCP server 1.37.14, docs indexed 2026-09-28 03:23 UTC, 2026-09-28:
+  `topic='evaluation'` and `topic='export'` each return only `topic` and `needs_input`, while
+  `topic='dashboard'` still returns its content without `language`. The
   parameter is *optional in the schema*, so a call without it looks correct and returns 200 — which
   is the whole trap. Passing it where a topic does not gate costs nothing and only adds content, so
   pass it unconditionally rather than tracking which topics gate: that list is a per-topic fact
   about the server, and the last attempt to keep one went stale within a day.
+  <!-- MCP-NEGATIVE: reporting_guide(topic='evaluation', language=None) and reporting_guide(topic='export', language=None) — each reply carries only the keys topic and needs_input, with no content keys — owner: reporting_guide IS the route that owns its topic's content, and the gated reply's own needs_input.instruction says it contains no Senzing content and asks for a re-call with language, so the absence is the gate itself rather than a gap in the topic (absence negative) — server 1.37.14, 2026-09-28 -->
 - ⛔ **A `needs_input` response is a gate, not an answer.** Satisfy every gate the response asks
   for — some topics gate twice (`topic='data_mart'` asks for `language`, then `scale`) — and
   re-call rather than proceeding on what came back. Never report a topic as having no guidance on
@@ -271,8 +277,12 @@ steering files.)
   the bootcamper an example file is empty on that basis.
   ⛔ **Do not take the `inline` route the response's step 3 describes.** `inline` is still not
   declared in the live `find_examples` schema, and only declared parameters may be passed (INV-136).
-  The server states this itself: *"Clients that validate arguments against the declared schema cannot
-  use this step; prefer fetching raw_url or cloning."*
+  The server states this itself, identically in `find_examples` and `generate_scaffold` (re-verified
+  on MCP server 1.37.14, 2026-09-28): *"Clients that validate arguments against the declared schema
+  cannot send inline=true — the schema will reject it, and steps 1 and 2 (raw_url / git clone) have
+  already failed by the time this step applies, so retrying them will not help either. For such a
+  client there is no route to this GitHub-hosted file through this server; report the content as
+  unreachable rather than retrying."* What to do then is the terminal step stated below.
   (This replaces the earlier reading — through 2026-07-30 on server 1.32.2 the same empty `content`
   arrived with no `content_elided` signal, so it was indistinguishable from a broken retrieval and
   was treated as one. The behavior was documented rather than reverted, so the guidance above is
@@ -286,12 +296,25 @@ steering files.)
   - `find_examples` and `generate_scaffold` — `inline` is **not** declared by either, so passing it
     is a call that cannot work, whatever the response prose advertises. Follow `access_steps`:
     `raw_url`, then clone.
-  - `download_resource` — `inline` **is** declared, alongside `filename`, `filenames` and `version`,
-    and each resource's own `on_failure` names it as the remedy when the URL fetch fails. It is
-    therefore permitted here — after the fetch fails, not instead of it — and it costs context,
-    because the whole resource then arrives inside the response.
+    ⛔ **Once `raw_url` and `git clone` have both failed, report the example as unreachable (INV-160).**
+    This is the terminal step for both `find_examples` and `generate_scaffold` — for example when
+    `raw.githubusercontent.com` is blocked and `git` is unavailable or `github.com` is blocked. Tell
+    the bootcamper which example could not be reached (the file and its repo) and what was tried.
+    Do not retry either step, and do not pass `inline`, which neither schema declares (INV-136).
+    Never reconstruct the file's content from memory or training data (INV-080). The step that
+    needed the example then continues on its own fallback: this adds no question and blocks
+    nothing beyond what that step already does.
+  - `download_resource` — `inline` **is** declared, alongside `filename`, `filenames`, `offset` and
+    `version`, and each resource's own `on_failure` names it as the remedy when the URL fetch fails.
+    It is therefore permitted here — after the fetch fails, not instead of it — and it costs context.
+    **An `inline=true` reply carries the resource in bounded chunks, not in one response** (INV-234):
+    a reply that stops short says `truncated: true` and carries `next_offset` and `total_chars`, the
+    next call passes `offset` set to that `next_offset`, and the last chunk says `truncated: false`.
+    A batch (`filenames`) leaves out a file too large for one chunk and lists it under `oversize`;
+    request that file again on its own, with `filename`. Module 5 Phase 1 Step 3 is the one step
+    that puts a resource back together from chunks, and it states the procedure in full.
 
-  <!-- MCP-NEGATIVE: the declared schemas of find_examples (query, repo, file_path, list_files, language, max_lines) and generate_scaffold (language, version, workflow) — neither declares an inline parameter, while download_resource's schema does declare it — owner: each tool's declared schema as the server advertises it in the tool manifest is the authority on what that tool accepts, and all three were read there directly rather than inferred from response prose or from a sibling tool (routing negative — the schema is the route, the response's own access_steps prose is not) — server 1.36.0, 2026-09-02 -->
+  <!-- MCP-NEGATIVE: the declared schemas of find_examples (query, repo, file_path, list_files, language, max_lines) and generate_scaffold (language, version, workflow) — neither declares an inline parameter, while download_resource's schema (filename, filenames, inline, offset, version) does declare it — owner: each tool's declared schema as the server advertises it in the tool manifest is the authority on what that tool accepts, and all three were read there directly rather than inferred from response prose or from a sibling tool (routing negative — the schema is the route, the response's own access_steps prose is not) — server 1.37.15, 2026-09-29 -->
 
   ⛔ **Read this as a consequence of the schema, never as a ban on the word `inline`.** Stated as
   "never pass `inline`" the rule generalizes wrongly, and a guide that internalized it that way will
@@ -316,9 +339,9 @@ steering files.)
   description's coverage prose is still not normative, and still goes stale on the server's
   schedule rather than the Power's.
 
-  **The live illustration, same server and date:** `search_docs`' declared description says the
-  corpus is *"~2175 chunks"*, while every `search_docs` response carries
-  `metadata.documents_indexed: 14637`. ⚠️ **Those are not necessarily contradictory — they may
+  **The live illustration, same server and date:** `search_docs`' declared description sizes the
+  corpus in chunks, while every `search_docs` response carries `metadata.documents_indexed`, a
+  different figure. ⚠️ **Those are not necessarily contradictory — they may
   simply be different units** (a chunk need not be a document), and **the tool documents neither**.
   That is the point: a reader cannot tell from the declared prose how large the corpus is, or
   whether the two figures describe the same thing. A coverage figure a caller cannot act on is
@@ -386,16 +409,17 @@ steering files.)
   reporting **0** distinct keys against a true 16, and disclosed links reporting **0** against
   556 — each reached by following the rule above and stopping at the schema.
 - **Parameter shapes, for the bootcamper's binding.** **`get_sdk_reference` answers parameter
-  shapes whenever `filter` names a method — under *any* topic**, not only `topic='methods'`. A
+  shapes whenever `filter` names a method — under *any* topic**, not only `topic='parameters'`. A
   `flags` or `response_schemas` response you already hold therefore carries the signature too,
   in a `method_signatures` block, so it needs no second call. (Verified on MCP server 1.32.2,
   2026-07-30: `topic='flags', filter='find_network_by_entity_id'` returned it alongside the flag
-  data, and `topic='response_schemas', filter='get_version'` returned it alongside an *empty*
-  `data` array — a topic with no data of its own still carries the signature.) When you hold no
-  such response, ask for it directly before **calling** an SDK method:
+  data. Verified on MCP server 1.37.14, 2026-09-28: `topic='response_schemas', filter='get_stats'`
+  returned it alongside an *empty* `data` array — a topic with no data of its own still carries the
+  signature.) When you hold no such response, ask for it directly before **calling** an SDK
+  method:
 
   ```text
-  get_sdk_reference(topic='methods', filter='find_network_by_entity_id')
+  get_sdk_reference(topic='parameters', filter='find_network_by_entity_id')
   ```
 
   returns the binding's own signature —
@@ -409,7 +433,7 @@ steering files.)
   `find_network_by_entity_id` takes a plain `List[int]` of entity IDs, not the
   `{"ENTITIES": [{"ENTITY_ID": n}]}` document the flags docs and the Java/C# signatures imply —
   passing the document raises `SzSdkError`. So read the signature **for the bootcamper's language**,
-  not the first one returned. Only when `topic='methods'` genuinely does not cover it, fall back to
+  not the first one returned. Only when `topic='parameters'` genuinely does not cover it, fall back to
   **introspecting the installed binding** (`help(...)`, `inspect.signature(...)`,
   `dir(SzEngineFlags)`) — never to another language's example.
 - **Flag families answer different questions.** Confirm what a flag family *selects*, not just
@@ -494,14 +518,28 @@ steering files.)
   *"class MeridianCrmMapper is public, should be declared in a file named MeridianCrmMapper.java"*.
   **Drop `public` from the top-level class.** A package-private top-level class may live in any
   filename, so the prescribed path and the idiomatic class name both survive, and
-  `java -cp <dir> <ClassName>` still launches it unchanged — `main` stays `public static`. Verified
-  on **javac/java 21.0.11, 2026-08-14**: the public form reproduces the error above, the
-  package-private form compiles clean under `javac -Xlint:all`, and the launcher runs.
+  `java -cp <dir> <ClassName>` still launches it unchanged — `main` stays `public static`. This
+  form is for **prescribed standalone program files** (mappers, loaders, verification programs).
+  Verified for a single mapper class on **javac/java 21.0.11, 2026-08-14**: the public form
+  reproduces the error above, the package-private form compiles clean under `javac -Xlint:all`,
+  and the launcher runs.
   - **Do not rename the file, and do not rename the class.** The prescribed filenames are read by
     other machinery (graduation maps artifacts by base name; Module 5 source-qualifies exactly three
     Markdown names; Module 3's build table is pinned by its own tests), and renaming the class to
     `class meridian_crm_mapper` satisfies the compiler while violating the same instruction's
     "idiomatic style for the chosen language".
+  - **(INV-237) A shared class — one that other files reference — goes in a file named after the class**,
+    such as `CounterpartyApi.java`, `public` or not. This covers a shared helper and the JSON
+    reader reused across modules. `javac` resolves a class from the sourcepath **by filename**, so
+    a package-private class in a differently named file draws *"auxiliary class CounterpartyApi …
+    should not be accessed from outside its own source file"* when all files compile together,
+    and *"error: cannot find symbol"* when one program is rebuilt alone with `-sourcepath` — an
+    error that names a missing symbol, not the filename that causes it. Such a helper has no
+    prescribed filename, so "do not rename the file" above, which protects prescribed names, does
+    not apply to it. A class used only inside its own file stays in that file. Verified on
+    **javac 21.0.12.1, 2026-09-25**, with `CounterpartyApi` in `counterparty_api.java`: both
+    failures reproduce, and the same class in `CounterpartyApi.java` compiles clean under
+    `-Xlint:all -sourcepath` and the program runs.
   - **C# is the quiet version of the same thing, and needs the opposite advice.** There the
     file/type correspondence is **conventional, not enforced**: `public class MeridianCrmMapper` in
     `meridian_crm_mapper.cs` builds with **0 warnings, 0 errors** (verified on .NET 8, 2026-08-14).
@@ -572,6 +610,11 @@ the platform's **default** shell — not only in bash. On macOS that shell is **
   closes their terminal and `set -e` leaks into the rest of their session. Use `return`.
 - **Verify the resolved path before using it, and name it when it is wrong.** Silently exporting a
   variable computed from a wrong root is the failure this prevents.
+- **On Windows the shell is PowerShell, so the env script is a `.ps1` the Bootcamper dot-sources:**
+  `. .\src\scripts\senzing-env.ps1`. A `.bat` run from PowerShell sets its variables in a child
+  `cmd.exe`, and none of them reach the session. Module 2 owns the script:
+  [the Windows script](../module-02-sdk-setup/SKILL.md#env-script-windows). Its Windows form is
+  unverified on Windows PowerShell 5.1 here (INV-163).
 
 ## Running a file you just wrote, when the run happens somewhere else
 
@@ -917,15 +960,26 @@ the 👉 protocol above).
   (INV-137).** The bootcamp is never asked how it wants model guidance handled, and there is no
   `model_guidance` key.
 
-  ⛔ **Compare the recommendation against what the bootcamper is running right now — not against
-  the previous stage's recommendation.** You are told which model you are running, so read the
+  ⛔ (INV-138) **For every dial whose current value can be determined, compare the recommendation
+  against what the bootcamper is running right now — not against the previous stage's
+  recommendation.** A dial that cannot be determined is the one exception, and the proxy at the end
+  of this paragraph is its rule. You are told which model you are running, so read the
   model side from that; for effort, use the value in force when you can determine it. **Resolve
   "cannot be determined" PER DIAL, not for the setting as a whole** — model and effort are separate
   dials (INV-137), and in a live session they routinely sit in different epistemic states at the
   same moment: the model is knowable to the assistant, while the reasoning effort is **not exposed
   by default**. So compare each dial on its own evidence: a determinable
   model is compared **directly** even when effort is not, and vice versa. **Only for a dial whose
-  current value cannot be determined**, fall back to that dial's value in the stage just completed.
+  current value cannot be determined**, and has never been determined in this conversation, use the
+  **proxy**: compare this stage's recommended value for that dial against the recommended value for
+  it in the stage just completed (that stage's row in the table below, INV-138's "previous stage's
+  row"), and ask that dial's half only when the two differ; when they are the same, treat that dial
+  as matching.
+  ⛔ (INV-138) **The proxy is the only sanctioned recommendation-to-recommendation comparison.** It
+  exists because such a dial has no current value to compare, and it is the previous-stage fallback
+  the rest of this section refers to. On the Kiro CLI before any `/effort` has been run, it is
+  how the effort dial is decided: Discover the Business Problem (medium) to SDK setup (high) differs,
+  so the effort half is asked.
 
   ⛔ **"Effort is not exposed by default" is not "effort can never be read" — and the switch flow
   below manufactures the evidence.** On the **Kiro CLI** an `/effort` invocation reports the
@@ -942,10 +996,10 @@ the 👉 protocol above).
   command, so the dial may genuinely stay undeterminable there — both paths are live, and which one
   applies depends on the interface and on whether the bootcamper has used it.
   ⛔ Applying the previous-stage row to a dial that *was* determinable is the failure this clause
-  exists to prevent: a bootcamper demonstrably on Opus 5 would be compared against the previous
-  stage's recommended Sonnet 5, found "unchanged", and never offered the switch — silently defeating
+  exists to prevent: a bootcamper demonstrably on Opus 5.5 would be compared against the previous
+  stage's recommended Sonnet 5.5, found "unchanged", and never offered the switch — silently defeating
   the purpose of the invariant this superseded. Comparing recommendation-to-recommendation asks a
-  bootcamper already on Opus 5 at high effort "would you like to switch to Opus 5 at high effort?" —
+  bootcamper already on Opus 5.5 at high effort "would you like to switch to Opus 5.5 at high effort?" —
   a question whose answer changes nothing, which is exactly what INV-006 and INV-012 forbid. Running
   one model for the whole bootcamp is a supported choice, so this is the common case, not an edge
   case.
@@ -961,16 +1015,20 @@ the 👉 protocol above).
   module is the "pointless switch? every module" outcome INV-006 and INV-012 forbid.
 
   ⚠️ **This is narrower than it may look, and deliberately so.** It applies only *above the whole
-  table*, never to a step down **within** it — a bootcamper on Opus 5 / high entering a Sonnet 5 /
+  table*, never to a step down **within** it — a bootcamper on Opus 5.5 / high entering a Sonnet 5.5 /
   medium stage is still asked, both dials, exactly as today. Step-down questions inside the table
   remain symmetric with step-ups by maintainer decision (2026-07-26, recorded in
   `../../docs/model-selection.md`); what this carve-out removes is only the case that **cannot be
   resolved by answering it**.
 
-  The **model** dial has no equivalent case today, for one reason only: Opus 5 is the table's top row,
-  so nothing a bootcamper can select sits above it. If a stronger model ships and this table lags it,
-  the same shape recurs on the model side and the exemption applies there in the same terms —
-  above-the-table is satisfied, not mismatched.
+  The **model** dial has the same case today: **Fable 5.1 sits above the table's top row, Opus 5.5**,
+  so a bootcamper running Fable 5.1 is above every row on the model dial, and the exemption applies
+  there in the same terms. The model half is **satisfied**, not mismatched: at every stage they get
+  the one-line statement, naming the stage's recommended model and saying that running higher is
+  fine, and **never** a model question. Their effort is still compared on its own evidence. If a
+  stronger model ships and this table lags it, the same terms apply to it. Opus 5.5 is not above the
+  table, because it *is* the top row: a bootcamper on Opus 5.5 entering a Sonnet 5.5 stage is asked,
+  as a step down within the table (INV-139).
 
   Two cases, decided only by that comparison:
 
@@ -980,27 +1038,27 @@ the 👉 protocol above).
     (exactly one 👉 per turn — INV-251; INV-008/INV-009 govern each question's clarity, not the count).
 
     **Name only the dial that differs.** Model and effort are **separate dials**: a bootcamper on
-    Opus 5 at medium effort entering a stage recommending Opus 5 at high effort is asked to change
+    Opus 5.5 at medium effort entering a stage recommending Opus 5.5 at high effort is asked to change
     the effort only, never told to re-set the model they are already on.
 
     ⛔ **That rule covers the whole sentence, including the answer hint** — `{dial}` below resolves
     to "model", "effort", or "model and effort", matching whatever the stem names. An effort-only
     question that ends "reply no to keep your current **model**" tells the bootcamper what declining
     does to a dial it is not touching, and the pinning rule (INV-056) means the guide cannot quietly
-    correct it at runtime. This is the common case, not an edge one: a bootcamper who stays on Opus 5
+    correct it at runtime. This is the common case, not an edge one: a bootcamper who stays on Opus 5.5
     through the conversational stages meets an **effort-only** step-up at SDK setup, the first time
     the nudge has anything to say to them at all.
 
     On the **Kiro CLI**, pin the switch question verbatim, substituting only the bracketed
     values — the stage's commands, just the one dial when only one differs, and `{dial}` to match:
 
-    > 👉 **Would you like to switch to {model} in the model picker and {effort} in the effort picker for this module?** (Recommended for best value; reply no to keep your current {dial}.)
+    > 👉 **Would you like to switch to {model} in the model picker and {effort} in the effort picker for {this module | graduation}?** (Recommended for best value; reply no to keep your current {dial}.)
 
     In **Kiro, Kiro on the web, or the Kiro IDE** (or an unknown interface),
     pin the intent-based equivalent — name the stage's recommended model and effort, and do NOT
     present CLI commands as the only instruction:
 
-    > 👉 **Would you like to switch to {Model} at {effort} reasoning effort for this module?** (Recommended for best value; set it with the model and effort controls in {Kiro | Kiro on the web | the Kiro IDE}; reply no to keep your current {dial}.)
+    > 👉 **Would you like to switch to {Model} at {effort} reasoning effort for {this module | graduation}?** (Recommended for best value; set it with the model and effort controls in {Kiro | Kiro on the web | the Kiro IDE}; reply no to keep your current {dial}.)
 
     Substitute the one interface the bootcamper is actually on. When the interface cannot be
     determined, say "in your Kiro surface" — vague only where the Power genuinely does not
@@ -1012,7 +1070,8 @@ the 👉 protocol above).
     current {current}; it is a cost saving, not a capability the module needs, so staying put is
     fine." Without it the bootcamper is being asked to accept a worse experience for no stated
     reason. It never reads as advice to downgrade. (An effort above the whole table never reaches
-    this clause — see the exemption above; it is a statement, not a question.)
+    this clause, and neither does a model above it such as Fable 5.1 — see the exemption above; it is
+    a statement, not a question.)
 
     This switch turn ends at the 👉. **On yes, read what the dial is actually set to before you
     compose the reply** (INV-236). The question just handed the bootcamper a command, so many will
@@ -1075,7 +1134,7 @@ the 👉 protocol above).
   decline, never when the recommendation already matched, and never in shapes 2 and 3, where the dial
   is already set and the gate would ask what the transcript has answered.
 
-  Switching is always optional — running one model for everything (Opus 5) stays valid. Per-stage
+  Switching is always optional — running one model for everything (Opus 5.5) stays valid. Per-stage
   recommendation — **this table is the authoritative copy** (the one in
   `../../docs/model-selection.md` is derived from it; change this one first). Model names, IDs, and
   the values below are point-in-time and go stale when a new model ships; `docs/model-selection.md`
@@ -1089,18 +1148,18 @@ the 👉 protocol above).
 
   | Stage | Recommended | Where to set it in Kiro |
   |---|---|---|
-  | Onboarding | Sonnet 5, medium effort | Sonnet 5 in the model picker · medium in the effort picker |
-  | Bootcamp preparation | Sonnet 5, medium effort | Sonnet 5 in the model picker · medium in the effort picker |
-  | Entity Resolution Concepts | Sonnet 5, medium effort | Sonnet 5 in the model picker · medium in the effort picker |
-  | Discover the Business Problem | Sonnet 5, medium effort | Sonnet 5 in the model picker · medium in the effort picker |
-  | SDK setup | Opus 5, high effort | Opus 5 in the model picker · high in the effort picker |
-  | System verification | Sonnet 5, high effort | Sonnet 5 in the model picker · high in the effort picker |
-  | Truth Set visualization | Opus 5, high effort | Opus 5 in the model picker · high in the effort picker |
-  | Data collection | Sonnet 5, medium effort | Sonnet 5 in the model picker · medium in the effort picker |
-  | Data Quality, Mapping, and Transformation | Opus 5, high effort | Opus 5 in the model picker · high in the effort picker |
-  | Data processing | Opus 5, high effort | Opus 5 in the model picker · high in the effort picker |
-  | Query, Visualize and Discover | Opus 5, high effort | Opus 5 in the model picker · high in the effort picker |
-  | Bootcamp graduation | Opus 5, high effort | Opus 5 in the model picker · high in the effort picker |
+  | Onboarding | Sonnet 5.5, medium effort | Sonnet 5.5 in the model picker · medium in the effort picker |
+  | Bootcamp preparation | Sonnet 5.5, medium effort | Sonnet 5.5 in the model picker · medium in the effort picker |
+  | Entity Resolution Concepts | Sonnet 5.5, medium effort | Sonnet 5.5 in the model picker · medium in the effort picker |
+  | Discover the Business Problem | Sonnet 5.5, medium effort | Sonnet 5.5 in the model picker · medium in the effort picker |
+  | SDK setup | Opus 5.5, high effort | Opus 5.5 in the model picker · high in the effort picker |
+  | System verification | Sonnet 5.5, high effort | Sonnet 5.5 in the model picker · high in the effort picker |
+  | Truth Set visualization | Opus 5.5, high effort | Opus 5.5 in the model picker · high in the effort picker |
+  | Data collection | Sonnet 5.5, medium effort | Sonnet 5.5 in the model picker · medium in the effort picker |
+  | Data Quality, Mapping, and Transformation | Opus 5.5, high effort | Opus 5.5 in the model picker · high in the effort picker |
+  | Data processing | Opus 5.5, high effort | Opus 5.5 in the model picker · high in the effort picker |
+  | Query, Visualize and Discover | Opus 5.5, high effort | Opus 5.5 in the model picker · high in the effort picker |
+  | Bootcamp graduation | Opus 5.5, high effort | Opus 5.5 in the model picker · high in the effort picker |
 
   The **Recommended** column is interface-neutral. In Kiro, Kiro on the web, or the Kiro
   IDE, set the same model and reasoning effort using that interface's model/effort controls;

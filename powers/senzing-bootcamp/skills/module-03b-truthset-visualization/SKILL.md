@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.3
-  templateRelease: 0.5.3
+  version: 0.6.1
+  templateRelease: 0.6.1
   templateSkill: module-03b-truthset-visualization
 ---
 
@@ -85,7 +85,7 @@ available with `dataset='list'` and read `available_datasets`. Only when that li
 `truthset` entry does this module (Step 1) fall back to a sanctioned external source for the demo
 Truth Set DATA.
 
-> Verified on MCP server 1.32.2, 2026-07-30: `truthset` is listed with `available: true` alongside the
+> Verified on MCP server 1.37.14, 2026-09-28: `truthset` is listed with `available: true` alongside the
 > three CORD collections, so the fallback is exceptional, not routine. Re-verify rather than trusting
 > this note (INV-080). Full classification and the degradation path: `phase1-visualization.md`, 1.1.
 

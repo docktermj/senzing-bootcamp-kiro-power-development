@@ -369,16 +369,27 @@ substitutionSets:
     # Anthropic API model ids. A Kiro Bootcamper chooses a model in the picker and
     # never types an id, so the id is dropped where the table already gives the name
     # beside it and replaced by the picker's name where the id stands alone.
-    - { find: "Fable 5 (`claude-fable-5`)", replace: "Fable 5", literal: true }
-    - { find: "Opus 5 (`claude-opus-5`)", replace: "Opus 5", literal: true }
-    - { find: "Sonnet 5 (`claude-sonnet-5`)", replace: "Sonnet 5", literal: true }
+    #
+    # THE IDS AND THE MODEL NAMES HERE TRACK THE RELEASE BEING BUILT, and upstream
+    # revises both whenever the provider ships a tier. Release 0.6.1 moved from
+    # Fable 5 / Opus 5 / Sonnet 5 (`claude-fable-5`, `claude-opus-5`,
+    # `claude-sonnet-5`) to Fable 5.1 / Opus 5.5 / Sonnet 5.5, so every entry below
+    # names the 0.6.1 spelling. A `find` carrying a superseded id would match
+    # nothing and, worse, a `replace` carrying a superseded *name* would tell the
+    # Bootcamper to select a model the release no longer recommends — which is why
+    # these are revised rather than accumulated. The residual-reference gate does
+    # not depend on this list: it catches an API id by shape, so a spelling that
+    # arrives in a future release is still reported even before it is named here.
+    - { find: "Fable 5.1 (`claude-fable-5-1`)", replace: "Fable 5.1", literal: true }
+    - { find: "Opus 5.5 (`claude-opus-5-5`)", replace: "Opus 5.5", literal: true }
+    - { find: "Sonnet 5.5 (`claude-sonnet-5-5`)", replace: "Sonnet 5.5", literal: true }
     - { find: "Haiku 4.5 (`claude-haiku-4-5`)", replace: "Haiku 4.5", literal: true }
-    - { find: "`/model claude-opus-5`", replace: "Opus 5 in the model picker", literal: true }
-    - { find: "`/model claude-sonnet-5`", replace: "Sonnet 5 in the model picker", literal: true }
+    - { find: "`/model claude-opus-5-5`", replace: "Opus 5.5 in the model picker", literal: true }
+    - { find: "`/model claude-sonnet-5-5`", replace: "Sonnet 5.5 in the model picker", literal: true }
     # The feedback report's worked example. A Bootcamper reports what the picker
     # shows them, so the field asks for the model name and the example gives one.
-    - find: '[model ID and reasoning-effort level; e.g. "claude-opus-5[1m] / high", or "Unknown"]'
-      replace: '[model name and reasoning-effort level; e.g. "Opus 5 / high", or "Unknown"]'
+    - find: '[model ID and reasoning-effort level; e.g. "claude-opus-5-5[1m] / high", or "Unknown"]'
+      replace: '[model name and reasoning-effort level; e.g. "Opus 5.5 / high", or "Unknown"]'
       literal: true
 
     # The Claude Code CLI command pairs, and the table column that carries them.
@@ -387,10 +398,16 @@ substitutionSets:
     # `{model}`/`{effort}` pair is the pinned nudge template in `ground-rules.md`,
     # whose placeholders the guide fills at module start — they survive the rewrite
     # because the entry is a literal around them, not a rewrite of them.
-    - { find: "`/model sonnet` · `/effort medium`", replace: "Sonnet 5 in the model picker · medium in the effort picker", literal: true }
-    - { find: "`/model sonnet` · `/effort high`", replace: "Sonnet 5 in the model picker · high in the effort picker", literal: true }
-    - { find: "`/model opus` · `/effort high`", replace: "Opus 5 in the model picker · high in the effort picker", literal: true }
-    - { find: "`/model opus` + `/effort high`", replace: "Opus 5 in the model picker and high in the effort picker", literal: true }
+    # The model name in each replacement is the release's own recommendation, so it
+    # tracks the release exactly as the id entries above do: the `find` side is the
+    # version-free CLI alias (`opus`, `sonnet`), which upstream has not changed, and
+    # the `replace` side must name what that alias resolves to at this release, or a
+    # per-stage row would recommend Sonnet 5.5 in one column and point at Sonnet 5
+    # in the next.
+    - { find: "`/model sonnet` · `/effort medium`", replace: "Sonnet 5.5 in the model picker · medium in the effort picker", literal: true }
+    - { find: "`/model sonnet` · `/effort high`", replace: "Sonnet 5.5 in the model picker · high in the effort picker", literal: true }
+    - { find: "`/model opus` · `/effort high`", replace: "Opus 5.5 in the model picker · high in the effort picker", literal: true }
+    - { find: "`/model opus` + `/effort high`", replace: "Opus 5.5 in the model picker and high in the effort picker", literal: true }
     - { find: "`/model {model}` + `/effort {effort}`", replace: "{model} in the model picker and {effort} in the effort picker", literal: true }
     - { find: "| Stage | Recommended | CLI commands |", replace: "| Stage | Recommended | Where to set it in Kiro |", literal: true }
     - { find: "the **CLI commands** column", replace: "the **Where to set it in Kiro** column", literal: true }
@@ -1727,9 +1744,21 @@ rules:
   # WHAT THIS COSTS, stated because it is a real cost: an upstream edit to the
   # per-skill evaluation or to the module-start recommendation table no longer arrives
   # by rebuild. The authored document carries the same tables, and a Maintainer moving
-  # to a newer Template_Release should diff the template's copy against this one. The
-  # Update_Skill's reconciliation reports the rule as a preserved adaptation, which is
-  # where that review belongs.
+  # to a newer Template_Release must diff the template's copy against this one and
+  # bring the authored file level. Release 0.6.1 is the standing case: it renamed the
+  # model tier (Opus 5 -> Opus 5.5, Sonnet 5 -> Sonnet 5.5, Fable 5 -> Fable 5.1), and
+  # a Power whose `ground-rules.md` recommends Opus 5.5 while this document still
+  # recommends Opus 5 fails KINV-013.
+  #
+  # `carryForward: false` is what lets that diff land. Without it the update path takes
+  # the Power's existing copy ahead of the authored one, and the reconciler preserves
+  # it as a declared adaptation, so an edit to the authored file can only ever reach
+  # the Power through a create-path rebuild. The authored file is this document's
+  # single point of change — the determinism gate already requires the committed
+  # Power to equal a create-path build — so there is no Power-side adaptation for
+  # carry-forward to protect. With the flag, the Update_Skill's reconciliation
+  # reports the path as `modified` when the authored file moved, and still as a
+  # `conflict`, never overwritten, if someone edited the Power's copy by hand.
   - id: model-selection-superseded
     kind: ignore
     source: "docs/model-selection.md"
@@ -1737,6 +1766,7 @@ rules:
   - id: model-selection-doc
     kind: kiro-owned
     owner: kiro
+    carryForward: false
     dest: "docs/model-selection.md"
 
   # --- Generated Agent Plugins manifests (R4 AC1, AC2, AC3) ---------------

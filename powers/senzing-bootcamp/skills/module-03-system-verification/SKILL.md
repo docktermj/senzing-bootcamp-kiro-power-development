@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.3
-  templateRelease: 0.5.3
+  version: 0.6.1
+  templateRelease: 0.6.1
   templateSkill: module-03-system-verification
 ---
 
@@ -46,18 +46,20 @@ system is verified against **synthetic records**: SDK initialization, code gener
 compilation, data loading, entity resolution, and database operations all confirmed working. (The
 interactive Truth Set web-app visualization is a separate, standalone module, run next when selected.)
 
-**Success indicator:** ✅ The **7 installation checks** report "passed" — MCP connectivity, engine
-initialization, SDK initialization, code generation, build, data-source registration, loading — plus
-**results validation**, which is reported separately and is the only one that is not a statement about
-the install; the Verification Report is persisted to `config/bootcamp_progress.json`; the synthetic
-`VERIFY` data
-is purged from the database; and gate 3→4 is marked completed (full criteria in
-`phase1-verification.md`). (The Truth Set visualization module — run next when selected — owns its
+**Success indicator:** ✅ The **8 installation checks** report "passed" — MCP connectivity
+(`mcp_connectivity`), engine initialization (`engine_initialization`), SDK initialization
+(`sdk_initialization`), code generation (`code_generation`), build (`build_compilation`), data-source
+registration (`data_source_registration`), loading (`data_loading`) and database operations
+(`database_operations`) — while **results validation**, which is reported separately
+(`results_validation`) and is the only one that is not a statement about the install, reports
+`passed` or `expectation_mismatch` and is never required to pass (INV-229); the Verification Report is persisted
+to `config/bootcamp_progress.json`; the synthetic `VERIFY` data is purged from the database; and
+gate 3→4 is marked completed (full criteria in `phase1-verification.md`). (The Truth Set visualization module — run next when selected — owns its
 own `web_service`/`web_page` checks, snapshot, and cleanup.)
 
 ⛔ **Results validation is kept separate on purpose: it compares the engine against a prediction the
 guide made, so a mismatch has two candidate causes and only one of them is an install fault.** The
-other seven are unambiguous. A results mismatch that the engine coherently explains — via `why_records`
+installation checks are unambiguous. A results mismatch that the engine coherently explains — via `why_records`
 / `why_entities` — is an expectation mismatch, **not** a failed verification, and must not be reported
 as the bootcamper's system failing. Step 7 in `phase1-verification.md` states the procedure for
 telling the two apart.

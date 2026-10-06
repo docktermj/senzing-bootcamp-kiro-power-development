@@ -5,7 +5,7 @@
 **Completed:** 2026-07-30
 **Programming language:** Python
 **Path:** Core
-**Plugin version:** 0.5.3
+**Plugin version:** 0.6.1
 **Operating system:** Ubuntu 24.04.4 LTS (x86_64)
 **Python version:** 3.12.3
 **Language runtime:** Python 3.12.3
@@ -22,7 +22,7 @@
 - Two failure modes: false negatives (same entity split apart) and false positives (different entities merged).
 - The conceptual pipeline: ingestion/standardization -> candidate selection (blocking) -> comparison/scoring -> classification -> entity clustering.
 - Disclosed vs. discovered relationships (Senzing docs via MCP).
-- Three outputs: resolved entities (golden record), cross-source relationships, deduplication.
+- What it produces: matched records grouped into unified entities, and relationships tracked between those entities.
 - Senzing-specific: principle-based matching (vs. hand-written rules), pre-configured for people and organizations, differentiators (real-time, no model training, explainability with "why matched/why not/how" attribution, scalability as a composable library). Sourced from Senzing docs via the MCP server.
 
 ### Questions & Responses
@@ -129,8 +129,8 @@
 
 ### Questions & Responses
 
-- **Q:** Would you like to switch to Opus 5 in the model picker and high in the effort picker for this module?
-    - **R:** Yes (set Opus 5 at high effort).
+- **Q:** Would you like to switch to Opus 5.5 in the model picker and high in the effort picker for this module?
+    - **R:** Yes (set Opus 5.5 at high effort).
 - **Q:** Are you done modifying the model and effort?
     - **R:** Yes.
 - **Q:** Which database would you like to use?
@@ -185,14 +185,14 @@
 ### Questions & Responses
 
 - **Q:** Would you like to switch to `/model sonnet` for this module?
-    - **R:** Yes (step down from Opus 5; effort stayed at high).
+    - **R:** Yes (step down from Opus 5.5; effort stayed at high).
 - **Q:** Are you done modifying the model and effort?
     - **R:** Yes.
 
 ### Actions Taken
 
 - Designed 4 synthetic `VERIFY` records: a 3-record merge cluster ("Alex Quinn Verify", same DOB/address with trivial variation) and 1 distractor singleton ("Jordan Sample").
-- Ran all 8 System Verification checks: MCP connectivity, engine initialization, SDK initialization, code generation, build/compile, data source registration, data loading, results validation, and database operations — all passed.
+- Ran the System Verification checks: the installation checks — MCP connectivity, engine initialization, SDK initialization, code generation, build/compile, data source registration, data loading, and database operations — all passed, and results validation, reported separately, matched the prediction.
 - Confirmed the merge cluster resolved to one entity (entity ID 1) and the distractor stayed its own entity (entity ID 4) — exactly as designed.
 - Verified write count, read-by-entity-ID, and search-by-attributes all through generated SDK code.
 - Purged all 4 synthetic `VERIFY` records via `SzEngine.delete_record` (not a full datastore purge, to preserve other state) and confirmed zero remain.
@@ -358,7 +358,7 @@
 
 ### Questions & Responses
 
-- **Q:** Would you like to switch to Opus 5 in the model picker and high in the effort picker for this module?
+- **Q:** Would you like to switch to Opus 5.5 in the model picker and high in the effort picker for this module?
     - **R:** Yes.
 - **Q:** Are you done modifying the model and effort?
     - **R:** Yes.
@@ -369,7 +369,7 @@
 
 ### Actions Taken
 
-- Downloaded the Senzing Entity Specification to `docs/reference/senzing_entity_specification.md` (73 KB) and used it as the authoritative reference throughout.
+- Downloaded the Senzing Entity Specification to `docs/reference/senzing_entity_specification.md` (its saved size matched the response's `size_bytes`) and used it as the authoritative reference throughout.
 - Profiled both sources' field structures, finding Enformion carries ~1,227 dynamic numeric root keys (the `REL_POINTER_KEY` repeated as a field name) atop ~23 stable fields.
 - Registered `ENFORMION` and `EQUIFAX` data source codes (required before preview, and needed by loading anyway).
 - Ran a readiness check on 200 records per source: structural check passed 200/200 for both, and `get_record_preview` confirmed Senzing extracts the intended features from every record.

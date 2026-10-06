@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.3
-  templateRelease: 0.5.3
+  version: 0.6.1
+  templateRelease: 0.6.1
   templateSkill: module-05-data-quality-mapping
 ---
 
@@ -27,6 +27,11 @@ absolute precedence as a ⛔ mandatory gate, and no internal reasoning can overr
 
 **First:** Read `config/bootcamp_progress.json`, then (per ground-rules) show the module start
 banner, journey map, before/after framing, a brief numbered overview of this module's steps, an estimated time-to-complete (INV-096), and the recommended model/effort nudge (INV-063), before any module work.
+**When it carries a `quality_iteration`, none of this runs:** go straight to Phase 2 →
+[Receiving a `quality_iteration`](phase2-data-mapping.md#receiving-a-quality-iteration). A return
+runs only the steps it names, so the steps it leaves out are not skipped steps.
+**When it records Module 5 at the retired step 26, none of this runs either:** Module 5 is already
+complete, and [Resuming](#resuming) says what to present.
 
 **Before/After:** You have raw data files but don't know if Senzing can use them directly.
 After this module, each source is scored for quality, categorized, and transformed into
@@ -57,8 +62,8 @@ transformation programs tested + output validated with quality >70%.
   training data. ⛔ **Query with the filter and the sections below — a bare
   `search_docs(query="globalization")` does not reach this material** (INV-212). All four
   topics live in **one document**, the "Senzing Globalization Guide". This call reaches it and
-  is verified (server 1.32.9, 2026-08-13) — swap the query for the terms in the row you need,
-  and keep the filter either way:
+  is verified (server 1.37.19, docs index 2026-10-02 18:46 UTC, 2026-10-04) — swap the query for
+  the terms in the row you need, and keep the filter either way:
 
   ```text
   search_docs(query='UTF-8 encoding non-Latin character support multi-language data quality', category='globalization')
@@ -71,22 +76,29 @@ transformation programs tested + output validated with quality >70%.
   | Which scripts are actually covered | "Advanced personal name comparisons > Additional Cultural Support" — a transliteration table (Indian, Indonesian, Japanese, Polish, Portuguese, East Slavic, Turkish, Yoruban, Generic). It also states Japanese **Kanji is treated as Chinese Hanzi** — a limitation worth telling the Bootcamper. |
   | Cross-script addresses, and the data-quality practice | "Enhanced address comparisons" and "Address matching examples > CJK+English cross-script matching" — native-to-native beats native-to-Romanized, and for non-CJK cross-script, Romanize via an address-hygiene product and supply **both** the native and Romanized forms. |
 
-  ⛔ **Two phrasings return confidently wrong content, which is worse than returning
-  nothing.** Bare `globalization` ranks the Rust SDK's `static GLOBAL_ENVIRONMENT`,
-  `postgresql-performance-v4`'s "Global — more workers" (autovacuum tuning) and an MDM-Lite
-  FAQ on "globally unique ID" among its top hits, and its best Guide hit is the bare title
-  `# Senzing Globalization Guide` with no prose — a stub is not coverage. And the words "best
-  practices" are their own trap: unfiltered, `query='multi-language data quality best
-  practices'` returned **five of five** results as repo `docs/best-practices.md` template
-  files (`senzingsdk-tools`, `scoop-senzingsdk`, `homebrew-senzingsdk`, `senzingapi-tools`,
-  `senzingsdk-runtime`) about Markdown lint and Dockerfiles — **no globalization content at
-  all**, two of them title-only stubs. With `category='globalization'` the on-topic rows come
-  back first, but those same files remain in the set carrying the **highest**
-  `relevance_score` (~89–92 against ~12–16), so never rank by score here. Seeing any of this
-  is evidence you mis-queried, never that the documentation is thin. (Sections and all three
-  traps verified live via `search_docs`, server 1.32.9, docs indexed 2026-08-11 20:52 UTC,
-  2026-08-13.)
-  <!-- MCP-NEGATIVE: search_docs(query='globalization') — returns no UTF-8 / supported-languages answer in its top hits, and its highest-ranked Guide hit is a title-only stub — owner: search_docs(query='UTF-8 encoding non-Latin character support multi-language data quality', category='globalization') returns it, as the "What languages does Senzing support?" section (routing negative — the material is served; the bare query misses it) — server 1.36.0, 2026-09-02 -->
+  ⚠️ **The bare call is not the route, even though its Guide hits are usable.** Unfiltered,
+  `search_docs(query='globalization')` does return Senzing Globalization Guide sections with
+  real prose, and a Guide section it returns can be used like any other. But the bare term
+  also admits unrelated `Global*` substring matches: the Rust SDK's `static GLOBAL_ENVIRONMENT`,
+  `postgresql-performance-v4`'s "Global — more workers" (autovacuum tuning) and an MDM-Lite FAQ
+  on "globally unique ID". Drop those, since they are not about globalization. The bare call
+  also did not return the "What languages does Senzing support?" section, which holds the
+  UTF-8 answer. So keep `category='globalization'` as the route. (Verified live via
+  `search_docs`, server 1.37.13, docs indexed 2026-09-24 18:45 UTC, 2026-09-26.)
+  <!-- MCP-NEGATIVE: search_docs(query='globalization') — returns Globalization Guide sections but not the "What languages does Senzing support?" answer, and also admits unrelated Global* substring matches beside them — owner: search_docs(query='UTF-8 encoding non-Latin character support multi-language data quality', category='globalization') returns it, as the "What languages does Senzing support?" section (routing negative — the category boost ranks the answer first; the bare query also admits unrelated Global* matches) — server 1.37.13, 2026-09-26 -->
+
+  ⛔ **The words "best practices" are their own trap (INV-212): they return confidently wrong
+  content, which is worse than returning nothing.** Unfiltered,
+  `query='multi-language data quality best practices'` returned its **top six of ten** results
+  as repo `docs/best-practices.md` template files (`senzingsdk-tools`, `senzingapi-runtime`,
+  `senzingapi-tools`, `senzingsdk-runtime`, `homebrew-senzingsdk`, `scoop-senzingsdk`) about
+  Markdown lint and Dockerfiles — **no globalization content at all**, two of them title-only
+  stubs. With `category='globalization'` the on-topic rows come back first, but those same files
+  remain in the set carrying the **highest** `relevance_score` (~89 against ~9–13), so never rank
+  by score here. Seeing any of this
+  is evidence you mis-queried, never that the documentation is thin. (The sections above and
+  this trap verified live via `search_docs`, server 1.37.19, docs indexed 2026-10-02 18:46 UTC,
+  2026-10-04.)
   <!-- MCP-NEGATIVE: search_docs(query='multi-language data quality best practices') — returns no globalization content at all — the hits are repo template docs/best-practices.md files about Markdown lint and Dockerfiles, none carrying non-Latin or cross-script guidance — owner: search_docs(query='data quality practices multi-language non-Latin', category='globalization') returns it, as "Address matching examples > CJK+English cross-script matching" (routing negative — the category filter is what recovers it) — server 1.36.0, 2026-09-02 -->
 
 ## Error handling
@@ -115,8 +127,19 @@ either one:
 - **Phase 1: Quality Assessment** (steps 1–7): `phase1-quality-assessment.md`
   (includes a Senzing-readiness check and fast-path-to-loading offer for eligible sources).
 - **Phase 2: Data Mapping** (steps 8–20): `phase2-data-mapping.md`.
-- **Phase 3: Test Load and Validate (Optional)** (steps 21–26): `phase3-test-load.md`.
+- **Phase 3: Test Load and Validate (Optional)** (steps 21–25): `phase3-test-load.md`. It tests
+  one source and always returns to Phase 2 (step 19, or step 17 to iterate). Module 5 is completed
+  only at Phase 2 step 20.
+
+## Resuming
 
 Read `current_step` from `config/bootcamp_progress.json` and resume at the right phase. During
 mapping, also read any `config/mapping_state_[datasource].json` checkpoint to resume a
 per-source `mapping_workflow` run where it left off.
+
+**A progress file that recorded Module 5 at step 26.** Phase 3 used to end on a step 26, which ran
+Module Completion and then wrote its checkpoint, so a Module 5 `current_step` of 26 written under
+that flow means Module 5 is already complete. Treat it so: present only Phase 2 step 20's pinned
+transition 👉 question, naming the next selected module from `selected_modules`, and checkpoint as
+step 20 does. Do not run Module Completion again: no second Module 5 recap section, no second
+end-of-module summary, and no Phase 3 question (INV-284).

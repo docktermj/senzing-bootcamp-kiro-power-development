@@ -14,12 +14,58 @@ from the `mapping_workflow` MCP tool. NEVER hand-code or guess Senzing attribute
 never reuse mapping output from one source for another. Never guess SDK method signatures: use
 `generate_scaffold` / `get_sdk_reference`.
 
+<a id="receiving-a-quality-iteration"></a>
+
+## Receiving a `quality_iteration` (from Query, Visualize and Discover)
+
+⛔ **(INV-284) Check for it before anything else in this phase.** When
+`config/bootcamp_progress.json` carries a `quality_iteration` whose `stage` is `remap`, the
+Bootcamper chose the return at Module 7 step 3b, and this is not a run of this module: show no start
+banner, journey map or overview, write no Module 5 checkpoint (leave `current_module` and
+`current_step` as Module 7 set them, so its progress is not overwritten), and remap only the sources
+the key names. Which stages run and where Module 7 resumes are stated once, in
+`../module-07-query-visualize-discover/phase1-query-visualize.md` step 3b → "The quality-iteration
+route" (INV-300); this block says only how the remap is done.
+
+For each source in `sources` not yet listed in `completed`, in order:
+
+1. **Record what was loaded, before anything is rewritten.** Write the RECORD_IDs of the source's
+   current load input to `data/mapping/{source_name}_loaded_record_ids.txt`, one per line: its
+   registry `file_path`, narrowed by its `load_subset:` block when one is recorded (Module 6
+   Phase B's [subset record](../module-06-data-processing/phaseB-load-first-source.md#load-subset-record)).
+   Module 6's receiving branch compares the remapped file against this set. If the file already
+   exists, an interrupted return wrote it: keep it, because the load input may since have been
+   rewritten.
+2. **Run Steps 8–18 for this source:** a full `mapping_workflow` run, as Step 8's per-source
+   requirement demands, never a reuse of the earlier run's output. Address the finding Module 7 named
+   in its explanation statement where it arises, most often at Step 11. Step 18 rewrites
+   `docs/mapping/{source_name}_mapper.md` and the source's lineage document. The source's own
+   `config/mapping_state_[datasource].json` is still written and deleted as "Mapping state
+   checkpointing" says; only the steps' `config/bootcamp_progress.json` checkpoints are not written.
+   **A named source with `fast_pathed: true` is remapped too:** "Skip fast-pathed sources" below
+   does not apply to a source the key names. Step 17's registry write also sets `fast_pathed:
+   false`, so Module 6 reloads the remapped output at the `file_path` Step 18 records, not the
+   original `data/raw/` file.
+3. ⛔ **(INV-177) Step 19's relocation guard runs between sources:** before the next named source's
+   `mapping_workflow(action='start')`, confirm this source's profile report, `schema_hints.md` and
+   `JOURNAL.md` are relocated under their source-qualified names. Step 19's per-source completion
+   check also applies: `docs/mapping/{source_name}_mapper.md` exists before the source is done.
+4. **Add the source to `completed`** in one quiet write.
+
+**Phase 1, Phase 3 and Step 20 do not run.** ⛔ **(INV-284) No re-scoring, no test load, and no
+Module Completion:** no second Module 5 recap section, no progress update, no transition question,
+and `data_quality_mapping` is not added to `modules_completed` again.
+
+**When every named source is remapped,** set `stage` to `reload` and `completed` to `[]` in one
+write, then continue into Module 6's
+[Receiving a `quality_iteration`](../module-06-data-processing/phaseB-load-first-source.md#receiving-a-quality-iteration).
+
 ## Skip fast-pathed sources
 
 Before starting the mapping workflow for a source, check its registry entry in
 `config/data_sources.yaml`. If `fast_pathed` is `true` and `mapping_status` is `complete`, skip
 this source entirely: it has already been routed to Module 6. Proceed to the next unmapped
-source.
+source. A source a `quality_iteration` names is not skipped: the receiving branch above remaps it.
 
 ## Mapping verbosity check (before starting the mapping workflow)
 
@@ -95,7 +141,7 @@ ground-rules file-placement contract:
   `schema_hints.md` → `docs/mapping/{source_name}_schema_hints.md`, `JOURNAL.md` →
   `docs/mapping/{source_name}_JOURNAL.md`. Mapping working data (`*_mapping_spec.json`, the
   per-source `{source}_sample.jsonl`, intermediate analyzer JSONL) → `data/mapping/`. Final
-  transformed, load-ready JSONL stays in `data/senzing-ready/`.
+  transformed, load-ready JSONL stays in `data/senzing-ready/`, and nothing partial does (INV-084).
   - ⛔ **The profile report has TWO possible filenames, and BOTH must be relocated.** A single-file
     start writes `profile_report.md`; a multi-file start writes one
     `profile_report_<stem>.md` **per input** (server 1.33.0, verified 2026-08-23 — see "the
@@ -209,7 +255,7 @@ the same** and only four `advance` calls happen in Phase 2:
 | 12-16 | 4 generate_validate | **one** `advance` at step 15, `data={'verdict': ...}` |
 | 17-18 | — | no advance; `rework_*` verdicts route back |
 | 18a | 5 detect_environment | the menu returned by step 15's advance; answering it may enter Phase 3 |
-| Phase 3 (21-26) | 6-8 | the optional sandbox test load — see `phase3-test-load.md` |
+| Phase 3 (21-25) | 6-8 | the optional sandbox test load — see `phase3-test-load.md`; every exit returns to step 19 (or step 17 to iterate) |
 
 Steps 12, 13, 14 and 16 do **not** advance the workflow — they are work performed *inside* workflow
 step 4 (generate sample JSON, lint, write and run the mapper, analyze output) before its single
@@ -432,39 +478,7 @@ Run the profiler, then summarize columns/types/completeness/quality. Advance wor
 `action='advance'`, carrying `profile_summary` (one entry per source schema, each with
 `schema_name`, `record_count`, `field_count`) in `data`.
 
-⛔ **The step-1 response states this payload twice, in two incompatible shapes — send the ARRAY.**
-Its prose (`ADVANCE FORMAT:` at the top, and again under `ADVANCING TO STEP 2`) shows
-`profile_summary` as an **object keyed by schema name**:
-
-```text
-{"profile_summary": {"<schema_name>": {"record_count": N, "field_count": N}}}   ← the prose form; NOT what the schema declares
-```
-
-while the inline JSON Schema and the `advance_schema` field — introduced as *"the EXACT contract for
-the payload you send to advance FROM step 1. Match it exactly"* — define it as an **array** of
-objects each requiring `schema_name`, with `additionalProperties: false` and `minItems: 1`:
-
-```text
-{"profile_summary": [{"schema_name": "<name>", "record_count": N, "field_count": N}]}   ← the array the schema declares — send this
-```
-
-The two cannot both be what the contract says: the prose form carries no `schema_name` key, which the
-schema requires and `additionalProperties: false` forbids substituting. **Send the array because the
-schema declares the array** — that is the durable reason, and it is also what the typed `payload`
-branch (`for_step 1`) constrains decoding to. Step 2's own prose and schema **do** agree, so this is
-specific to step 1. Reported upstream; re-check whether it still applies rather than assuming, and if
-the prose is corrected, retire this note rather than inverting it.
-
-⚠️ **Do not reason from what the server happens to accept — that half has already changed once.**
-Until 2026-08-23 this note said the prose form *"does NOT work"*, verified on **server 1.32.9,
-2026-08-12** where the array form advanced. Re-measured on **server 1.33.0, 2026-08-23**: the
-object-keyed prose payload **also advances**, returning `status: "ok"` at step 2 with no
-`ENFORCEMENT NOTICE` and no `grammar_violation_count`. So the server now accepts both shapes.
-⛔ **This changes nothing about which to send (INV-136 — the guide calls a tool as its live schema
-states, not as the server happens to tolerate).** Acceptance is not a contract and can be withdrawn;
-the declared schema is the contract, and it still says array. What the change does show is that a
-caution phrased as *"that one fails"* expires while a caution phrased as *"the schema declares this"*
-does not — which is why the labels above name the contract rather than the outcome.
+⛔ **Send `profile_summary` as the array** — `[{"schema_name": "<name>", "record_count": N, "field_count": N}]` — **because the step's `advance_schema` declares it (INV-136)**. The step's prose states the same list form, and this payload advanced with `status: "ok"` on server 1.37.16, 2026-10-01.
 
 **The profile-report filename depends on how many files you pass, and the server handles the
 multi-file case itself.** Verified on server **1.33.0, 2026-08-23** by calling
@@ -554,7 +568,21 @@ step 2 with `action='advance'`, carrying `master_schemas` (at least one, each wi
 relationships, children) in `data`. Tell the user: explain the entity type decision, which fields
 map vs. skip and why.
 
-⛔ **On a mixed-type source, send an enum-valid `record_type` and declare the mixture at step 3 —
+⛔ **(INV-300) Read the source's Record Type Check before you advance workflow step 2.** (INV-336) Open
+`docs/mapping/{source_name}_mapper.md` → `## Record Type Check`. Its rule is Phase 1 Step 6's
+"Type/name check" (`phase1-quality-assessment.md`), the canonical statement; do not restate it here.
+With **Keep as-is**, `none needed`, no section, or a Retype that names every candidate as an
+exception, change nothing. With **Retype**, the source now carries both types:
+
+- Send each master schema's `record_type` as the source's predominant type **after** the retype. It
+  stays enum-valid and is never `MIXED`: that is the enum-valid `record_type` half of the mixed-type
+  rule below. Its other half, a step 3 `type_discriminator`, does not apply to a suffix retype;
+  step 11 declares how each record is typed.
+- Say in the plan summary that the source now carries PERSON and ORGANIZATION records, and how many
+  records the retype moves. This is content in the summary, not a new question.
+- Declare nothing else here: step 11 declares how each record is typed.
+
+⛔ **(INV-280) On a mixed-type source, send an enum-valid `record_type` and declare the mixture at step 3 —
 the step-2 prose asks for a value its own schema rejects.** Both halves are in the **same response**
 (re-read live, server **1.33.0, 2026-08-21**): the instructions say *"If a schema has mixed entity
 types discriminated by a field (e.g., type=person/company), set record_type to `"MIXED"` and note the
@@ -570,32 +598,38 @@ predominant type and let step 3's `type_discriminator` do the typing — which i
 what the tool's own prose says happens anyway (*"The type_discriminator details will be defined in
 Step 3 mapping"*), so nothing is lost.
 
-⛔ **(INV-136, INV-125) Step 3 rejects a source that declares BOTH organization and person name
-fields — even when no record carries both — and its message describes the wrong problem.** A source whose name fields are
-disjoint *by record type* is rejected with:
+⛔ **(INV-125) Step 3 rejects a source that declares BOTH organization and person name
+fields — even when no record carries both — and its message leads with the wrong problem.** A source whose name fields are
+disjoint *by record type* is rejected with this message (re-read live, server **1.37.15,
+2026-09-29**; the attribute list names the person attributes the mapping declared):
 
 ```text
-NAME_ORG cannot co-exist with person name attributes NAME_FIRST, NAME_FULL, NAME_LAST — a
-record is either a person or an organization.
+NAME_ORG cannot co-exist with person name attributes NAME_FIRST, NAME_LAST — a record is either
+a person or an organization. FIX: declare the name ONCE and let the mapper emit NAME_ORG for an
+ORGANIZATION record and NAME_FULL (or parsed person parts) for a PERSON record, branched by
+RECORD_TYPE; or use a type_discriminator to make the mapping conditional.
 ```
 
-**The fix is to declare the names through `type_discriminator.field_overrides`** — including where
-the override is **identity in both branches**, declared purely to satisfy the validator. Observed on
-two sources on server **1.33.0**, 2026-08-25, and again on 2026-08-27; both had verified-disjoint
-fields (one populated per record, selected by `RECORD_TYPE`; zero rows carrying both).
+**Where the type comes from a source field's value, the fix is to declare the names through
+`type_discriminator.field_overrides`**, the message's second route. That includes where the override
+is **identity in both branches**, declared purely to satisfy the validator. Observed on two sources
+on server **1.33.0**, 2026-08-25, and again on 2026-08-27; both had verified-disjoint fields (one
+populated per record, selected by `RECORD_TYPE`; zero rows carrying both). A retype chosen by a name
+suffix has no such field, so it takes the message's first route, as step 11 declares it.
 
-- ⚠️ **Read the message as "declare it differently", not "your data is wrong".** It states a
+- ⚠️ **Read the first sentence as "declare it differently", not "your data is wrong".** It states a
   **record-level** rule, and the mapping already satisfied it — the rejection is about the *field
-  declarations*. A run that reads it literally spends its first attempt re-checking data that is
-  correct. The rule's authoritative scope is narrower still: the Entity Specification's `Feature:
+  declarations*, which is what the `FIX:` clause says (the 1.33.0 message had no `FIX:`). A run that
+  stops at the first sentence spends its first attempt re-checking data that is correct. The rule's authoritative scope is narrower still: the Entity Specification's `Feature:
   NAME` section says *"do not mix `NAME_ORG` with parsed person fields **in the same object**"*
   (`search_docs(query='entity specification attribute names feature tables NAME_ORG ADDR_LINE1
-  PHONE_NUMBER', category='data_mapping')`, server **1.33.0**, 2026-08-28) — one NAME object, not one record, and
-  certainly not one declaration.
+  PHONE_NUMBER', category='data_mapping')`, server **1.37.19**, docs index 2026-10-02 18:46 UTC,
+  2026-10-02; read past the first hit) — one NAME object, not one record, and certainly not one
+  declaration.
 - ⚠️ **Expect the coverage count to drop after you apply it.** Fields moved into `field_overrides`
   are counted by nothing, so the mapping reports fewer covered fields than it dispositions. That is
   the known field-count warning described below — **not** unmapped data. Do not chase it.
-- ⛔ **(INV-136) Do not pre-emptively emit a `type_discriminator` on every source.** It is the fix for this
+- ⛔ **(INV-343) Do not pre-emptively emit a `type_discriminator` on every source.** It is the fix for this
   rejection, not a default: adding an identity override to a mapping that does not need one buys the
   same coverage-count surprise for nothing.
 
@@ -667,7 +701,7 @@ Map fields to Senzing attributes, then advance workflow step 3 with `action='adv
 `disposition` — `feature`, `payload`, `ignore`, `derived`, or `extract`). NEVER guess
 attribute names. For non-Latin data:
 `search_docs(query='data quality practices multi-language non-Latin', category='globalization')`
-— the other query terms, the sections to ask for, and the phrasings that return wrong content
+(the Globalization Guide's *CJK+English cross-script matching* section) — the other query terms, the sections to ask for, and the phrasings that return wrong content
 are in this module's `SKILL.md` → "Multi-language data" (INV-212); do not re-derive them here.
 Tell the user: show
 the mapping table with reasoning for each decision and a confidence score.
@@ -679,15 +713,18 @@ name is provided"*, and its `NAME` rule reads *"Prefer parsed person names
 (`NAME_FIRST`/`NAME_LAST`/…) when available; use `NAME_ORG` for organizations; use `NAME_FULL` only
 when the type is unknown or only a single field exists"*
 (`search_docs(query='NAME_FULL NAME_ORG parsed person name single field', category='data_mapping')` →
-*Name > Feature: NAME*, top hit; server 1.32.9, 2026-08-17, query re-verified on 1.33.0,
-2026-08-23). "When available" means **the source provides
+*Name > Feature: NAME*, top hit; server 1.32.9, 2026-08-17, query re-verified on
+1.37.19, docs index 2026-10-02 18:46 UTC, 2026-10-04). "When available" means **the source provides
 separate fields** — so one `full_name` column is a direct mapping to `NAME_FULL`, and a
 `"Last, First"` column is too, however parseable it looks.
 
 ⚠️ **Two further rules from the same section, because getting them wrong is silent.** Do not mix
 `NAME_FULL` with parsed name fields in one `NAME` object, do not mix `NAME_ORG` with parsed person
-fields, and do not split one name across two `NAME` objects — the specification marks all three ❌
-with worked examples. An organization name belongs in `NAME_ORG`, not `NAME_FULL`.
+fields, and do not split one name across two `NAME` objects. *Name > Feature: NAME* states the
+first two as a Rules line, and shows ❌ worked examples for the last two: the split, and `NAME_ORG`
+with parsed person fields. The `NAME_FULL` mix has the Rules line only (re-verified with the query
+above on 1.37.19, docs index 2026-10-02 18:46 UTC, 2026-10-04). An organization name belongs in
+`NAME_ORG`, not `NAME_FULL`.
 
 ⚠️ **This is the reversal these routes exist to prevent:** one run recorded, a module earlier, that a
 `full_name` and a `"Last, First"` `member_name` each "needed splitting" — in both
@@ -695,29 +732,74 @@ with worked examples. An organization name belongs in `NAME_ORG`, not `NAME_FULL
 Splitting them would have produced a mapping that loads and validates cleanly while degrading
 resolution quality silently, which is exactly the class a quality score cannot detect.
 
+⛔ **(INV-300, INV-336) Read the source's Record Type Check before you advance workflow step 3.**
+Open `docs/mapping/{source_name}_mapper.md` → `## Record Type Check`. Its rule is Phase 1 Step 6's
+"Type/name check" (`phase1-quality-assessment.md`), the canonical statement; do not restate it here.
+With **Keep as-is**, `none needed`, no section, or a Retype that names every candidate as an
+exception, map as usual. With **Retype**, declare the name **once** and type each record with a
+computed `RECORD_TYPE`. Declare no `NAME_ORG` entry and no `type_discriminator` (INV-336):
+
+- **Parsed person name fields.** Declare them once, as the person attributes they are (for example
+  `NAME_FIRST` and `NAME_LAST`). The mapper emits `NAME_ORG` for a retyped (ORGANIZATION) record and
+  the parsed parts for a PERSON record, branched on `RECORD_TYPE`.
+- **One name field.** Declare it once as `NAME_FULL`. The mapper emits `NAME_ORG` for a retyped
+  (ORGANIZATION) record and `NAME_FULL` for a PERSON record, branched on `RECORD_TYPE`. The step 2
+  inline reference says why the ORGANIZATION branch is not `NAME_FULL`: *"On an ORGANIZATION record,
+  EVERY name maps as NAME_ORG … NAME_FULL is PERSON-only"*.
+- **The computed `RECORD_TYPE` is one `derived` field mapping:**
+
+  ```json
+  {"disposition": "derived", "derived_as": "RECORD_TYPE",
+   "source": "<the name field the rule reads>",
+   "justification": "<the Phase 1 rule and its exceptions>"}
+  ```
+
+  `source` names the single name field or, for parsed fields, the field that ends the joined name.
+  `justification` says the record is PERSON except where the Record Type Check rule retypes it to
+  ORGANIZATION, names the exceptions, and says an ORGANIZATION record's name is emitted as
+  `NAME_ORG`. Re-verified on server **1.37.15, 2026-09-29** (`mapping_workflow` workflow step 3, on
+  synthetic fields): both name shapes, declared this way, returned `status: ok` at `step: 4`. The
+  step 3 `advance_schema` gives a `derived` entry its `derived_as`, `source` and `justification`
+  keys, and its instructions reject a derived `RECORD_TYPE` that carries neither `source` nor a
+  non-empty `justification`.
+
+⚠️ **Declaring `NAME_ORG` beside the parsed fields is what step 3 rejects** with
+`NAME_ORG cannot co-exist with person name attributes …`, the block under step 10. That block's
+`type_discriminator.field_overrides` fix does not apply to a suffix retype. A `type_discriminator`
+branches on the values of one real source field (*"all sample values must be enumerated in types or
+covered by default"*, step 3 instructions, 1.37.15), and a retype is chosen by a name suffix, not a
+field value. A uniform type field, such as CORD's `NODE_TYPE: OFFICER` on every record, cannot drive
+one either. The message's own `FIX:` names the declare-once route above.
+
 ⚠️ **This advance is unconditional in both modes — there is no general guided-mode gate here, and
 that is deliberate.** Unlike step 10, the questions this step needs are *conditional*, and each is
 already pinned or specified where it triggers: a field the tool returns below 0.80 confidence gets
-its `QUESTION FORMAT` options reshaped into a 👉 question (see the carve-out above), two source fields
-aimed at one feature family gets the shared-feature collision question below, and a validator that
+its `QUESTION FORMAT` options reshaped into a 👉 question (see the carve-out above), the
+shared-feature collision check below asks only about the cross-source pairs its exemptions leave
+(its "Asked — every other pair" list), and a validator that
 rejects twice without saying why gets its own. Present the mapping table and advance. Stated here so
 a later reader does not read the absence as the same omission step 10 once had.
 
 ⛔ **Before accepting the plan: a root-level `payload` key MUST NOT be a registered feature
-attribute name.** Check every `disposition: payload` field's emitted key against the attribute
-catalog you already consult for `feature` mappings — the same lookup, asked of the other
-disposition. This runs **here**, where the routing decision is made, not after the output is
-analyzed.
+attribute name.** This prohibition is documented: `mapping_workflow` step 2's inline *SENZING
+MAPPING REFERENCE* says an optional root-level payload attribute "must NOT be a registered feature
+attribute", and says to rename a source field whose name collides with a reserved feature
+attribute but means something different (server **1.37.16, 2026-10-01**). Check every
+`disposition: payload` field's emitted key against the attribute catalog you already consult for
+`feature` mappings — the same lookup, asked of the other disposition. This runs **here**, where
+the routing decision is made, not after the output is analyzed.
 
 ⚠️ **This mechanism is OBSERVATION-ONLY** — one run, one SDK build, 2026-08-17, with the bundled
 analyzer's own SCHEMA warning as the corroborating instrument (it fired on the collision and cleared
 on the rename). Observed: a field routed to `payload` but emitted under its own name at the record
 root, where that name is a registered feature attribute, was extracted by Senzing as a **feature**
-anyway — so the Bootcamper's explicit routing answer was honored in form and not in effect. Treat it
-as a strong local observation, not as a documented rule, and re-confirm before relying on it
-elsewhere (INV-080/INV-149).
+anyway — so the Bootcamper's explicit routing answer was honored in form and not in effect. Only
+the prohibition is documented: `mapping_workflow` step 2 states the rule but not what breaking it
+does, and no indexed `search_docs` section states that consequence either (the marker below).
+Treat the extracted-as-feature consequence as a strong local observation, not as documented
+behavior, and re-confirm before relying on it elsewhere (INV-080/INV-149).
 
-MCP-NEGATIVE: search_docs(query='payload attribute versus registered feature attribute record root extracted as feature precedence', category='data_mapping') — no indexed section states what happens when a payload-intended key at the record root carries a registered feature attribute's name — owner: search_docs over the Entity Specification IS the route that would carry such a precedence rule, and its *Attribute reference* section states the rule for the inside-a-feature-object case -- "Only the attributes listed here may appear inside a feature object. Anything else is treated as payload" -- while no returned section states any precedence for a record-root key whose name belongs to a registered feature, which is the case asked about (absence negative) — server 1.36.0, 2026-09-02
+<!-- MCP-NEGATIVE: search_docs(query='payload attribute versus registered feature attribute record root extracted as feature precedence', category='data_mapping') — no indexed section states that a root-level key named after a registered feature attribute is extracted as a feature — owner: mapping_workflow step 2's inline SENZING MAPPING REFERENCE carries the prohibition ("must NOT be a registered feature attribute") but states no consequence of breaking it, so search_docs over the Entity Specification IS the route that would carry the consequence, and its *Attribute reference* section states the rule for the inside-a-feature-object case -- "Only the attributes listed here may appear inside a feature object. Anything else is treated as payload" -- while no returned section states what happens to a record-root key whose name belongs to a registered feature, which is the case asked about (absence negative) — server 1.37.16, 2026-10-01 -->
 
 **On a collision, do NOT silently re-route or override the answer (INV-006).** Their intent — *do
 not match on this* — is achievable; only the key **name** is wrong. Say what will actually happen
@@ -828,12 +910,44 @@ without any of the three, and the returned `state` carried the server's own comp
 The step-3 typed `payload` branch does not declare the three properties at all, which is consistent
 with the server computing them rather than reading them.
 
-⛔ **Shared-feature collision check (cross-source).** After mapping a source, compare its feature
-targets against the sources already mapped. When **two or more sources send different source fields
-to the same Senzing feature**, stop and confirm the two fields measure the *same quantity* — not
-merely the same *kind* of thing. Ask one 👉 question naming both fields and the feature (its wording
-is necessarily specific to the collision, so it is not a pinned question), and record the answer
-with the mapping rationale.
+⛔ **Shared-feature collision check (cross-source) (INV-012, INV-251, INV-006) — ask only about
+pairs whose sameness the guide cannot show.** After mapping a source, compare its feature targets
+against the sources already mapped. A **pair** is two sources sending different source fields to
+the same Senzing feature. Every pair is either exempt or asked; a question whose answer is
+self-evident is output the Bootcamper does not need (INV-012).
+
+**Exempt — recorded, not asked.** A pair is exempt when either of these holds:
+
+1. **Parsed vs. full NAME or ADDRESS, with the same subject and role.** One source sends the full
+   form (`full_name`, `address`), the other the parsed components (`first_name` + `last_name`;
+   `street`/`city`/`state`/`zip`), **and** both describe the same subject in the same role: both
+   the record subject's name, or both the same address usage.
+2. **Same quantity under a different name, on a feature-specific feature.** The feature names
+   exactly one quantity, and both field names denote that quantity: `DOB` (`date_of_birth` vs.
+   `birth_date`), `SSN`.
+
+Record each exempt pair as one line in that source's `docs/mapping/` write-up, in both verbose and
+concise `mapping_verbosity`. In verbose mode the line also goes in the mapping table's rationale
+column. An exempt pair produces no chat output (INV-012).
+
+**Asked — every other pair.** That includes:
+
+- a pair on a **feature-generic** feature, meaning one that admits several different quantities:
+  `REGISTRATION_DATE` ("year established" vs. "incorporation filing date"), `OTHER_ID`,
+  `NATIONAL_ID`;
+- a pair whose field names denote **different quantities** (`BID` vs. `EFX_ID`);
+- a pair whose **subject or role differs or is unclear**: a full home `address` vs. a parsed
+  `billing_street`/…, or a `contact_name` that may name someone other than the record subject;
+- any pair the guide cannot show is the same quantity.
+
+For an asked pair, stop and confirm the two fields measure the *same quantity*, not merely the same
+*kind* of thing. Ask **one** 👉 question per source, covering every asked pair that source has: list
+each pair with its feature, ask whether each pair measures the same quantity, and ask the
+Bootcamper to name any pair that doesn't (INV-251: one question per turn; its wording is
+necessarily specific to the pairs, so it is not a pinned question). Record the answer per pair with
+the mapping rationale. A source with both kinds records its exempt pairs and asks only about the
+rest. A source with only exempt pairs asks nothing, and the step does not yield on this check. A
+pair's recorded answer is not asked again when a later source is mapped (INV-006).
 
 This is the one check the validation scripts structurally **cannot** perform: they each see a single
 source, and the defect only exists in the relationship between two. Watch **date** and **identifier**
@@ -916,12 +1030,14 @@ no MCP server version, so every bootcamper is on the current server and this is 
    the check re-runnable (INV-212). Swap the query for the attribute you are actually confirming.
    For
    the relationship keys, the specification's JSON examples show string values (`"ORG1001"`,
-   `"ACME-1001"`) while its `REL_ANCHOR_KEY` guidance column shows a bare `1001`, so it does not
-   mandate a type (verified 2026-07-28). Neither emission is made correct or incorrect by what the
+   `"ACME-1001"`) while its `REL_ANCHOR_KEY` row shows a bare `1001` in the Example column, so it
+   does not mandate a type (re-verified with the query above on 1.37.19, docs index 2026-10-02
+   18:46 UTC, 2026-10-04, in *Feature: REL_ANCHOR*). Neither emission is made correct or incorrect by what the
    checker can see.
 3. **Record the exemption and its reason** in the source's mapping notes — which attribute, why the
-   checker cannot harvest it (a boolean source value, or a value derived from a field name), and that
-   the value is faithful — then **proceed**. A checker limitation MUST NOT become an iterate-forever
+   checker cannot harvest it (a boolean source value, a value derived from a field name, or a
+   `NAME_ORG` joined from parsed name fields, which equals no single source value), and that the
+   value is faithful — then **proceed**. A checker limitation MUST NOT become an iterate-forever
    loop or a blocked module (INV-048).
 4. ⛔ **Never change a source value to satisfy the tool.** For a value the harvester cannot reach it
    would not even work — the allowed set was built without it, under either emission — and distorting
@@ -936,7 +1052,7 @@ observed 2026-07-27 on SDK 4.3.3.26191, across four sources mapped end to end (`
 Limitations 1 and 3 were re-confirmed on **MCP server 1.32.9, 2026-08-14**, by reading the scripts
 the server itself delivers — `download_resource(filenames=['sz_verbatim_check.py',
 'sz_routing_report.py'])`, whose response is a **listing of URLs, not the scripts**, so reading them
-means fetching each `url` first (`ground-rules.md` → "Working examples") — and the live
+means fetching each `url` first (`ground-rules.md` → "Three tools answer with a listing") — and the live
 `mapping_workflow` step-3 schema. That is a check of the
 **mechanism**, which is what these entries assert, and it does not depend on re-running a mapping.
 Limitation **2** was confirmed end to end on **2026-08-18** by a run that finally had a source with
@@ -1002,6 +1118,13 @@ against the resource list `download_resource` advertises. Mechanism, not a re-ru
    REL_POINTER* sections give `REL_ANCHOR_DOMAIN`/`KEY` and `REL_POINTER_DOMAIN`/`KEY`/`ROLE` with
    rules and worked examples (`search_docs`, server 1.32.3, docs index 2026-07-31 20:21 UTC) — so the
    gate rejects scaffolding the specification prescribes.
+
+   When you choose the `REL_ANCHOR_DOMAIN` and `REL_POINTER_DOMAIN` values, use codes without dashes.
+   The Entity Specification's *Feature: REL_ANCHOR* defines the domain as *"a code (without dashes)"*
+   and gives the rule *"Use a domain code without dashes to avoid confusion in downstream match key
+   parsing."* — its *Feature: REL_POINTER* refers `REL_POINTER_DOMAIN` back to that definition
+   (`search_docs(query='MATCH_KEY disclosed relationship REL_POINTER role in match key')`, server
+   1.37.13, docs index 2026-09-24 18:45 UTC).
 3. **Neither script runs on a CSV source. CONFIRMED CURRENT — server 1.32.9, 2026-08-14.**
    `sz_verbatim_check.py` and `sz_routing_report.py` both
    define `load_jsonl(path)` as `json.loads(ln)` over the file's non-blank lines, with **no** CSV
@@ -1096,8 +1219,8 @@ exit 1). `ACCOUNT_DOMAIN` is not in `EXEMPT_KEYS` and does not end `_TYPE`, so t
 The mapping is **right** — `ACCOUNT_DOMAIN` is defined as "Domain/system for the account number"
 (`search_docs(query='ACCOUNT_NUMBER ACCOUNT_DOMAIN account feature',
 category='data_mapping')`, Entity Specification, *Identifiers > Feature: ACCOUNT*, verified
-2026-07-29; query re-verified as top hit on 1.33.0, 2026-08-23, returning "Domain/system for the
-account number" verbatim), and a currency/network code is exactly that.
+2026-07-29; query re-verified as top hit on 1.37.19, docs index 2026-10-02 18:46 UTC, 2026-10-04, returning
+"Domain/system for the account number" verbatim), and a currency/network code is exactly that.
 
 **What to do:**
 
@@ -1145,11 +1268,12 @@ in as many words:
 Re-confirm that statement from the MCP server rather than trusting this file (a sourcing floor)
 (`search_docs(query='recommended JSON schema FEATURES list multiple values sub-list',
 category='data_mapping')` — that query returns the *Recommended JSON schema* section carrying the
-sentence above as its top hit, verified server 1.33.0, 2026-08-23; `query` is the tool's only
+sentence above as its top hit, verified server 1.37.19, docs index 2026-10-02 18:46 UTC,
+2026-10-04; `query` is the tool's only
 required parameter, so the vocabulary is part of the instruction (INV-212) — or
 `download_resource(filename='senzing_entity_specification.md')`
 — that second call returns a **listing**, so fetch its `url` before reading, per `ground-rules.md` →
-"Working examples") — INV-080 applies to this claim as much as to any attribute name.
+"Three tools answer with a listing") — INV-080 applies to this claim as much as to any attribute name.
 
 **Do not assume a source's shape from its provenance.** CORD ships both forms: verified against the
 MCP server, London/`GLOBALDATA` returns a `FEATURES` array while Las Vegas/`PPP_LOANS` returns flat
@@ -1278,11 +1402,28 @@ modules** rather than re-deriving one per module: Data processing's loading prog
 rationale, and the rule that replacing the JSON library is safe while altering SDK calls is not, are
 in `../module-02-sdk-setup/SKILL.md` → "The launch environment" (INV-300).
 
+On Java, a reused reader is a shared class, whose filename rule is in
+`../bootcamp-onboarding/ground-rules.md` → "File placement" (INV-237, INV-300); do not restate it
+here.
+
+**Apply a retype decision from Phase 1.** If `docs/mapping/{source_name}_mapper.md` already has a
+`## Record Type Check` section whose decision is **Retype**, the transform applies that section's
+rule as written: the records it names are emitted with `RECORD_TYPE` `ORGANIZATION`, their name is
+emitted as `NAME_ORG` and never as parsed person fields, and the listed exceptions stay `PERSON`.
+That is the branch on `RECORD_TYPE` that step 11 declared. With parsed name fields, a retyped
+record's `NAME_ORG` value is the parsed fields joined in the order Phase 1 Step 6 reads them. The
+check and the rule's wording are Phase 1 Step 6's "Type/name check"
+(`phase1-quality-assessment.md`), the canonical statement; do not restate them here (INV-300). Step
+15's verbatim check may report a joined `NAME_ORG`: that is a checker limitation, not a mapping
+defect, so follow its "What to do — in this order" procedure and never undo the retype to turn the
+gate green (INV-173). With **Keep as-is**, or no such section, change nothing.
+
 **Checkpoint:** write step 13.
 
 ### 14. Test
 
-Run on 10-100 records from `data/samples/`. Validate with
+Run the transformation program on 10-100 records from `data/samples/` and write its output to
+`data/mapping/{source}_sample.jsonl`, the sample step 18 records. Validate with
 `analyze_record(workspace_dir='data/mapping')` — ⛔ `workspace_dir` is a **required** parameter on
 this tool as well (INV-136), and it is where the analyzer script and its reports are written, so it
 takes the same project-local mapping directory as the workflow, which INV-200 requires of every
@@ -1297,15 +1438,20 @@ sample record, any observations.
 > - **Verbose:** Show pass/fail result, the output file path, a sample transformed record, and
 >   any observations (warnings, skipped records, format issues).
 > - **Concise:** Show pass/fail result and the output file path only (e.g., "✅ Pass: output:
->   data/senzing-ready/customers_sample.jsonl").
+>   data/mapping/customers_sample.jsonl").
 
 **Checkpoint:** write step 14.
 
 ### 15. Quality analysis
 
-Run on 1000+ records. Evaluate feature distribution, coverage, quality scores. This is workflow
+Run the transformation program on 1000+ records, or on every record when the source has 1000 or
+fewer, and write its output to `data/mapping/{source}_quality.jsonl`. The output stays there even
+when the run covers every record: this is a test run, and the load-ready file is step 18's alone.
+Its name differs from step 14's, so this run never overwrites the sample. Evaluate feature
+distribution, coverage, quality scores. This is workflow
 step 4's single advance: `action='advance'`, carrying `verdict` in `data` — `approve`,
-`rework_mapping`, or `rework_code` — plus `output_path` and `records_output`. A `rework_*` verdict
+`rework_mapping`, or `rework_code` — plus `output_path` (`data/mapping/{source}_quality.jsonl`)
+and `records_output`. A `rework_*` verdict
 is what routes step 17's iterate path. On `approve`, the response carries the workflow's Step 5
 (`detect_environment`) menu; keep its `state` and handle that menu at **step 18a**, after this
 source's mapper is written, reviewed and documented — not here. Tell the user: overall score, per-feature coverage with what
@@ -1348,7 +1494,14 @@ page — source field names, target attributes, sample values — so the escapin
 `ground-rules.md` → "Visual deliverables (Senzing brand)" and the visualization contract's
 "Rendering contract" are the statements of record.
 
-**Checkpoint:** write step 15.
+**Capture it for the recap, right after the page is written and verified.** Follow
+`../bootcamp-onboarding/module-completion.md` → "Capturing visualization screenshots", using its
+`--single` case: this page has no tabs, so it is one image, with `{name}` = `mapping_[name]_quality`.
+That section is the statement of record for the helper, its exit codes and the skip rules (INV-300).
+Record the PNG path in this step's checkpoint, in the same turn (INV-146). It is embedded in this
+module's recap at module close.
+
+**Checkpoint:** write step 15 (with the captured PNG path, when there is one).
 
 ### 16. Review
 
@@ -1356,7 +1509,41 @@ Confirm with the user: output format correct, quality acceptable, ready for prod
 adjustment.
 
 **Iterate vs. proceed decision gate:** After presenting quality results, guide the decision and
-close the turn on one 👉 question:
+close the turn on one 👉 question. Which questions apply depends on whether an **unmapped source
+remains**: `config/data_sources.yaml` has a source other than this one whose `mapping_status` is
+not `complete`. Fast-pathed sources are `complete` (see "Skip fast-pathed sources"), so they never
+count. Read the registry before choosing the question. Each question is pinned verbatim (INV-056).
+
+**While one or more unmapped sources remain** (INV-344), ask about the next source, not about loading.
+`{source}` is this source's name, and `{next}` is the next unmapped source, the one step 19 maps next:
+
+- **Quality ≥80% and all critical fields mapped:**
+
+  👉 **Quality looks strong for {source}. Ready to map the next source, {next}? Reply with a number:**
+
+  1. Yes, map {next}.
+  2. No, I'd like to iterate on {source} first.
+
+- **Quality 70-79%:**
+
+  👉 **Quality for {source} is acceptable. What would you like to do? Reply with a number:**
+
+  1. Move on to the next source, {next}.
+  2. Iterate to improve [specific weak areas] first.
+
+- **Quality <70%:**
+
+  👉 **Quality for {source} needs improvement before loading will produce meaningful results. I'd recommend going back to address [specific issues]. What would you like to do? Reply with a number:**
+
+  1. Iterate to improve the data.
+  2. Move on to {next} anyway, knowing results may be limited.
+
+Handling (INV-284): "Yes, map {next}", "Move on to the next source, {next}" and "Move on to
+{next} anyway" continue through steps 17–18a, where 18a's multi-source rule recommends `skip`, to
+step 19, which starts {next}'s own `mapping_workflow` run. Every iterate option goes to step 17.
+
+**When no unmapped source remains** (INV-344; this is the last source, or the only one), ask the loading
+question:
 
 - **Quality ≥80% and all critical fields mapped:**
 
@@ -1379,6 +1566,10 @@ close the turn on one 👉 question:
   1. Iterate to improve the data.
   2. Proceed anyway, knowing results may be limited.
 
+Handling (INV-284): a proceed answer ("Yes, proceed to loading", "Proceed to loading now",
+"Proceed anyway") continues through steps 17–18a, where it settles the sandbox menu as `skip`
+(see 18a's last-source rule), then to steps 19 and 20. Every iterate option goes to step 17.
+
 *(Internal: end the turn on the applicable question and wait.)*
 
 **Checkpoint:** write step 16.
@@ -1388,16 +1579,18 @@ close the turn on one 👉 question:
 If issues are found, go back to the relevant step. Retest after changes.
 
 > **Data source registry:** Update the source's `mapping_status` to `complete` in
-> `config/data_sources.yaml` and set `updated_at`. If a transformed file was created, update
-> `file_path` to the `data/senzing-ready/` output.
+> `config/data_sources.yaml` and set `updated_at`.
 
 **Checkpoint:** write step 17.
 
 ### 18. Save and document
 
 - Program in `src/transform/`.
+- Full output: run the transformation program on the whole source and write
+  `data/senzing-ready/[name].jsonl`, the load-ready file Data processing loads. Point the source's
+  `file_path` in `config/data_sources.yaml` at it.
 - Docs in `docs/mapping/mapping_[name].md` (field mappings, logic, quality, how to run).
-- Sample output in `data/senzing-ready/[name]_sample.jsonl`.
+- Sample output in `data/mapping/[name]_sample.jsonl`.
 - **Transformation lineage:** Create `docs/mapping/transformation_lineage_[name].md` for this
   data source, covering source file info, transformation program, output file info, field
   mappings, format changes, filters, quality improvements, and before/after record counts. (No
@@ -1430,38 +1623,50 @@ If issues are found, go back to the relevant step. Retest after changes.
   ## Quality Notes
 
   - [Quality observations specific to this source]
+
+  ## Record Type Check
+
+  - **Candidates:** [N] of [M] PERSON-typed records (suffix heuristic, Module 5 Phase 1 step 6)
+  - [Decision, and its rule or cost, as Phase 1 wrote them]
   ```
+
+  **Keep the `## Record Type Check` section Phase 1 wrote.** Phase 1 Step 6's type/name check
+  creates this file with that section when a source has candidates. Write the rest of the file
+  around it and leave the section as written. When Phase 1 wrote none, the source had no
+  candidates: write the section with `0 of [M]` and the decision `none needed`. The section's
+  content is Phase 1 Step 6's "Type/name check", the canonical statement (INV-300).
 
 **Checkpoint:** write step 18.
 
 ### 18a. Step 5 `detect_environment` menu handling (the optional-sandbox decision)
 
 The `approve` verdict at step 15 advances workflow step 4, and the response to that advance carries
-the workflow's **Step 5 (`detect_environment`)** with a four-option menu. Handle it **here**, once
+the workflow's **Step 5 (`detect_environment`)**, which takes one decision with two values, `skip`
+or `test_load` (server 1.37.16, 2026-10-01: `ADVANCE FORMAT: {"decision": "skip|test_load"}`, and
+its `advance_schema` declares `decision` as `enum ["skip", "test_load"]`). The same response's
+message lists four numbered *next steps* (more sources to map, sandbox QA, load and report, done):
+those are advice, not values the step accepts. Handle the decision **here**, once
 this source's mapper is written, run, reviewed and documented (steps 12–18) — not at the moment the
 response arrives.
 
 ⛔ **Why the placement matters.** This block previously sat under step 11 (Map), and
 `phase3-test-load.md` pointed at step 11 as its entry. Both were wrong in the same direction:
 choosing `test_load` there entered Phase 3 before the transformation program existed, so Phase 3's
-step 22 had no "Phase 2 transformation output" to sample, and Phase 3's step 26 closes the module —
-which would have skipped steps 12–18 entirely, including the transform code INV-042/INV-043 require
-and step 19's mandatory per-source `docs/mapping/{source_name}_mapper.md` gate. Entering from 18a,
-every prerequisite Phase 3 assumes is already on disk.
+step 22 had no "Phase 2 transformation output" to sample, and Phase 3's exits rejoin Phase 2 at
+step 19 — which would have skipped steps 12–18 entirely, including the transform code
+INV-042/INV-043 require and the `docs/mapping/{source_name}_mapper.md` that step 19's per-source gate
+checks. Entering from 18a, every prerequisite Phase 3 assumes is already on disk.
 
 Do NOT stop at the menu: explain it and relay a recommendation so the bootcamper never hits a dead
 end.
 
 **`mapping_workflow` Steps 5–8 are optional sandbox validation** (Phase 3). They let you
 trial-load the mapped source into a throwaway sandbox to preview entity resolution. They are
-NOT the production load: the real load happens in **Data processing**. The four options are:
+NOT the production load: the real load happens in **Data processing**. The two options are:
 
 - **skip:** skip the per-source sandbox test load and move on. **Recommended when one or
   more unmapped sources remain.**
 - **test_load:** run the optional sandbox test load (enters Phase 3) for this source.
-- **load+resolve:** run the optional sandbox test load and resolve entities (enters Phase 3)
-  for this source.
-- **done:** finish the mapping workflow for this source without a sandbox test load.
 
 **Multi-source continuation (recommended path):** When one or more unmapped sources remain,
 recommend **skip**: the real load is deferred to Data processing, so a per-source sandbox test load
@@ -1470,9 +1675,19 @@ own `mapping_workflow` run. Tell the bootcamper: "Steps 5–8 are an optional sa
 you still have sources to map and the real load happens in Data processing, I'll skip the per-source
 test load and move on to the next unmapped source."
 
-**Explicit choice is preserved:** If the bootcamper explicitly chooses **test_load** or
-**load+resolve**, follow that path into Phase 3 (`phase3-test-load.md`) unchanged. The real
-production load still happens in Data processing regardless.
+**Last source (no unmapped source remains):** (INV-344) a step-16 answer that proceeds to loading (≥80%
+option 1, 70-79% option 1, or <70% option 2) settles this decision as **skip**. Tell the bootcamper
+so in one line, for example "You chose to proceed to loading, so I'll skip the optional sandbox test
+load; the real load happens in Data processing.", advance with `skip`, ask no 👉 question here, and
+continue to step 19.
+
+**Explicit choice is preserved:** If the bootcamper explicitly asks for the sandbox test load
+(**test_load**), at any source, follow that path into Phase 3 (`phase3-test-load.md`) unchanged.
+The real production load still happens in Data processing regardless. Phase 3 tests this source
+only, and every exit from it returns here: its step 25 "yes" and its skip exits resume at step 19,
+and its step 25 "no" at step 17 (`phase3-test-load.md` → "Leaving Phase 3", INV-344). So a test load
+chosen on a source that is not the last continues to the next unmapped source, with no question
+about the whole run.
 
 **Checkpoint:** write step 18a.
 
@@ -1507,8 +1722,17 @@ complete, delete its `config/mapping_state_[datasource].json` checkpoint.
 
 ### 20. Module completion and transition
 
-Once all sources are mapped, **complete the module** — this is Module 5's completion site whenever
-the optional Phase 3 was not taken. Run the standard **Module Completion** process in
+Once all sources are mapped, **complete the module** — this is Module 5's only completion site,
+whether or not any source took the optional Phase 3 test load (Phase 3 returns to step 19 and never
+completes the module).
+
+> **Optional: baseline status summary (advisory, non-blocking):** When any source took the Phase 3
+> test load, you MAY surface which data sources still lack an ER baseline (compare the set of
+> `config/er_baseline_*.json` files against the mapped sources). It is read-only, never blocks
+> the workflow, and never creates, modifies, or deletes a baseline. (No baseline-status helper
+> is bundled; report coverage directly if you choose to.)
+
+Run the standard **Module Completion** process in
 `../bootcamp-onboarding/module-completion.md`: present the end-of-module summary (INV-032), append
 the name-based Module 5 recap section to `docs/bootcamp_recap.md` (INV-085), show the
 `✅ Module complete: Data Quality, Mapping, and Transformation` line (INV-079), and end the turn on the pinned
@@ -1520,8 +1744,7 @@ transition 👉 question naming the **next selected module** from `selected_modu
 
 Do **not** choose the next module by re-checking SDK state — `selected_modules` already fixes the
 order (SDK setup precedes Data Quality, Mapping, and Transformation; Data processing follows it). **Run Module
-Completion exactly once:** if the bootcamper took Phase 3 and its step 26 already completed the
-module (`data_quality_mapping` is already in `modules_completed`), skip completion here and present
-only the transition.
+Completion exactly once,** here: Phase 3 never runs it. A resume that finds Module 5 already complete
+presents only the transition question above (this module's `SKILL.md` → "Resuming").
 
 **Checkpoint:** write step 20.

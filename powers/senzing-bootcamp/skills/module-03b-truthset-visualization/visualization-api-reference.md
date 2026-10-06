@@ -70,7 +70,11 @@ uses it to decide whether the **Cross-Source** tab applies (it needs 2+ sources)
 ```
 
 Each node: `entity_id`, `entity_name`, `record_count`, `data_sources`, `records`. Each edge:
-`source_entity_id`, `target_entity_id`, `match_key`, `relationship_type`.
+`source_entity_id`, `target_entity_id`, `match_key`, `relationship_type`. The payload also carries
+`total` (every entity in the datastore), `capped` (whether the node cap applied) and
+**`related_total`**: the number of distinct entities in the **whole datastore** with at least one
+relationship — the distinct endpoints of every edge, counted **before** the cap, and present whether
+or not the cap applies. See "The graph payload is bounded, and says so".
 
 **`relationship_type` vocabulary (enumerated).** `relationship_type` MUST be one of the values
 below — a closed set, so the legend and the edge styling cannot drift apart. Derive it from the
@@ -188,9 +192,12 @@ SDK's own flag constants, Senzing 4.3.4, 2026-08-14). So a record's name, addres
 server that reports per-record names without adding those flags is inventing them.
 
 **To enrich the Records panel (optional, and not required by this contract):** add
-`SZ_ENTITY_INCLUDE_RECORD_FEATURES` — then each record carries `FEATURES.NAME[].FEAT_DESC`,
+`SZ_ENTITY_INCLUDE_RECORD_FEATURE_DETAILS` — then each record carries `FEATURES.NAME[].FEAT_DESC`,
 `FEATURES.ADDRESS[].FEAT_DESC` and `FEATURES.PHONE[].FEAT_DESC` — and/or
-`SZ_ENTITY_INCLUDE_RECORD_JSON_DATA` for the record as it was mapped. Confirm the paths against
+`SZ_ENTITY_INCLUDE_RECORD_JSON_DATA` for the record as it was loaded. `SZ_ENTITY_INCLUDE_RECORD_FEATURES`
+is **not** that flag: its `response_paths` is `RECORDS[].FEATURE_IDS[]`, feature ids without their
+descriptions (`get_sdk_reference(topic='flags', filter='SZ_ENTITY_INCLUDE_RECORD_FEATURES')`, MCP
+server 1.37.14, 2026-09-28). Confirm the paths against
 `get_sdk_reference(topic='response_schemas', filter='get_entity_by_record_id')` rather than from
 here (INV-080). ⚠️ Weigh it at scale first: this payload is **embedded in the standalone snapshot**
 (INV-070), and Query, Visualize and Discover points the same app at the Bootcamper's full dataset,
@@ -326,30 +333,35 @@ resolution occurred), return an empty `per_record` list and empty `resolution_ru
 > | `find_path_*` | `ENTITY_PATHS[]`, `ENTITIES[]`, **`ENTITY_PATH_LINKS[]`** — *not* `ENTITY_NETWORK_LINKS[]`; each link element carries the **same seven fields** as the network row below (re-verified on MCP server 1.32.2, docs indexed 2026-07-29 11:11 UTC, 2026-07-31). The element fields are identical and only the array name differs, so a parser carried over from `find_network` returns every edge blank |
 > | `ENTITY_PATHS[]` (in **both** `find_path_*` and `find_network_*`) | `START_ENTITY_ID`, `END_ENTITY_ID`, `ENTITIES[]` — three fields, and the endpoints are **directed**. ⛔ **A `find_network` response therefore carries TWO endpoint conventions at once:** paths are `START_`/`END_`, links are `MIN_`/`MAX_` (undirected, normalized low-to-high). A link is an unordered pair and a path is not, which is the reason — and `START_`/`END_` is the natural wrong guess for a link precisely because the sibling array in the same response uses it. Reading path endpoint names off a link element printed **38 edges as `null -> null` with no error** (re-verified on MCP server 1.32.9, 2026-08-17, `get_sdk_reference(topic='response_schemas', filter='find_network', language='java')`) |
 > | `find_network_*` | `ENTITY_PATHS[]`, `ENTITIES[]`, `ENTITY_NETWORK_LINKS[]`; each link element (**now documented by `response_schemas` — re-verified on MCP server 1.32.2, 2026-07-30 — and corroborated by a dump on SDK 4.3.3, 2026-07-28**) carries `MIN_ENTITY_ID` / `MAX_ENTITY_ID` (endpoints, normalized low-to-high), `MATCH_LEVEL_CODE`, `MATCH_KEY`, `ERRULE_CODE`, `IS_DISCLOSED`, `IS_AMBIGUOUS` |
-> | `get_record` | `DATA_SOURCE`, `RECORD_ID`, `JSON_DATA.*` — **the only place `JSON_DATA` is obtainable**; see the get_entity trap below |
+> | `get_record` | `DATA_SOURCE`, `RECORD_ID`, `JSON_DATA.*` under `SZ_RECORD_DEFAULT_FLAGS` — one record by key; entity-family calls return `JSON_DATA` too when its flag is added (see below) |
 >
-> ⛔ **`JSON_DATA` is `get_record`-only, whatever the `get_entity` schema says.**
-> `get_sdk_reference(topic='response_schemas', filter='getEntity')` lists per-record source-value
-> paths under the get_entity response — `RESOLVED_ENTITY.RECORDS[].JSON_DATA.ADDR_CITY`,
-> `.PRIMARY_NAME_FIRST`, `.DATE_OF_BIRTH` and siblings — but **no entity-family flag produces them**.
-> The flag that does, `SZ_ENTITY_INCLUDE_RECORD_JSON_DATA`, reports
-> `applies_to: ["get_record"]` and is a member of `SZ_RECORD_DEFAULT_FLAGS` (both re-verified
-> 2026-07-28). A viewer written against the documented get_entity paths therefore prints
-> "(no JSON_DATA returned for this record)" for **every** record — the silent-blank failure mode,
-> against a database with records loaded — because a wrong path yields null rather than an error.
-> This is the one place where the authoritative reference is the thing that misleads you, so it is
-> called out rather than left to be re-derived.
+> ⛔ (INV-080) **`JSON_DATA` needs `SZ_ENTITY_INCLUDE_RECORD_JSON_DATA` OR-ed in, and
+> `SZ_ENTITY_DEFAULT_FLAGS` omits it.** `get_sdk_reference(topic='flags',
+> filter='SZ_ENTITY_INCLUDE_RECORD_JSON_DATA')` lists the entity family in that flag's `applies_to`
+> (`get_entity_by_entity_id`, `get_entity_by_record_id`, `search_by_attributes`, `why_*`,
+> `find_path_*`, `find_network_*`, as well as `get_record`), with
+> `response_paths: ["RESOLVED_ENTITY.RECORDS[].JSON_DATA"]`. Read `applies_to` there rather than from
+> this list. So on an entity call, a blank `JSON_DATA` means the flag is missing, not that the route is
+> wrong: add the flag, don't switch to `get_record`. (Through server 1.32.2 the flag's `applies_to`
+> was `["get_record"]` alone, and this section said so; the server has since widened it.)
 >
-> **For per-record source values, prefer the entity family — it needs no second call.** The same
-> get_entity schema documents `RESOLVED_ENTITY.RECORDS[].FEATURES.<TYPE>[].ATTRIBUTES.*` (e.g.
-> `ATTRIBUTES.ADDR_CITY`, `ATTRIBUTES.PRIMARY_NAME_FIRST`, `ATTRIBUTES.DATE_OF_BIRTH`) plus
-> `RECORDS[].UNMAPPED_DATA.*`, and `SZ_ENTITY_INCLUDE_RECORD_FEATURE_DETAILS` — *"include full
-> feature details at the record level of an entity response"* — lists `get_entity_by_entity_id`,
-> `get_entity_by_record_id`, `search_by_attributes`, `why_*`, `find_path_*` and `find_network_*` in
-> its `applies_to` (verified 2026-07-28). These are the **mapped** attributes per feature, not the raw
-> record as loaded, so reach for `get_record` + `SZ_RECORD_DEFAULT_FLAGS` only when you genuinely need
-> the raw `JSON_DATA` document — and know that costs one extra SDK call **per record**, which is worth
-> knowing before designing a viewer over a large entity set.
+> **For per-record source values, one entity-family call is enough — pick the flag for the shape you
+> need.** Both are documented under `get_sdk_reference(topic='response_schemas',
+> filter='get_entity_by_entity_id')`, each gated on its flag:
+>
+> - **The raw record as loaded:** `SZ_ENTITY_INCLUDE_RECORD_JSON_DATA` →
+>   `RESOLVED_ENTITY.RECORDS[].JSON_DATA`, with source values under `JSON_DATA.FEATURES[]` (e.g.
+>   `JSON_DATA.FEATURES[].ADDR_CITY`, `.NAME_FIRST`, `.DATE_OF_BIRTH`).
+> - **The mapped attributes per feature:** `SZ_ENTITY_INCLUDE_RECORD_FEATURE_DETAILS` →
+>   `RESOLVED_ENTITY.RECORDS[].FEATURES.<TYPE>[].ATTRIBUTES.*` (e.g.
+>   `FEATURES.ADDRESS[].ATTRIBUTES.ADDR_CITY`, `FEATURES.NAME[].ATTRIBUTES.NAME_FIRST`,
+>   `FEATURES.DOB[].ATTRIBUTES.DATE_OF_BIRTH`), plus `RECORDS[].UNMAPPED_DATA.*` under
+>   `SZ_ENTITY_INCLUDE_RECORD_UNMAPPED_DATA`.
+>
+> These are the **mapped** attributes per feature, not the raw record as loaded, so choose by what the
+> viewer shows. The example paths were checked against MCP server 1.37.14 on 2026-09-28; they are
+> illustrations, and a dump of one element still decides (INV-115). `get_record` stays the call for
+> one record fetched by its key.
 >
 > **Watch this asymmetry — it is a silent-blank trap.** With `SZ_INCLUDE_MATCH_KEY_DETAILS`, the
 > match-key breakdown sits under a **differently named key** depending on the call: `why_*` puts a
@@ -431,10 +443,13 @@ resolution occurred), return an empty `per_record` list and empty `resolution_ru
 > of a parsed record populate and others do not, suspect the blank ones' names first (INV-115) and
 > confirm against a dumped response before rendering.
 >
-> **Methods with no `response_schemas` entry at all.** `get_version` and `get_license` return an
-> empty `data` array (verified 2026-07-26) — the lookup is not failing, the coverage is simply
-> absent. An empty result is the expected outcome for those, not an error to retry: dump the response
-> and read the shape from it.
+> **Methods with no `response_schemas` entry at all.** `get_sdk_reference(topic='response_schemas',
+> filter='get_stats')` returns an empty `data` array beside a populated `method_signatures`
+> (`get_stats() -> str`; MCP server 1.37.14, 2026-09-28) — the lookup is not failing, the coverage is
+> simply absent for a method that still returns a JSON document. An empty result is the expected
+> outcome for those, not an error to retry: dump the response and read the shape from it. This
+> server's coverage grows — `get_version` and `get_license`, once this paragraph's examples, are now
+> documented — so re-run the lookup rather than quoting which methods lack an entry.
 
 **`GET /api/why?entity_id=<id>`:** Explain WHY the records in an entity resolved together
 
@@ -479,8 +494,19 @@ this flag on a how response, and never render an empty section.
 ```
 
 `result` is the SDK response JSON verbatim: `HOW_RESULTS.RESOLUTION_STEPS[]` are the construction
-steps, and `FINAL_STATE.VIRTUAL_ENTITIES[]` describes the resolved entity when there are no
-incremental steps. On failure, return `{"entity_id": <id>, "error": "..."}`.
+steps, and `FINAL_STATE.VIRTUAL_ENTITIES[]` describes the **final state**, which may hold **more than
+one** virtual entity. It is not a description of one resolved entity, with or without steps. On
+failure, return `{"entity_id": <id>, "error": "..."}`.
+
+⚠️ **(INV-330) The final state is unsettled when either of two signs is present:**
+`HOW_RESULTS.FINAL_STATE.NEED_REEVALUATION` is non-zero (an integer), or
+`HOW_RESULTS.FINAL_STATE.VIRTUAL_ENTITIES[]` has more than one element. Either one alone is enough,
+and nothing documents whether the two always go together. Observed 2026-09-25 on Senzing SDK 4.4.1
+(SQLite): both signs on entities that the entity lookup and the export reported as one entity,
+with the redo queue empty. The How rendering below says so rather than presenting such an entity as
+built into one. Attach no meaning to `NEED_REEVALUATION` and offer no fix for it: the server gives the
+field a type and no definition (INV-080/INV-149).
+<!-- MCP-NEGATIVE: search_docs(query='NEED_REEVALUATION how entity final state') — no indexed document defines NEED_REEVALUATION or says what sets or clears it; the only hits are the how flags page's example payload, which shows "NEED_REEVALUATION": 0 — owner: get_sdk_reference(topic='response_schemas', filter='how_entity_by_entity_id') IS the route that owns the how response's fields, and it lists HOW_RESULTS.FINAL_STATE.NEED_REEVALUATION as an integer with no description (absence negative) — server 1.37.13, 2026-09-26 -->
 
 **`GET /api/dashboard`: REMOVED.** Its content is served by `/api/stats`, which carries the same
 `histogram` and headline counts plus the `sample_entities` list that was this endpoint's only
@@ -676,6 +702,20 @@ ways, a bootcamper's explicit choice is never overridden, and an inline note sta
 "Showing the N entities that have relationships, of M total" — for the same reason the label note
 exists: otherwise a default reads as the data.
 
+When the graph payload is **capped** (`capped` is true), the shown counts are a part of the
+datastore, so every Entity Graph note says so with exact counts and none offers "all" (INV-154):
+
+- **Relationship mode:** "Showing N of the R entities that have relationships — the graph is capped
+  at C of M entities.", where N is the relationship-bearing entities shown, R is `related_total`, C
+  the nodes in the payload and M is `total`. No "show them all" clause.
+- **Relationship mode, none shown:** when no shown entity has a relationship, "None of the R
+  entities with relationships are among the C shown." — never "No relationships between entities
+  were found in this data.", which is true only of an uncapped payload.
+- **Full population:** "Showing C of M entities — the graph is capped; entities spanning the most
+  sources are kept first." Shown whenever `capped` is true, independent of the 400-entity threshold.
+
+When `capped` is false the notes are the uncapped wording above, unchanged.
+
 State the threshold as a number so every language implementation (INV-090) picks the same behavior.
 Re-check these against the bootcamper's **actual** scale, not the Truth Set: both defects pass every
 check 84 entities can run.
@@ -770,8 +810,8 @@ subset**:
 | **Why?** | `/api/why?entity_id=` | why the records resolved together |
 | **How?** | `/api/how?entity_id=` | how the entity was constructed |
 
-That set applies to: the Entity Graph node detail (in either mode), Record
-Merges cards, the Merge Statistics bucket drill-down **and** its `sample_entities` list, the
+That set applies to: the Entity Graph node detail (in either mode), the merged-entity cards on
+Search / Probe, the Merge Statistics bucket drill-down **and** its `sample_entities` list, the
 Cross-Source cell drill-down, the Match Keys row drill-down, and Search / Probe results. Implement
 it as **one shared renderer** invoked from every surface — the failure mode this prevents is real:
 the buttons were added per-code-path, so each new entity surface silently shipped with a different
@@ -801,6 +841,21 @@ Each Search / Probe result — searched or listed via "Show all merged entities"
 and **How?** actions that call
 `/api/why` and `/api/how` and render the explanation (match keys, feature scores, construction
 steps) in a modal.
+
+⛔ **(INV-330) How? when the final state is unsettled.** When either sign in the `/api/how` entry above is
+present, the How explanation MUST show a visible **unsettled-state notice** that names the sign or
+signs present with the values the response carries (only the one that fired, when only one did), and
+MUST NOT claim one entity: no "built this entity in N step(s)" verdict and no "resolved directly into
+one entity" sentence.
+
+- **With steps:** the steps still render; the notice replaces the step-count verdict.
+- **With no steps:** each element of `FINAL_STATE.VIRTUAL_ENTITIES[]` renders as **its own group** of
+  records, never pooled into one list.
+- **What the notice says:** only what the response shows. It gives `NEED_REEVALUATION` no meaning
+  and offers no fix. Data-sourced text in the notice and the groups is escaped per "Escaping
+  data-sourced strings" below.
+- **With neither sign, or no `FINAL_STATE` in the response:** render as for any other entity, and
+  assume nothing.
 
 ## Rendering contract
 
@@ -852,6 +907,13 @@ snapshot that reaches for a CDN is broken in exactly the air-gapped and proxy-re
 where it matters most (INV-091). See `phase1-visualization.md` → "Render offline" for the vendored
 asset's location.
 
+⛔ **(INV-091) When the vendored asset is missing or unreadable, refuse to render.** The server MUST
+fail visibly, with an error that names the missing asset (`d3.v7.min.js`), and MUST write no page or
+snapshot. It MUST NOT fall back to the `d3js.org` CDN or any other network source for D3: a page that
+loads D3 from the network is the broken snapshot this section describes, reached silently. The
+bundled reference checks for the asset before any settings or engine work and exits non-zero;
+implement the equivalent for your language (INV-090).
+
 ### Why? / How? — plain language first, raw JSON behind a twistie
 
 The API returns the SDK response verbatim; that is about *availability*, not about what the UI
@@ -861,7 +923,8 @@ and defeats the entire purpose of the feature, which exists to make Senzing's re
 - **Why?** renders match level, match key, and resolution rule, then a per-feature table:
   feature · this record · compared-to record · score · bucket.
 - **How?** renders a numbered, step-by-step merge narrative ("Step 1: record A from CUSTOMERS
-  established the entity. Step 2: record B was added because …").
+  established the entity. Step 2: record B was added because …"), and an unsettled final state gets
+  the notice described under "How? when the final state is unsettled" above.
 - **Score buckets render as color-coded badges**, mapped from the buckets this contract already
   enumerates for `/api/features`: `SAME`/`CLOSE` → positive, `PLUS`/`LIKELY`/`PLAUSIBLE` → caution,
   `UNLIKELY`/`NO_CHANCE` → negative. Use `brand_tokens`' `SIGNAL_GREEN` for the positive bucket —
@@ -889,6 +952,10 @@ moment.
 ### Graph rendering — labels, scale, and legends
 
 Applies to **Entity Graph** in both of its modes.
+
+**Node colors follow "Coloring graph nodes" (INV-259)**, under "Server lifetime" below: what a node's
+color is keyed on, how the palette is allocated, and what the legend names. The bullets here do not
+restate it (INV-300).
 
 - **Independent label toggles.** Separate show/hide controls for **node** (entity name) labels and
   **edge** (match key / relationship type) labels. Two independent dials, not one combined control,
@@ -1172,16 +1239,26 @@ encoding_check: {
 }
 ```
 
-**What to verify.** The number of distinct color keys the **legend names** MUST equal
-`distinct_source_set_keys`. That equality is false exactly when a node is colored by one member of
-its set: first-source coloring collapses every combination onto a single-source key, so the legend
-key count drops below the source-set count. Both numbers are already computed in order to draw the
-graph, so the check costs nothing.
+**What to verify.** The number of **combination rows the legend names** — one per multi-source
+color — MUST equal `len(combination_keys)`. That equality is false exactly when a node is colored by
+one member of its set: first-source coloring collapses every combination onto a single-source key,
+so the legend names **0** combination rows against **N** combination keys. Both numbers are already
+computed in order to draw the graph, so the check costs nothing. Read it off the **source** legend —
+the relationship legend has no source-color rows, so counting it compares the wrong thing.
 
-⚠️ **Fewer than two distinct keys means the check was NOT exercised — report that, never "passed"
-(INV-265).** With one registered data source every key is that source, the comparison cannot fail,
-and reporting a pass would be reporting agreement from a match that could not disagree. Say
-"not exercised — one data source" and move on.
+⛔ **Count combination rows only, never every legend row (INV-270, corrected 2026-09-25).** The
+legend also names one per-source row per source, counting every entity that source participates
+in. Those rows are not source-set keys, so the legend's total exceeds `distinct_source_set_keys`
+whenever a source appears in view only inside combinations — routine once the node cap cuts a
+source's unrelated single-source entities. Observed on a Bootcamper's data: 9,820 entities capped to
+1,500, `OFAC`'s 4 single-source entities cut, 8 source-set keys against 9 legend rows, every node
+correctly colored. Comparing totals there stops a correct capture.
+
+⚠️ **No combination key in view means the check was NOT exercised — report that, never "passed"
+(INV-265).** With no cross-source entity among the emitted nodes — one registered data source, or
+several that share no entity — the comparison cannot fail, and reporting a pass would be reporting
+agreement from a match that could not disagree. Say "not exercised — no cross-source entity in view"
+and move on.
 
 ⛔ **That is NOT the Truth Set's case — this module is a genuine test site for INV-259.** The Truth
 Set registers **three** data sources and resolves entities spanning them, so the comparison is live
@@ -1192,8 +1269,8 @@ fewer sources loaded than expected — not a routine outcome to move past. The s
 belongs to System verification's synthetic `VERIFY` data, and to a bootcamper who loads exactly one
 source. ⚠️ Observation, not a server fact: one full 159-record load on 2026-08-27 emitted **7**
 distinct source-set keys, **4** of them combinations, over 84 entities — first-source coloring would
-have collapsed those four and dropped the legend count to 3, which is the mismatch this check
-exists to catch.
+have collapsed those four and left the legend naming 0 combination rows against 4, which is the
+mismatch this check exists to catch.
 
 ⛔ **On a mismatch, stop and fix the encoding before capturing screenshots (INV-259).** The screenshots become
 a permanent keepsake in the recap and the production project; capturing first means shipping the
@@ -1201,8 +1278,10 @@ wrong picture and discovering it afterwards, which is what happened.
 
 ### The graph payload is bounded, and says so (required)
 
-The graph endpoint MUST cap the nodes it emits and carry **`total`** and whether a cap was applied,
-so the UI can state what it is showing rather than implying it is everything. Rank candidates by
+The graph endpoint MUST cap the nodes it emits and carry **`total`**, whether a cap was applied
+(**`capped`**), and **`related_total`** — the distinct endpoints of every edge in the whole datastore,
+counted before the cap — so the UI can state what it is showing rather than implying it is
+everything. The capped note wording is in "Defaults at production scale" item 3. Rank candidates by
 **source span first** — entities spanning most sources are the ones worth seeing — then by
 connectivity, then deterministically, so a re-rendered snapshot does not disagree with the recap
 prose describing it. ⚠️ This is about the **size and portability** of the payload and the
