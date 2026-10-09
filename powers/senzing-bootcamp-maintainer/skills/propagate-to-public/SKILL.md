@@ -131,6 +131,10 @@ root `CHANGELOG.md` for bootcampers, pushing, the pull request, and the public t
 it unless the Maintainer explicitly asks, and if they do, treat it as a separate request rather
 than as part of this skill.
 
+⚠️ Any edit made to `senzing-bootcamp/` during that public review exists only in the public
+repository, and the next propagation overwrites it. Bring such edits back with
+[`retrofit-from-public`](../retrofit-from-public/SKILL.md), which files them as issues here.
+
 ## Scope
 
 This skill mirrors a built, already-released Power into one directory of another repository's

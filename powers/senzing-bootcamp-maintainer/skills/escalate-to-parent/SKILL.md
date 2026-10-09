@@ -28,7 +28,8 @@ working as intended — it is what keeps every platform on one curriculum.
 **`escalate-to-parent` is the only command that files a GitHub issue into another
 repository.** No other maintainer skill writes upstream or files anything anywhere:
 `create-bootcamp-power`, `update-bootcamp-power`, `parity-check`, and `release` write only
-inside this repository, and `propagate-to-public` writes only into a local working tree
+inside this repository; `retrofit-from-public` files issues here only and hands parent-bound
+divergence to this skill; and `propagate-to-public` writes only into a local working tree
 of the public runtime repository, through its own publication contract — never a commit,
 a push, or an issue. One owner means one place to audit cross-repo traffic.
 
