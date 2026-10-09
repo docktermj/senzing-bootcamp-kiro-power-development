@@ -182,9 +182,10 @@ empty flag list then means "not compared" rather than "nothing drifted". Omit bo
 arguments in step 5 in that case; the reconciler narrates the same caveat when it is given one
 tree and not the other. Everything else about the update proceeds unaffected.
 
-With the register currently empty — `invariantDiscounts: []` in the contract — there is nothing
-to compare and the flag list is legitimately empty. The step still runs, so the comparison is in
-place the moment the register has an entry.
+The comparison reads each release's invariant registry from its extracted tree. The public
+template releases ship none, so today the flag list is empty even with entries in the register:
+nothing in either tree is comparable. Say that plainly rather than reporting "nothing drifted",
+and re-read each register entry against the parent's `specs/INVARIANTS.md` at the new tag by hand.
 
 ## Step 4 — Transform into staging, carrying the Power's Kiro-owned content forward
 
