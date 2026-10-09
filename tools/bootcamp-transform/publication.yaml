@@ -5,7 +5,7 @@
 # the same artifact. A handful of things this repository legitimately carries must not
 # ship to bootcampers: the maintainer's changelog, build provenance that nothing on the
 # installed side reads, and paths that resolve only inside this repository. This file is
-# the whole list, and tools/bootcamp-transform/publish.py executes it.
+# the whole list, and tools/bootcamp-transform/propagate.py executes it.
 #
 # It is data, not prose. No adaptation is hardcoded in Python and none is left to an
 # agent, for the same reason the Transformation_Contract is data: an adaptation with one
@@ -23,8 +23,8 @@
 #
 # So these are not hand-patches waiting for an upstream fix; there is no upstream edit
 # that would make them unnecessary while both repositories keep their current jobs.
-# That is exactly the justification .github/tools/refresh_build_manifest.py asks for in
-# the publication pull request, and `publish.py --report` prints it rule by rule.
+# That is exactly the justification .github/tools/refresh_build_manifest.py asks for when
+# the Maintainer publishes, and `propagate.py --report` prints it rule by rule.
 #
 # ---------------------------------------------------------------------------
 # Rule kinds

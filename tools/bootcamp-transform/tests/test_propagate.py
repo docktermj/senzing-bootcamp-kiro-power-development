@@ -1,6 +1,6 @@
-"""Publisher tests — the development-to-publication adaptation path.
+"""Propagator tests — the development-to-publication adaptation path.
 
-The Publisher is small, but the thing it protects is not: it is the only step
+The Propagator is small, but the thing it protects is not: it is the only step
 between a built Power and a public repository, and its failure mode is silent.
 Every rule it applies is a literal find/replace or a key excision, so a rule
 stops applying the moment the build rewords the line it was written against —
@@ -11,7 +11,7 @@ change took a Transformation_Contract substitution from applying to matching
 nothing without failing anything.
 
 So the tests here are weighted toward the negative cases. A test that the
-Publisher rewrites a file it was told to rewrite is worth little; the tests that
+Propagator rewrites a file it was told to rewrite is worth little; the tests that
 matter are the ones proving it *refuses* when a rule has gone inert, when a
 forbidden string survives, and when the manifest and the tree disagree.
 
@@ -21,7 +21,7 @@ Sections:
 3. The forbidden-reference invariant ........... E_FORBIDDEN_REFERENCE
 4. Manifest agreement .......................... E_MANIFEST_INCOMPLETE
 5. Version pinning and Power shape ............. E_VERSION_MISMATCH, E_NOT_A_POWER
-6. Publication is a swap ....................... publish()
+6. Propagation is a swap ...................... mirror_into_place()
 7. The committed contract against the committed Power
 """
 
@@ -33,7 +33,7 @@ from pathlib import Path
 
 import pytest
 
-from publish import (
+from propagate import (
     E_FORBIDDEN_REFERENCE,
     E_MANIFEST_INCOMPLETE,
     E_NOT_A_POWER,
@@ -46,7 +46,7 @@ from publish import (
     forbidden_findings,
     load_contract,
     plan_publication,
-    publish,
+    mirror_into_place,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -64,7 +64,7 @@ def _digest(path: Path) -> str:
 
 
 def _minimal_power(root: Path, *, extensions: bool = True, extra: dict[str, str] | None = None) -> Path:
-    """A Power with the shape the Publisher requires and nothing more.
+    """A Power with the shape the Propagator requires and nothing more.
 
     Hand-written rather than generated, because `plugin.json`'s *layout* is part
     of what the excision test asserts: `author` and `keywords` sit on one line
@@ -422,7 +422,7 @@ def test_the_swap_replaces_the_target_wholly_and_touches_nothing_beside_it(tmp_p
     staging.mkdir()
     (staging / "fresh.md").write_text("new\n", encoding="utf-8", newline="")
 
-    publish(staging, target / "senzing-bootcamp")
+    mirror_into_place(staging, target / "senzing-bootcamp")
 
     assert (target / "senzing-bootcamp" / "fresh.md").read_text() == "new\n"
     assert not (target / "senzing-bootcamp" / "stale.md").exists()

@@ -233,7 +233,8 @@ Direct the Maintainer to [`docs/test-checklist.md`](../../../../docs/test-checkl
 step — including the nine per-platform cells for steps 2, 10, and 15 across Linux, macOS, and
 Windows — and commit that record. An unrecorded platform is a fail, not a blank. The recorded
 file, together with the passing validation report from step 4 for that exact version, is the
-tagging gate *(R6)*.
+tagging gate *(R6)*. Once the record is committed, [`release`](../release/SKILL.md) enforces that
+gate and creates the tag; this skill does not.
 
 ## Scope
 
