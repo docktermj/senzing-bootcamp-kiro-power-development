@@ -20,33 +20,51 @@ description:
 Before presenting, call the Senzing MCP `search_docs` tool for the Senzing-specific material.
 Suggested queries:
 
+- "What is entity resolution false negative false positive true match"
 - "Senzing principle-based entity resolution approach"
 - "entity resolution relationships disclosed discovered"
 - "ambiguous matches invisible false positives"
 - "Senzing differentiators real-time explainability attribution"
 - "How does entity resolution work steps process"
 - "entity resolution false positives false negatives accuracy"
+- "difference between entity resolution and master data management"
 
-⚠️ **All six were MEASURED, one at a time, not composed.** Each was run against the live index and
-kept only because it returns the material it is for — **MCP server 1.35.3, docs index 2026-09-01
-11:58 UTC**. `search_docs` is BM25, so a plausible-sounding phrase is not evidence of anything, and
-**two of these six were wrong when they were checked**:
+⚠️ **Every entry here was MEASURED, one at a time, not composed.** Each was run against the live
+index and kept only because it returns the material it is for. **Current measurement: MCP server
+1.37.18, docs index 2026-10-02 11:23 UTC, measured 2026-10-02**, with every entry re-run on that
+date. What each one returned:
+
+| Query | Returns | Rank |
+| --- | --- | --- |
+| "What is entity resolution false negative false positive true match" | *"What Is Entity Resolution?"* (defines false negative and false positive) | 1 |
+| "Senzing principle-based entity resolution approach" | *"Benefits of the Senzing Principle Based Approach"* | 1 |
+| "entity resolution relationships disclosed discovered" | *"How Does Relationship Awareness Improve Entity Resolution?"* | 1 |
+| "ambiguous matches invisible false positives" | *"What Are Ambiguous Matches and Invisible False Positives?"* | 1 |
+| "Senzing differentiators real-time explainability attribution" | *"Senzing Explainability Functionality"* (why, why not, how) | 2 (read down the list: rank 1 is the same page's list of resource links) |
+| "How does entity resolution work steps process" | *"How Does Entity Resolution Work?"* (the numbered pipeline) | 1 |
+| "entity resolution false positives false negatives accuracy" | *"What Are Ambiguous Matches and Invisible False Positives?"* | 2 (read down the list: rank 1 is a Verisk case study) |
+| "difference between entity resolution and master data management" | *"What Is the Difference Between Entity Resolution and Master Data Management (MDM)?"* | 1 |
+
+`search_docs` is BM25, so a plausible-sounding phrase is not evidence of anything. **History: two
+entries were wrong when they were checked** on MCP server 1.35.3, docs index 2026-09-01 11:58 UTC,
+2026-09-01:
 
 - *"entity resolution ambiguous match possible match"* returned **three Entity-Centric-Learning
   chunks and no ambiguous-match material at all** — the composed phrase loses to chunks with a
-  denser concentration of `entity`/`resolution`/`match`. Replaced with wording from the
-  documentation's own section heading; it now returns *"What Are Ambiguous Matches and Invisible
-  False Positives?"* at **rank 1** (94.7), with two further ambiguous-match sections behind it.
+  denser concentration of `entity`/`resolution`/`match`. It was replaced with wording from the
+  documentation's own section heading, which on that date returned *"What Are Ambiguous Matches and
+  Invisible False Positives?"* at **rank 1** (94.7), with two further ambiguous-match sections
+  behind it.
 - *"entity resolution pipeline standardization blocking scoring clustering"* named five real
   pipeline stages and reached **none of them** — rank 1 was a customer case study, rank 2 the MCP
-  server's own page. Replaced; the query now returns the *"How Does Entity Resolution Work?"*
-  section at **rank 1** (108.7), which is the numbered pipeline itself.
+  server's own page. It was replaced; on that date the new query returned the *"How Does Entity
+  Resolution Work?"* section at **rank 1** (108.7), which is the numbered pipeline itself.
 
 ⛔ **(INV-291) Both were found by running them, and neither was findable by reading them** — they are
 well-formed, on-topic and use the right technical vocabulary. So if you change an entry here, **run
-it first**, and if the index date above has moved, re-run all six rather than trusting this note.
-The false-positives entry is the standing example of a *good* result that still needs reading: its
-rank 1 is a case study and the material it is for is at rank 2.
+it first**, and if the index date above has moved, re-run every entry rather than trusting this
+note. The false-positives entry is the standing example of a *good* result that still needs
+reading: its rank 1 is a case study and the material it is for is at rank 2.
 
 ⛔ **Prefer these queries, and when a query returns nothing relevant, RE-QUERY with the
 documentation's own phrasing before concluding the material is not covered.** (INV-212 — the
@@ -91,15 +109,20 @@ which licensed this material as prose while the checklist required it be sourced
 that at face value presents the pipeline from training data, and it will usually be roughly
 right, which is exactly why nobody notices when it is not.
 
-**Nothing is lost by requiring the call:** the material is fully retrievable, and the two queries
-that reach it are in the suggested list above — the requirement travels with its route, per
-INV-212 (verified on server 1.33.0, docs index 2026-08-20 17:33 UTC, 2026-08-23). One caveat on reading those results: for both queries the on-topic section
-is **not** the top hit — a Verisk case study and other marketing pages outrank it — so read down
-the list for *"What Is Entity Resolution? How It Works & Why It Matters."* rather than presenting
+**Nothing is lost by requiring the call:** the material is fully retrievable, and the queries that
+reach it are in the suggested list above — the requirement travels with its route, per INV-212
+(measured on MCP server 1.37.18, docs index 2026-10-02 11:23 UTC, 2026-10-02). The route to *what
+entity resolution is* is *"What is entity resolution false negative false positive true match"*,
+which returns the *"What Is Entity Resolution?"* section of *"What Is Entity Resolution? How It
+Works & Why It Matters."* at **rank 1**. The pipeline query returns the same document's *"How Does
+Entity Resolution Work?"* at rank 1. One caveat on reading those results: for the false-positives
+query the on-topic section is **not** the top hit — a Verisk case study outranks it — so read down
+the list for *"What Are Ambiguous Matches and Invisible False Positives?"* rather than presenting
 the first row.
 
 - **What entity resolution is:** deciding whether different records refer to the *same
-  real-world entity* (person or organization), then matching, relating, and deduplicating them.
+  real-world entity* (a person, organization, product, vessel or another entity type), then
+  matching, relating, and deduplicating them.
 - **Two failure modes:** false negatives (same entity split apart) and false positives
   (different entities merged). The documentation carries a sharper framing of the second worth
   using — an **ambiguous match** (a record that could legitimately belong to more than one
@@ -111,8 +134,16 @@ the first row.
 - **The conceptual pipeline:** ingestion/standardization -> candidate selection (blocking) ->
   comparison/scoring -> classification (match / no-match / possible-match) -> entity clustering.
 - **Disclosed vs. discovered relationships.**
-- **Three outputs:** resolved entities (golden record), cross-source relationships, and
-  deduplication.
+- **What it produces:** matched records grouped into unified entities, and relationships tracked
+  between those entities. Reached by the pipeline query above (*"How Does Entity Resolution
+  Work?"*, rank 1: its clustering step and the paragraph after the numbered list). Do **not** call
+  a resolved entity a *golden record*: the documentation uses that term for a master data
+  management function (deciding which attribute values survive when records merge), which it
+  places beyond entity resolution. Reached by the MDM query above (*"What Is the Difference Between
+  Entity Resolution and Master Data Management (MDM)?"*, rank 1); read down that list to rank 3,
+  the FAQ answer to the same question, for ER as the deduplicated foundation an MDM program builds
+  on. Rank 2 is a different FAQ, *"How does Senzing integrate with MDM (Master Data Management)
+  systems?"*, so don't stop there.
 
 ### How Senzing handles it (pull specifics from MCP)
 

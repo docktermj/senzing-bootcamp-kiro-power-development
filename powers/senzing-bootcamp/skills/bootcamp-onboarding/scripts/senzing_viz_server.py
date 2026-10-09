@@ -102,7 +102,9 @@ The Senzing native library must be importable (source the project
 ``src/scripts/senzing-env.sh`` first).
 
 Exit code 0 means the entity model was built successfully (and, if requested, the
-snapshot was written); non-zero means it could not be built.
+snapshot was written); non-zero means it could not be built. A missing vendored D3 asset
+(``vendor/d3.v7.min.js`` beside this file) is checked first and also exits non-zero: the
+server refuses to render rather than fetch D3 from the network (INV-091).
 """
 
 from __future__ import annotations
@@ -187,7 +189,8 @@ def confirm_server_identity(port, host=BIND_HOST, timeout=5.0):
 # Brand tokens ship in this same directory. Import them so the visualization shares
 # the Senzing style guide's palette with the recap PDF; fall back to an inlined copy
 # of the same values if the module is ever unavailable, so this script keeps working
-# in isolation (mirrors the vendored-D3 offline fallback).
+# in isolation. (The vendored D3 has no such fallback: without it the server refuses to
+# render, because the only substitute would be a network fetch — INV-091.)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Fallback palette, used only if brand_tokens is unavailable. Named at module scope
 # so tests/test_brand_sync.py can assert it stays equal to brand_tokens.py — the two
@@ -667,6 +670,9 @@ class Model:
         node_ids = set(self.entities)
         nodes = list(self.entities.values())
         total = len(nodes)
+        # Distinct endpoints of EVERY edge, counted before the cap, so a capped note can
+        # state the datastore's related population rather than the capped subset's (#327).
+        related_total = len({end for pair in self.edges for end in pair})
         capped = False
         if cap is not None and total > cap:
             # Rank by SOURCE SPAN first: an entity spanning several sources is the one
@@ -700,13 +706,14 @@ class Model:
                         "relationship_type": meta["relationship_type"],
                     }
                 )
-        # `total` and `capped` travel with the payload so the UI can state what it is
-        # showing rather than implying it is everything.
+        # `total`, `capped` and `related_total` travel with the payload so the UI can state
+        # what it is showing rather than implying it is everything.
         return {
             "nodes": nodes,
             "edges": edges,
             "total": total,
             "capped": capped,
+            "related_total": related_total,
             "encoding_check": self._encoding_check(nodes),
         }
 
@@ -715,15 +722,21 @@ class Model:
         """Self-check for the source-set encoding required by INV-259.
 
         Counts the distinct **sorted source-set keys** over the nodes being emitted --
-        the same keys ``srcKeyOf()`` computes client-side to color them. The build step
-        compares this against the number of color keys the legend names; first-source
-        coloring collapses every combination onto a single-source key, so the legend key
-        count drops below this number exactly when the misencoding is present.
+        the same keys ``srcKeyOf()`` computes client-side to color them -- and lists the
+        **combination keys** among them. The build step compares the number of
+        **combination rows the legend names** against ``len(combination_keys)`` (INV-270);
+        first-source coloring collapses every combination onto a single-source key, so
+        the legend shows 0 combination rows against N exactly when the misencoding is
+        present.
 
-        ⚠️ Reports ``not_exercised`` -- never ``ok`` -- when fewer than two distinct keys
-        are present (INV-265: an empty or trivial match is an unrun check, not agreement).
-        With a single registered data source every key is that source and the comparison
-        cannot fail, which is precisely why the Truth Set could not catch this defect.
+        ⛔ Not the legend's total row count (#159). The legend also names one per-source
+        *participation* row per source, which is not a source-set key, so its total
+        exceeds ``distinct_source_set_keys`` whenever a source appears in view only inside
+        combinations -- routine once the node cap cuts a source's unrelated singletons.
+
+        ⚠️ Reports ``not_exercised`` -- never ``ok`` -- when no combination key is present
+        (INV-265: an empty or trivial match is an unrun check, not agreement). With no
+        combination in view the comparison cannot fail, whatever the source count.
         """
         keys = set()
         for entity in nodes or []:
@@ -731,19 +744,20 @@ class Model:
             if sources:
                 keys.add(SOURCE_KEY_SEP.join(sources))
         combos = sorted(k for k in keys if SOURCE_KEY_SEP in k)
-        status = "ok" if len(keys) >= 2 else "not_exercised"
+        status = "ok" if combos else "not_exercised"
         return {
             "distinct_source_set_keys": len(keys),
             "source_set_keys": sorted(keys),
             "combination_keys": combos,
             "status": status,
             "detail": (
-                "Compare distinct_source_set_keys against the number of color keys the "
-                "legend names; they MUST be equal (INV-259). Fewer legend keys means nodes "
-                "are colored by one member of their source set."
+                "Compare the number of combination rows the source legend names against "
+                "len(combination_keys); they MUST be equal (INV-270, INV-259). Fewer "
+                "combination rows means nodes are colored by one member of their source "
+                "set. Per-source rows are not source-set keys and are not counted."
                 if status == "ok" else
-                "Fewer than two distinct source-set keys are present, so this check cannot "
-                "fail and has NOT been exercised (INV-265). It is not a pass."
+                "No combination key is present, so this check cannot fail and has NOT "
+                "been exercised (INV-265). It is not a pass."
             ),
         }
 
@@ -1103,6 +1117,9 @@ function tabApplicable(id){const s=STATS||{};
 const GRAPH_SUBGRAPH_DEFAULT_ABOVE=400;
 let graphMode="all";
 let graphModeAutoSet=false;
+// The last /api/graph payload drawGraph fetched, so addGraphControls can word its notes from
+// the payload's own `capped`, `total` and `related_total` instead of the capped subset (#327).
+let graphPayload={};
 // The live force simulation for the graph tab. Toggling the mode re-enters drawGraph, and
 // the previous simulation would otherwise keep ticking against DOM nodes that have been
 // removed — wasted work and a source of jank. Stopped before each redraw.
@@ -1150,6 +1167,7 @@ let graphDrawn=false;
 async function drawGraph(){
   const c=document.getElementById("graph-container");const W=c.clientWidth,H=c.clientHeight;
   const g=await getJSON("/api/graph");const box=d3.select("#graph-container");
+  graphPayload=g;
   d3.select("#graph-container svg").remove();
   d3.select("#graph-container .legend").remove();
   d3.select("#graph-container .empty-note").remove();
@@ -1190,7 +1208,10 @@ async function drawGraph(){
   }
   if(!nodes.length){
     box.append("div").attr("class","muted empty-note").style("padding","14px")
-       .text(network?"No relationships between entities were found in this data.":"No entities to graph.");
+       .text(network?(g.capped?"None of the "+g.related_total+" entities with relationships are among the "+
+                                g.nodes.length+" shown."
+                              :"No relationships between entities were found in this data.")
+                    :"No entities to graph.");
     addGraphControls("graph-container",0);
     // (INV-298) Nothing to lay out is already settled -- without this a waiter on an empty
     // graph has no signal to wait for and falls back to its timeout, which is the fixed
@@ -1410,11 +1431,21 @@ function addGraphControls(containerId,nodeCount,forceLabelsOff){
     .text("Labels hidden — "+nodeCount+" entities would overlap. Use the toggles to show them.");
   // Same reasoning as the label note: without it the bootcamper reads a default as
   // their data, and concludes the graph is showing everything there is.
-  if(graphMode==="network"&&(STATS||{}).entities_total>GRAPH_SUBGRAPH_DEFAULT_ABOVE)
+  // (#327) When the payload is capped, `nodeCount` counts a capped subset: name it as part of
+  // the datastore's `related_total`, state the cap, and never offer "all".
+  const capped=!!graphPayload.capped;
+  if(graphMode==="network"&&(capped||(STATS||{}).entities_total>GRAPH_SUBGRAPH_DEFAULT_ABOVE))
     box.append("div").attr("class","why")
-      .text("Showing the "+nodeCount+" entities that have relationships, of "+
+      .text(capped?"Showing "+nodeCount+" of the "+graphPayload.related_total+" entities that have "+
+                   "relationships — the graph is capped at "+graphPayload.nodes.length+" of "+
+                   graphPayload.total+" entities."
+            :"Showing the "+nodeCount+" entities that have relationships, of "+
             STATS.entities_total+" total — the full population is too dense to read at this "+
-            "scale. Uncheck the toggle above to show them all.");}
+            "scale. Uncheck the toggle above to show them all.");
+  if(graphMode!=="network"&&capped)
+    box.append("div").attr("class","why")
+      .text("Showing "+graphPayload.nodes.length+" of "+graphPayload.total+" entities — the graph "+
+            "is capped; entities spanning the most sources are kept first.");}
 // Built FROM the rendered nodes, never from a static color config: a legend
 // entry then cannot exist without matching marks on screen, which is what makes
 // "the legend shows colors that appear nowhere in the graph" impossible.
@@ -1589,18 +1620,40 @@ function _recordChips(members){var out=[];(members||[]).forEach(function(mb){(mb
   out.push("<span class='chip'>"+esc((r.DATA_SOURCE||"?")+":"+(r.RECORD_ID||"?"))+"</span>");});});
   return out.join("")||"<span class='muted'>—</span>";}
 function renderHow(data){const hr=(data.result||{}).HOW_RESULTS||{};const steps=hr.RESOLUTION_STEPS||[];
+  // An UNSETTLED final state (#169, INV-330) is either of the two signs Phase D's how-state audit
+  // uses (#154): FINAL_STATE.NEED_REEVALUATION non-zero (an integer per the response
+  // schema), or more than one FINAL_STATE.VIRTUAL_ENTITIES[]. Either one makes both
+  // one-entity sentences below false, so the notice replaces them. The notice reports the
+  // values the response carries and nothing more; it gives NEED_REEVALUATION no meaning
+  // (INV-080/INV-149; the contract's /api/how entry carries the dated MCP-NEGATIVE marker).
+  // No FINAL_STATE, or neither sign: no notice and today's rendering, byte for byte.
+  const ve=((hr.FINAL_STATE||{}).VIRTUAL_ENTITIES)||[];const nr=(hr.FINAL_STATE||{}).NEED_REEVALUATION;
+  const signs=[];
+  if(typeof nr==="number"&&nr!==0)signs.push("<code>FINAL_STATE.NEED_REEVALUATION</code> is <b>"+esc(String(nr))+"</b>");
+  if(Array.isArray(ve)&&ve.length>1)signs.push("<code>FINAL_STATE.VIRTUAL_ENTITIES</code> lists <b>"+ve.length+"</b> virtual entities");
+  const unsettled=signs.length>0;
+  const notice="<div class='verdict how-unsettled'><b>Unsettled final state.</b> Senzing's How response for this entity shows "+
+    signs.join(", and ")+". This page therefore does not describe these records as one entity; what the response holds is shown below as returned.</div>";
   if(steps.length){
-    let h="<div class='verdict'>Senzing built this entity in <b>"+steps.length+"</b> step(s), each merging two groups of records.</div>";
+    let h=unsettled?notice:"<div class='verdict'>Senzing built this entity in <b>"+steps.length+"</b> step(s), each merging two groups of records.</div>";
     steps.forEach(function(st,i){const mi=st.MATCH_INFO||{};const mk=mi.MATCH_KEY||"";const rule=mi.ERRULE_CODE||"";
       const v1=st.VIRTUAL_ENTITY_1||{};const v2=st.VIRTUAL_ENTITY_2||{};
       h+="<div class='step'><div><span class='num'>"+(st.STEP||(i+1))+"</span><b>Merged on</b> "+mkChips(mk)+(rule?" · <code>"+esc(rule)+"</code>":"")+"</div>"+
         "<div class='recs' style='margin-top:8px'><div class='rec'><b>Group A</b><br>"+_recordChips(v1.MEMBER_RECORDS)+"</div>"+
         "<div class='rec'><b>Group B</b><br>"+_recordChips(v2.MEMBER_RECORDS)+"</div></div></div>";});
     return h;}
-  const ve=((hr.FINAL_STATE||{}).VIRTUAL_ENTITIES)||[];
+  // Unsettled with no steps: each virtual entity is its own group. Pooling them is what
+  // made two groups read as one entity.
+  var grouped="";
+  if(unsettled){grouped="<h4>"+ve.length+" virtual entit"+(ve.length===1?"y":"ies")+" in the final state</h4><div class='recs'>";
+    ve.forEach(function(v,i){var k=0;(v.MEMBER_RECORDS||[]).forEach(function(m){k+=((m.RECORDS||[]).length);});
+      grouped+="<div class='rec how-group' style='min-width:auto'><b>Group "+(i+1)+"</b>"+
+        (v.VIRTUAL_ENTITY_ID?" · <code>"+esc(String(v.VIRTUAL_ENTITY_ID))+"</code>":"")+
+        " · "+k+" record"+(k===1?"":"s")+"<br>"+_recordChips(v.MEMBER_RECORDS)+"</div>";});
+    grouped+="</div>";}
   var members=[];ve.forEach(function(v){(v.MEMBER_RECORDS||[]).forEach(function(m){members.push(m);});});
   var n=0;members.forEach(function(m){n+=((m.RECORDS||[]).length);});
-  return "<div class='verdict'>These records resolved <b>directly</b> into one entity — Senzing found them consistent enough to merge with no intermediate steps.</div>"+
+  return unsettled?notice+grouped:"<div class='verdict'>These records resolved <b>directly</b> into one entity — Senzing found them consistent enough to merge with no intermediate steps.</div>"+
     "<h4>"+n+" record"+(n===1?"":"s")+" in this entity</h4>"+
     "<div class='recs'><div class='rec' style='min-width:auto'>"+_recordChips(members)+"</div></div>";}
 async function drawHist(){const s=await getJSON("/api/stats");const box=d3.select("#hist");box.html("");
@@ -1851,18 +1904,33 @@ PROBE_BODY_LIVE = (
 )
 
 
-def _d3_script():
-    """Return an inline <script> carrying the vendored D3, so the visualization
-    renders with no network access. Fall back to the CDN tag only if the vendored
-    asset is missing."""
-    vendored = os.path.join(
+def _d3_path():
+    """The vendored D3 asset, resolved beside this file (the Power's layout)."""
+    return os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "vendor", "d3.v7.min.js"
     )
+
+
+def _d3_script():
+    """Return an inline <script> carrying the vendored D3, so the visualization
+    renders with no network access.
+
+    ⛔ (INV-091) There is no CDN fallback. When the asset is missing or unreadable
+    this raises, so no code path can emit a network URL for D3: a page that fetched
+    D3 would fail in exactly the air-gapped and proxy-restricted settings the vendored
+    asset exists for. ``main()`` checks for the asset before any other work; this
+    raise covers the asset disappearing while the live server runs, and the request
+    then fails through the handler's error path."""
+    vendored = _d3_path()
     try:
         with open(vendored, encoding="utf-8") as fh:
             return "<script>" + fh.read() + "</script>"
-    except OSError:
-        return '<script src="https://d3js.org/d3.v7.min.js"></script>'
+    except OSError as exc:
+        raise RuntimeError(
+            "vendored D3 asset missing or unreadable: "
+            f"{vendored} ({exc.strerror or exc}); "
+            "refusing to render without it (INV-091)"
+        ) from exc
 
 
 def render_page(title, data_shim="", probe_body=None, sources=None):
@@ -2347,6 +2415,21 @@ def main(argv=None):
     ap.add_argument("--no-serve", action="store_true",
                     help="build the model (and snapshot) then exit without serving")
     args = ap.parse_args(argv)
+
+    # ⛔ (INV-091) Refuse to render without the vendored D3, before settings or engine
+    # work, so neither the live server nor --snapshot is produced. A snapshot written
+    # without it would pass this script's exit-code gate and break offline.
+    d3_path = _d3_path()
+    try:
+        with open(d3_path, "rb"):
+            pass
+    except OSError as exc:
+        sys.stderr.write(
+            "ERROR: the vendored D3 asset is missing or unreadable: "
+            f"{d3_path} ({exc.strerror or exc}). "
+            "Refusing to render without it; restore the file and run again.\n"
+        )
+        return 1
 
     settings, source, problem = resolve_settings(args.settings,
                                                  os.getenv("SENZING_ENGINE_CONFIGURATION_JSON", ""),

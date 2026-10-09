@@ -184,7 +184,7 @@ if FEEDBACK.search(lower):
         "whatever the verdict (INV-015). Only for an mcp-server/both verdict, and "
         "only after the local entry is confirmed saved, offer ONCE to forward it via "
         "the MCP server's submit_feedback tool, showing the exact message first and "
-        "stripping anything identifying (INV-065); never send anything external "
+        "stripping anything identifying (INV-321); never send anything external "
         "without that yes. When done, "
         "return the bootcamper to exactly where they left off without making them "
         "re-explain their context."

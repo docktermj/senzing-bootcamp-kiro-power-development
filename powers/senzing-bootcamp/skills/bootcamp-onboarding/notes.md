@@ -125,7 +125,7 @@ the certificate; a paragraph they did not write, indistinguishable from one they
 the Power putting words in their mouth permanently. The recap PDF renders both labels on
 the page, so the distinction survives printing.
 
-## Step 3c: The context block is machine-composed, so INV-065 binds it
+## Step 3c: The context block is machine-composed, so INV-322 binds it
 
 No hostname, username, home-directory path or IP address. The module, the step, the time
 and the pending question are the content; environment facts are not.

@@ -3,14 +3,17 @@
 Continues from Phase B (single source) or Phase C (multi-source). Follow the ground rules;
 `🛑`/`⛔` are internal control directives. Entity queries use SDK code generated via
 `generate_scaffold` / `get_sdk_reference`, never direct SQL against `database/G2C.db`. Counts
-and stats come from `reporting_guide` — **name the topic**: `topic='evaluation'` for the
-single-pass export statistics this phase needs, `topic='export'` for extraction patterns.
+and stats come from `reporting_guide` — **name the topic**:
+`reporting_guide(topic='evaluation', language='<chosen_language>')` for the single-pass export
+statistics this phase needs, `reporting_guide(topic='export', language='<chosen_language>')` for
+extraction patterns.
 
 ⚠️ **`topic='reports'` is not this bootcamp's route.** Its SQL targets an analytical data mart
 (`sz_dm_entity`, `sz_dm_record`, `sz_dm_relation`, `sz_dm_report`) that the bootcamp never builds —
-the tool says so itself, in that response's own schema notes: *"These tables are NOT part of the
-Senzing SDK and do NOT exist out of the box. They must be created and maintained by a separate data
-mart replication pipeline that YOU build and operate"* (verified on MCP server 1.32.2, 2026-07-30).
+the tool says so itself, in that response's own `data_mart_framing.warnings[0]`: *"This is NOT a
+Senzing product and NOT part of the Senzing SDK. It does not exist out of the box. The sz_dm_ prefix
+makes it LOOK like an official Senzing product; it is not — the prefix is only used in this
+example."* (verified on MCP server 1.37.14, 2026-09-28).
 It is the production-reporting answer, not the evaluation one, so asking for it here returns
 well-formed SQL that cannot run against a single-database SQLite workspace. If you are already
 looking at that response, the usable subset is its `Validation:` patterns, which run against
@@ -31,7 +34,7 @@ Review the entity resolution results:
 
 Use `generate_scaffold(language='<chosen_language>', workflow='query', version='current')` to
 generate SDK code that retrieves sample entities for review. Use
-`get_sdk_reference(topic='functions', filter='why_entities', version='current')` to explain why
+`get_sdk_reference(topic='parameters', filter='why_entities', version='current')` to explain why
 records matched. (There is no direct entity-query MCP tool, entity lookup and why-matched are
 done through generated SDK code.)
 
@@ -156,11 +159,16 @@ read as the record of what was loaded, so an unchecked count written into it is 
 these sites to correct later: nothing downstream re-derives it, and by the time anyone doubts it
 the load is long finished.
 
-⛔ **There are three reconciliation outcomes to write here, not two.** A source recorded
-`expected_delta` (Phase B's three-way rule) is written as a **reconciled** result carrying **both**
-figures and the artifact that predicts the delta — never as a failure, and never as a bare matching
-count. A load that legitimately changed the record count is the visible consequence of a mapping
-decision, and this document is the place a Bootcamper will look for it a month later; recording it as
+⛔ (INV-245) **There are four reconciliation outcomes to write here, not two** —
+`phaseB-load-first-source.md` Step 7's two-stage reconciliation, the canonical statement; do not
+restate it here (INV-300). What this document adds is how each is written. A source recorded
+`expected_delta` is written as a **reconciled** result carrying its figures and every chain step
+with the record it cites (the `sample:` block, a subset record, the mapping specification) — never
+as a failure, and never as a bare matching count. A source recorded `unexplained_delta` is written with every figure from its
+`issues` entry and labeled **unverified** — not as a failure, since every record it was given
+loaded, and not as a pass, since its gap to the collected file has no cited cause. A load that
+legitimately changed the record count is the visible consequence of a sampling or mapping decision,
+and this document is the place a Bootcamper will look for it a month later; recording it as
 `failed` tells them a clean load broke, and recording it as a plain pass hides that anything happened
 at all.
 
@@ -177,12 +185,13 @@ Record the validation findings:
   resolution
 - This becomes the baseline for comparison
 
-The **results dashboard** (entity counts, match statistics, and sample resolved entities) is offered
-in the **Query, Visualize and Discover** module (Module 7, Step 3c — the consolidated visualization
-gate), where all results visualization lives — Module 6 does not offer it, to avoid a duplicate
-offer. Module 6 offers **no** visualization at all: the cross-source relationship view (step 23) is
-also delivered in Module 7's single interactive app (its Entity Graph / Cross-Source / Relationship
-Network tabs, INV-104), not as a separate Module 6 page.
+The entity counts, match statistics and sample resolved entities are the **Merge Statistics** tab of
+the app offered in the **Query, Visualize and Discover** module (Module 7, Step 3c — the consolidated
+visualization gate), where all results visualization lives — Module 6 does not offer it, to avoid a
+duplicate offer. Module 6 offers **no** visualization at all: the cross-source relationship view
+(step 23) is also delivered in Module 7's single interactive app (INV-104), as its **Entity Graph**
+tab (including its "Show only entities with relationships" mode) and its **Cross-Source** tab
+(INV-155), not as a separate Module 6 page.
 
 **Checkpoint:** write step 28.
 
@@ -288,8 +297,22 @@ which is exactly the gap the UAT percentages below leave open.
    ⚠️ **Confirm a composite exists on *your* binding before using it.** `SZ_EXPORT_ALL_FLAGS` is
    documented for the export methods, but it comes from the Java SDK's flag enum and is **absent
    from the Python binding's `SzEngineFlags`** in 4.3.3 (`AttributeError`). Flag *names* are not
-   uniformly available across bindings — introspect (`dir(SzEngineFlags)`) or confirm via MCP for
-   the bootcamper's language instead of copying a name from cross-language documentation.
+   uniformly available across bindings, so confirm the name for the bootcamper's language instead
+   of copying it from cross-language documentation, and ask MCP first.
+   `get_sdk_reference(topic='flags', filter='<method>', language='<chosen_language>')` lists the
+   flags documented for the method, but it does not narrow that list by binding: with
+   `language='python'` it still returns `SZ_EXPORT_ALL_FLAGS`, and only its `source_file`
+   (`fallback:java-sdk-SzFlag-enum`) shows the Java origin (MCP server 1.37.16, 2026-09-30). For
+   availability, search the binding's own flag reference, naming its flag class:
+   `search_docs(query='<binding flag class> <flag name>')`. For Python,
+   `search_docs(query='senzing.szengineflags SzEngineFlags SZ_EXPORT_DEFAULT_FLAGS')` returns the
+   `SzEngineFlags` member list, which has no `SZ_EXPORT_ALL_FLAGS`. A query that names only the
+   flag can rank another binding's class first, so if the top hits document a different
+   binding's flags, re-query with your binding's class or module name rather than reading their
+   list as yours. Only where neither route answers, fall back to introspecting the installed
+   binding (`dir(SzEngineFlags)`) (INV-132).
+   <!-- MCP-NEGATIVE: get_sdk_reference(topic='flags', filter='export_json_entity_report', language='python') — the flag list is not narrowed by binding: SZ_EXPORT_ALL_FLAGS is still listed, its entry identical without the language argument, and only its source_file (fallback:java-sdk-SzFlag-enum) shows the Java origin; language narrows method_signatures only — owner: search_docs(query='senzing.szengineflags SzEngineFlags SZ_EXPORT_DEFAULT_FLAGS') IS the route that carries a binding's own flag reference, and returns the Python SzEngineFlags member list, so availability is answered there rather than absent (routing negative) — server 1.37.16, 2026-09-30 -->
+   <!-- MCP-NEGATIVE: search_docs(query='senzing.szengineflags SzEngineFlags SZ_EXPORT_DEFAULT_FLAGS') — the Python SzEngineFlags member list has no SZ_EXPORT_ALL_FLAGS: the alphabetical list runs from SZ_ENTITY_INCLUDE_REPRESENTATIVE_FEATURES directly to SZ_EXPORT_DEFAULT_FLAGS — owner: search_docs IS the corpus route that serves the Python SDK reference (garage.senzing.com/sz-sdk-python/senzing.html, section szengineflags), so its member list is the answer rather than a miss (absence negative) — server 1.37.16, 2026-09-30 -->
 
    A worked expression for a detail-carrying export in Python — start here rather than assembling
    row filters and hoping:
@@ -329,8 +352,36 @@ which is exactly the gap the UAT percentages below leave open.
    `+` means the feature **contributed** to the match and `-` means it **detracted** (MCP-confirmed
    via `response_schemas` on `RESOLVED_ENTITY.RECORDS[].MATCH_KEY`, whose description reads
    *"Features that matched: + means contributed, - means detracted"* — server **1.36.0**,
-   2026-09-02). Count the features appearing with a leading `-`, ranked by frequency, and split them
-   **both** ways step 1 already reads them:
+   2026-09-02).
+
+   **Split each key into signed features by this rule, in this order.** The obvious split on `+`/`-`
+   misreads disclosed-relationship keys, and the relationship bucket is exactly where they appear.
+   One rule serves all three buckets:
+
+   1. Remove each parenthesized role, `(...)` including its contents, **first**, so role text such
+      as `CO-OWNER` or `OWNS 60%` cannot yield features.
+   2. **A backslash makes the next character part of the name.** This covers `\-` inside a domain
+      name, and would cover any other escaped character the same way.
+   3. **Split on the unescaped `+` and `-`.** Each feature takes the sign that precedes it, and only
+      `-` features are counted as suppressors.
+   4. **Report feature names with the escape removed** (`OPEN-SANCTIONS`, not `OPEN\-SANCTIONS`).
+
+   Worked example: `+ADDRESS+OPEN\-SANCTIONS(ACTING FOR OR ON BEHALF OF:)-DOB-TAX_ID` →
+   `+ADDRESS`, `+OPEN-SANCTIONS`, `-DOB`, `-TAX_ID` — **two** suppressors. Split on every `-`
+   instead, and `SANCTIONS(ACTING FOR OR ON BEHALF OF:)` is counted as a suppressed feature.
+
+   The role notation is documented in the Senzing MCP server article *"MATCH_KEY / WHY_KEY
+   Direction Notation for Disclosed Relationships"*, which defines the `(ROLE:)`, `(:ROLE)` and
+   `(ROLE:ROLE)` forms; counting suppressors needs only their removal, not their direction. A
+   dashed domain breaks the naive split for the reason the Entity Specification's *Feature:
+   REL_ANCHOR* gives: *"Use a domain code without dashes to avoid confusion in downstream match key
+   parsing."* (both from `search_docs(query='MATCH_KEY disclosed relationship REL_POINTER role in
+   match key')`, server **1.37.13**, docs index 2026-09-24 18:45 UTC). The `\-` form itself is an
+   **engine-side observation**: 2026-09-25, a four-source load (GLEIF, ICIJ, OFAC, OPEN-SANCTIONS;
+   455 disclosed relationships), SDK version not recorded.
+
+   Count the features appearing with a leading `-`, ranked by frequency, and split them **both**
+   ways step 1 already reads them:
 
    | Bucket | Read from | What a `-FEATURE` there means |
    |---|---|---|
@@ -421,6 +472,101 @@ which is exactly the gap the UAT percentages below leave open.
 > was 86.3%. Routing one field to payload instead — no other change — took cross-source merges from
 > 1 to 4 and links from 160 to 170. The signal was there the whole time; nothing was reading it.
 
+## How-state audit (run before the iterate-vs-proceed gate)
+
+Runs on **both** paths — single-source and multi-source — right after the match-key audit, on the
+same export (INV-334). It answers a question nothing else in this phase asks: is each multi-record entity's
+**construction history** one the engine itself reports as settled? A drained redo queue is not that
+signal. Observed 2026-09-25 (SDK 4.4.1, SQLite, one load process per source, redo drained to an
+empty queue): three GLEIF + OFAC + OPEN-SANCTIONS entities the export reported as clean 5- and
+3-record entities came back from `how_entity` with `FINAL_STATE.NEED_REEVALUATION` = 1 and **two**
+virtual entities — two groups of records that no resolution step joined. The spot-check, the ratio
+and the stats all passed them. That observation is **observation-only** (INV-080/INV-149): it says
+what one run returned, not what the flag means.
+
+1. **Take every entity with 2 or more records from the export already read** in the match-key
+   audit's step 1 — an entity whose `RESOLVED_ENTITY.RECORDS[]` has two or more elements. **No
+   sampling.** Call that total **M**. One `how_entity` call per entity, through generated SDK code
+   (never direct SQL against `database/G2C.db`).
+2. **Take the method name, argument type and flag spelling from `get_sdk_reference` for the
+   Bootcamper's binding** — `get_sdk_reference(topic='parameters', filter='how_entity',
+   language='<chosen_language>')`. The name differs per binding (the response's own `warnings`
+   say so: `how_entity_by_entity_id` in Python, `howEntity` in Java, `HowEntity` in C#), so never
+   copy one binding's name into another. Use the method's default flags.
+3. ⛔ **(INV-115) Dump ONE `how_entity` response and read where `FINAL_STATE` sits before
+   parsing all M of them.** `get_sdk_reference(topic='response_schemas', filter='how_entity_by_entity_id')`
+   documents `HOW_RESULTS.FINAL_STATE.NEED_REEVALUATION` (integer) and
+   `HOW_RESULTS.FINAL_STATE.VIRTUAL_ENTITIES[]` (array), with no `requires_flags` on either. The
+   flags route's `SZ_HOW_ENTITY_DEFAULT_FLAGS` entry lists only `HOW_RESULTS.RESOLUTION_STEPS[]` as
+   its response path (both lookups: server **1.37.13**, 2026-09-27), while the 2026-09-25 run
+   returned `FINAL_STATE` under the default flags — the two do not fully agree, so the dumped
+   response is the authority (INV-149/INV-169). If an entity's response lacks `FINAL_STATE`, that
+   entity was **not measured**: count it under "could not measure", never as settled (INV-115: a
+   blank parsed field is a probable wrong reader before it is real absent data).
+4. **Flag an entity when EITHER sign is present, and name which sign fired** — `NEED_REEVALUATION`
+   non-zero, or `VIRTUAL_ENTITIES[]` with more than one element. One sign alone is enough. No route
+   documents whether the two always go together, so record each entity's sign or signs rather than
+   inferring one from the other.
+5. **Report "checked N of M"** — N is the number of entities whose `how_entity` call completed and
+   whose response carried `FINAL_STATE`. A failed call does not abort the audit; count it as not
+   checked and continue with the rest.
+6. **The meaning of `NEED_REEVALUATION` is not documented, so the audit reports and offers no fix.**
+   It does not suggest a re-evaluation call, a reload, or any other remedy, and it claims nothing
+   about what set the flag or what would clear it. The Bootcamper hears the finding; what to do
+   about it waits on a Senzing route that documents it.
+   <!-- MCP-NEGATIVE: search_docs(query='NEED_REEVALUATION how entity final state') and search_docs(query='reevaluate entity when to call reevaluation needed') — no indexed document defines HOW_RESULTS.FINAL_STATE.NEED_REEVALUATION or says what sets or clears it; the first query reaches the field only inside the how-flags page's example payload, which shows "NEED_REEVALUATION": 0, and the second returns re-evaluation code snippets, flag constants and a config-change FAQ, none naming the field — owner: get_sdk_reference(topic='response_schemas', filter='how_entity_by_entity_id') IS the route that would carry a field description, and it lists NEED_REEVALUATION as an integer with no description; search_docs is the prose owner, and both were asked (absence negative, INV-194) — server 1.37.13, 2026-09-27 -->
+
+**Four outcomes — the match-key audit's three, plus one for an empty population. State which one
+applies:**
+
+- **Finding** — name each unsettled entity (entity ID and its leading name) and the sign or signs it
+  showed, with "checked N of M".
+- **No finding** — every one of the M entities was checked and none showed either sign.
+  ⛔ **(INV-163) Never report "no finding" unless N equals M** — "none unsettled among those checked"
+  and "none unsettled" read identically, and only the second is a clean result: an entity whose
+  response never arrived is not an entity with nothing to report.
+- **Nothing to check** — M is 0: the export holds no entity with 2 or more records. Report
+  "checked 0 of 0" and **nothing to check**. ⛔ **(INV-265) With M = 0 the outcome is never "no finding"** —
+  the audit's input is empty, and "no finding" is its clean result. A reader that parses
+  `RESOLVED_ENTITY.RECORDS[]` under the wrong name also finds zero multi-record entities (INV-115),
+  so prove the export was read before saying the question does not arise, as the match-key audit
+  does for relationships (its step 3). Report **nothing to check** only when **both** hold:
+  - the export returned **at least one entity**; and
+  - the lengths of `RESOLVED_ENTITY.RECORDS[]`, summed across the whole export, **equal the total
+    records loaded** that step 28 wrote to `docs/results_validation.md`. `RECORDS[]` is the
+    *"individual records that constitute the entity"*
+    (`get_sdk_reference(topic='response_schemas', filter='export_json_entity_report')`), and
+    `reporting_guide(topic='evaluation', language='<chosen_language>')` counts a load's records by
+    summing them across the export (both: server **1.37.15**, 2026-09-29). A sum that differs means
+    the reader and the load disagree, so M cannot be trusted either way.
+
+  If either fails, the outcome is **could not measure**, naming which condition failed: zero
+  entities exported, or the record sum beside the records loaded, with both figures. A load that
+  reports records but exports no entities is a reader or flag problem, not an empty population.
+- **Could not measure** — some or all calls did not complete, or their responses carried no
+  `FINAL_STATE`, or M is 0 and a **nothing to check** condition failed. Say how many were not
+  checked ("checked N of M"), and still report any finding among the N that were.
+  ⛔ **Never collapse a partial run into "no finding" (INV-163).**
+
+⛔ **The outcome never blocks (INV-117, INV-264)** — it is carried into the decision gate below as a
+finding, exactly as the match-key audit's is, and it does not by itself choose the gate's branch;
+**nothing to check** does not move the gate either.
+
+**Record it in `docs/results_validation.md`**, which step 28 already wrote (steps 26–27 as well,
+on the multi-source path). Append a `## How-state audit` section carrying the outcome, "checked N
+of M", and the count of unsettled entities —
+⛔ **(INV-265) including zero: write "0 unsettled" rather than omitting the section**, since an
+absent section and a clean result would otherwise read alike — then list each flagged entity with
+its sign or signs. That rule is for **no finding**. For **nothing to check**, still write the
+section, carrying the outcome and "checked 0 of 0", but **omit the "0 unsettled" line**: no entity
+was checked, and a zero count there would read as a clean audit (INV-265). Wherever a flagged
+entity's record count appears elsewhere in that document (the entity statistics, a spot-check table, a business-result
+table), mark it **unconfirmed by the engine's construction history** and point to this section:
+the export's count and the engine's history disagree, and the document must not present the count
+as settled (INV-245).
+
+This audit asks nothing, so continue in the same turn to the gate below (INV-225).
+
 ## Iterate vs. proceed decision gate
 
 Route on the UAT / match-accuracy results, **and present the match-key audit outcome alongside
@@ -451,6 +597,12 @@ State which of the audit's three outcomes applies; do **not** collapse the third
   plainly rather than letting silence imply a clean result: a gate decided on an unmeasured number
   is worse than a gate told the measurement failed. This still does not block (INV-117) — it is a
   third finding that routes, not a new blocker.
+
+**Present the how-state audit's outcome beside the match-key audit's**, as its own line — finding,
+no finding, nothing to check, or could not measure, with "checked N of M". A finding names the unsettled entities
+and says their record counts are unconfirmed; it is reported on every branch below and does not
+move the gate to a different branch (INV-117, INV-264), because no documented remedy exists to
+iterate toward.
 
 - **UAT ≥90% and match accuracy ≥90%:** state "Results look strong." and proceed to the module
   transition question. **If the audit produced a finding, say so in the same breath** — strong
@@ -483,6 +635,8 @@ stakeholder-summary template is bundled; compose the summary directly.)
   statistics
 - ✅ At least one data source fully loaded with error rate < 1%
 - ✅ Redo queue drained after loading
+- ✅ How-state audit run on every multi-record entity; unsettled entities named, zero recorded, or
+  nothing to check stated, in `docs/results_validation.md`
 - ✅ Loading statistics documented in `docs/loading_strategy.md`
 - ✅ Match accuracy reviewed (sample entities checked for false positives/negatives)
 - ✅ Results validation documented in `docs/results_validation.md`

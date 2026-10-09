@@ -5,13 +5,14 @@ transition 👉 question. It does three things, in this fixed order:
 
 1. Update progress state.
 2. Append this module's recap section to `docs/bootcamp_recap.md` (the recap
-   the bootcamper keeps).
+   the bootcamper keeps), and save its B-roll entry to `docs/video/broll.json`
+   (the material the graduation video is built from).
 3. Present the end-of-module summary to the bootcamper.
 
 Then the module asks its single transition question. Follow `ground-rules.md`
 throughout: `🛑`/`⛔` are internal, never rendered; one 👉 question ends the turn.
 
-This is the module-completion routine every module closes with. It is deliberately lightweight and non-blocking. If any write fails, name what failed, do not claim the module is complete, and let the bootcamper decide how to proceed.
+This is the module-completion routine every module closes with. It is deliberately lightweight and non-blocking. If any write fails, name what failed, do not claim the module is complete, and let the bootcamper decide how to proceed. The one exception is the B-roll entry (2e), which never blocks completion.
 
 ## Step 1: Update progress state
 
@@ -222,6 +223,81 @@ appended (2b), that block is superseded. Do two things:
   empty scaffold back down on the next turn if you delete it, and an emptied file is
   treated as an unfilled scaffold — the fold hooks skip both rather than appending an
   empty block to the recap.
+
+### 2e. Save this module's B-roll entry
+
+The graduation video is built from `docs/video/broll.json`: one entry per completed module,
+saved here while the module's work is still in context, so graduation reads one manifest instead
+of reconstructing the bootcamp from memory (INV-341). Every module that runs Step 2 runs this substep,
+Entity Resolution Concepts included. A module with nothing on screen still writes its `facts` and
+`highlight`; the video draws a title card for it.
+
+Bootcamp preparation writes no entry: it never runs this process (INV-075), and graduation builds
+its scene from `config/bootcamp_preferences.yaml`. Graduation writes none either.
+
+The file is one JSON object. Each key is the module's **state token** from the module list in
+`../bootcamp-preparation/SKILL.md` (`business_problem`, `data_collection`, …), the same token
+Step 1 adds to `modules_completed`, and each value holds five keys:
+
+```json
+{
+  "data_quality_mapping": {
+    "module": "Data Quality, Mapping, and Transformation",
+    "images": ["docs/visualizations/data_quality_assessment.png"],
+    "facts": {
+      "sources": [{"name": "CUSTOMERS", "records": 1200}, {"name": "VENDORS", "records": 340}],
+      "mappings": [
+        {"source": "CUSTOMERS", "fields": [{"from": "last_nm", "to": "NAME_LAST"},
+                                           {"from": "street", "to": "ADDR_LINE1"}]}
+      ]
+    },
+    "highlight": "Mapped two sources to Senzing attributes and raised CUSTOMERS' quality score from 64% to 81%.",
+    "captured_at": "2026-09-30T14:05:00-04:00"
+  }
+}
+```
+
+- **`module`** — the module's display name, as the recap's `## {Name}` heading writes it.
+- **`images`** — project-relative paths (`docs/visualizations/<name>-<tab-slug>.png`,
+  `docs/visualizations/data_quality_assessment.png`) of screenshots this module **already**
+  produced, in the order its recap embeds them. Add no capture for this: list only files that
+  exist on disk, and write `[]` when the module produced none. ⚠️ **The path is relative to the
+  project root, not to the recap** — `docs/visualizations/…` here, where the recap's image line
+  writes `visualizations/…` (INV-161 governs the recap, not this manifest). The video renderer
+  resolves storyboard images against the project root. List every screenshot the module
+  produced, name-bearing ones included: graduation, not this manifest, decides which are
+  name-free enough for the video (`../graduation/SKILL.md` Step 1c).
+- **`facts`** — the numbers and names the scene shows, as aggregates, with only the keys that
+  apply to this module:
+  - `sources`: `[{"name": <source name>, "records": <count>}]`;
+  - `mappings`: `[{"source": <source name>, "fields": [{"from": <source field>, "to": <Senzing attribute>}]}]`;
+  - `records_loaded` and `entities_resolved`: counts;
+  - `statistics`: `[{"label": <what it counts>, "value": <number>}]`, for match-key or
+    cross-source statistics and any other figure worth a scene.
+
+  Write `{}` when the module has no figures (Entity Resolution Concepts, for one).
+- **`highlight`** — one sentence on what the bootcamper did or learned in this module. For
+  Discover the Business Problem, a summary of the problem they described.
+- **`captured_at`** — an ISO 8601 timestamp with its timezone offset.
+
+⛔ **(INV-341) No raw record values, anywhere in the entry.** Only counts, source names, field and
+attribute names, and statistics. Never a name, an address, a phone number, an identifier or any
+other value from the bootcamper's records, and never an entity's or a record's content, not even
+inside `highlight` or a `statistics` label. The video is a keepsake the bootcamper is encouraged
+to share, and its module scenes are built from this file.
+
+**(INV-341) Re-completing a module replaces its entry.** A resumed or repeated module writes its entry
+under the same key, overwriting the one already there, never a second entry. A key's position
+in the file carries no meaning: `modules_completed` holds the order the modules ran.
+
+**Write it (INV-341):** read `docs/video/broll.json`, set this module's key, and write the whole object
+back. When the file is missing, create `docs/video/` and write a new object holding this entry.
+When it does not parse as a JSON object, write a new object holding this entry in its place; do
+not try to rebuild earlier modules' entries here.
+
+⛔ **(INV-341) The B-roll entry never blocks module completion.** A failed read or write is not a module
+failure: the module completes and the recap stands. Do it quietly, with no bootcamper-facing
+line (INV-012), and move on to Step 3.
 
 ## Capturing visualization screenshots (optional)
 

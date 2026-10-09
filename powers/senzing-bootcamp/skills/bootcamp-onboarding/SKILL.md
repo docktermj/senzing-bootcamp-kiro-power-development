@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.3
-  templateRelease: 0.5.3
+  version: 0.6.1
+  templateRelease: 0.6.1
   templateSkill: bootcamp-onboarding
 ---
 
@@ -38,8 +38,10 @@ bootcamper through setup and into the numbered module skills, one guided step at
      consolidated write — so every quit between those two points lands here, across the whole
      preface and all of Bootcamp preparation.
    - **Present with a `current_module`** -> a bootcamp is already underway. Read it and offer to
-     resume from the last recorded module/step: read `current_module`/`current_step` and
-     continue from there.
+     resume from the last recorded module/step. (Full session-resume behavior is a later porting
+     phase; for now, read `current_module`/`current_step` and continue from there.) Before
+     continuing, check the feedback file for entries still reading `offer pending`, and follow
+     `feedback.md` → "Unanswered offer on resume", which owns that rule (INV-300).
 
    ⛔ **Never announce a resume you cannot perform.** (INV-227 — the decision is made on whether
    the progress file *records a module*, never on whether it exists.) Testing only for the file's

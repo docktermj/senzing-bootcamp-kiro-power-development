@@ -838,8 +838,12 @@ def _ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+def main(argv: Optional[List[str]] = None, description: Optional[str] = None) -> int:
+    # `description` lets the generate_document_pdf.py alias introduce itself in its own words
+    # in --help without building a parser of its own; None keeps this script's own first line.
+    parser = argparse.ArgumentParser(
+        description=__doc__.splitlines()[0] if description is None else description
+    )
     parser.add_argument("--input", default=DEFAULT_INPUT)
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
     parser.add_argument(

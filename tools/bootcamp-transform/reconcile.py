@@ -171,6 +171,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 from resolve_release import read_invariant_text, release_tree_root
 from transform import (
+    CARRY_FORWARD_FIELD,
     DEFAULT_CONTRACT,
     E_TRANSFORM_FAILED,
     E_WRITE_FAILED,
@@ -221,6 +222,7 @@ __all__ = [
     "ReconciliationReport",
     "REPORT_VERSION",
     # Classification.
+    "authored_wins_destinations",
     "classify",
     "classify_path",
     "reconcile",
@@ -1260,12 +1262,19 @@ def classify_path(
     on_disk_sha256: str | None,
     staging_sha256: str | None,
     owner: str | None = None,
+    carry_forward: bool = True,
 ) -> Classification:
     """Classify one path into exactly one bucket.
 
     Pure: three hashes and an owner in, one `Classification` out. Every branch
     below assigns a bucket and returns, so there is no path through this
     function that produces two verdicts or none.
+
+    `carry_forward=False` marks a path whose contract rule declares
+    `carryForward: false`: its authored file is the source of truth, so it is
+    not preserved merely for being `kiro`-owned and falls through to the same
+    hash comparison template content gets. The rule that matters is untouched —
+    a locally divergent copy is still a conflict and is still kept on disk.
     """
     common: dict[str, Any] = {
         "path": path,
@@ -1276,8 +1285,9 @@ def classify_path(
     }
 
     # Declared adaptation. Authoritative and checked first: a `kiro-owned` file
-    # is preserved because the contract says so, whatever its bytes did.
-    if owner == OWNER_KIRO:
+    # is preserved because the contract says so, whatever its bytes did —
+    # unless its rule declares the authored file authoritative instead.
+    if owner == OWNER_KIRO and carry_forward:
         if on_disk_sha256 is not None:
             return Classification(
                 bucket=BUCKET_PRESERVED,
@@ -1409,12 +1419,59 @@ def union_paths(
     )
 
 
+def authored_wins_destinations(contract: Any = None) -> tuple[str, ...]:
+    """The `dest` of every `kiro-owned` rule declaring `carryForward: false`.
+
+    Accepts what `load_discount_register` accepts — `None` (the default
+    contract), a path, or a loaded `Contract` — and additionally a raw contract
+    document, read leniently: anything this stage cannot interpret reads as "no
+    such rule", because the contract's own structure is `load_contract`'s gate.
+    """
+    if contract is None or isinstance(contract, (str, os.PathLike)):
+        contract = load_contract(DEFAULT_CONTRACT if contract is None else contract)
+
+    rules = getattr(contract, "rules", None)
+    if rules is not None:
+        return tuple(
+            dest
+            for rule in rules
+            if rule.owner == OWNER_KIRO and not rule.carry_forward
+            for dest in rule.dest
+        )
+
+    entries = contract.get("rules", ()) if isinstance(contract, Mapping) else ()
+    found: list[str] = []
+    for entry in entries if isinstance(entries, Sequence) else ():
+        if not isinstance(entry, Mapping) or entry.get(CARRY_FORWARD_FIELD) is not False:
+            continue
+        dest = entry.get("dest", ())
+        found.extend([dest] if isinstance(dest, str) else [d for d in dest if isinstance(d, str)])
+    return tuple(found)
+
+
+def _under_destination(path: str, destinations: Iterable[str]) -> bool:
+    """Whether `path` is a file `dest` exactly, or lies below a directory `dest`."""
+    for dest in destinations:
+        if dest.endswith("/") and path.startswith(dest):
+            return True
+        if path == dest:
+            return True
+    return False
+
+
 def classify(
     previous: ManifestBaseline,
     on_disk: FileTree,
     staging: FileTree,
+    *,
+    authored_wins: Iterable[str] = (),
 ) -> tuple[Classification, ...]:
-    """Classify every path in the union of the three inputs, sorted by path."""
+    """Classify every path in the union of the three inputs, sorted by path.
+
+    `authored_wins` is the `dest` list from `authored_wins_destinations`; a path
+    under one of them is classified with `carry_forward=False`.
+    """
+    destinations = tuple(authored_wins)
     return tuple(
         classify_path(
             path,
@@ -1422,6 +1479,7 @@ def classify(
             on_disk_sha256=on_disk.sha256(path),
             staging_sha256=staging.sha256(path),
             owner=previous.owner(path),
+            carry_forward=not _under_destination(path, destinations),
         )
         for path in union_paths(previous, on_disk, staging)
     )
@@ -1435,6 +1493,7 @@ def reconcile(
     to_release: str,
     from_release: str | None = None,
     flagged_invariant_discounts: Iterable[FlaggedDiscount] = (),
+    authored_wins: Iterable[str] = (),
 ) -> ReconciliationReport:
     """Classify three inputs into one `ReconciliationReport`.
 
@@ -1446,7 +1505,9 @@ def reconcile(
         from_release=(
             previous.template_release if from_release is None else from_release
         ),
-        classifications=classify(previous, on_disk, staging),
+        classifications=classify(
+            previous, on_disk, staging, authored_wins=authored_wins
+        ),
         flagged_invariant_discounts=tuple(flagged_invariant_discounts),
     )
 
@@ -1501,6 +1562,7 @@ def reconcile_directories(
         to_release=to_release,
         from_release=resolved_from,
         flagged_invariant_discounts=flagged,
+        authored_wins=authored_wins_destinations(contract),
     )
 
 

@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.3
-  templateRelease: 0.5.3
+  version: 0.6.1
+  templateRelease: 0.6.1
   templateSkill: bootcamp-preparation
 ---
 
@@ -76,7 +76,7 @@ deselecting System verification forces deselecting Truth Set visualization, whic
 ## 0. Read the saved preferences first — honor them, do not ask (INV-133)
 
 ⛔ **Before Step 1, read `config/bootcamp_preferences.yaml` once.** Every capture question below is
-governed by the same rule, and it applies to **all** of them, not just model guidance:
+governed by the same rule, and it applies to **all** of them:
 
 > A setup preference already recorded in `config/bootcamp_preferences.yaml` MUST be honored, its
 > capture question MUST NOT be asked, and the saved value MUST NEVER be overwritten with a
@@ -448,7 +448,7 @@ suppressed, so an honored preference is visible rather than looking like a quest
 - **The module list is separated by semicolons, not commas.** Two display names contain internal
   commas — *Data Quality, Mapping, and Transformation* and *Query, Visualize and Discover* — so a
   comma-separated Core list reads as **fourteen** modules instead of eleven. This is the same reason
-  `generate_recap_pdf.py --check --expect-modules` takes a semicolon-separated list. The names
+  `generate_recap_pdf.py`'s `--check --expect-modules` takes a semicolon-separated list. The names
   themselves must stay verbatim (INV-079), so the separator is the only place this can be fixed.
 - **The label is "Programming language", never the bare "Language"** — the rule stated in Step 4
   above, and it applies to every bootcamper-facing line, not only to the question.

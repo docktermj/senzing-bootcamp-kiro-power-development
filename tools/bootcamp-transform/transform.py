@@ -125,6 +125,7 @@ __all__ = [
     "RULE_KINDS",
     "OWNER_KIRO",
     "OWNER_TEMPLATE",
+    "CARRY_FORWARD_FIELD",
     "load_contract",
     # Enumeration and matching.
     "SourceFile",
@@ -353,6 +354,22 @@ OWNER_KIRO = "kiro"
 #: matching: they exist only in the Power.
 _SOURCELESS_KINDS = frozenset({"kiro-owned"})
 
+#: The contract key that opts a `kiro-owned` rule out of `--carry-forward`.
+#:
+#: Carry-forward exists so a Kiro adaptation already in the Power survives an
+#: update unchanged (R5 AC5). For content whose single point of change is the
+#: authored tree, that same precedence means an edit to the authored file can
+#: never reach the Power on the update path: the Power's copy is found first, and
+#: the reconciler then preserves it as a declared adaptation. `carryForward:
+#: false` declares that the authored file is the source of truth for the rule's
+#: destinations. The engine then reads only `templates/kiro-owned/` for it, on
+#: both paths, and the reconciler classifies its paths by hash like template
+#: content — so a Power copy that nobody edited is `modified` and takes the
+#: authored bytes, while a locally edited one is still a `conflict` and is still
+#: never overwritten. Absent means `true`, which is the behavior every existing
+#: rule already has.
+CARRY_FORWARD_FIELD = "carryForward"
+
 #: The engine's own directory. A contract `template` path is relative to it, and
 #: the two roots below are derived from it, so the engine's layout is stated once.
 ENGINE_ROOT = Path(__file__).resolve().parent
@@ -385,6 +402,12 @@ class Rule:
     substitutions: tuple[str, ...] = ()
     template: str | None = None
     owner: str = OWNER_TEMPLATE
+    #: Whether `--carry-forward` may supply this rule's content. Meaningful only
+    #: for `kiro-owned` rules. `False` makes the authored tree under
+    #: `templates/kiro-owned/` the sole source on both paths, and makes the
+    #: reconciler classify the rule's paths by hash rather than preserving them
+    #: as declared adaptations — see `CARRY_FORWARD_FIELD`.
+    carry_forward: bool = True
 
     @property
     def claims_source(self) -> bool:
@@ -617,6 +640,23 @@ def _parse_rule(entry: Any, *, index: int) -> Rule:
             ruleId=rule_id,
         )
 
+    carry_forward = entry.get(CARRY_FORWARD_FIELD, True)
+    if not isinstance(carry_forward, bool):
+        raise TransformError(
+            E_TRANSFORM_FAILED,
+            f"contract defect: rule '{rule_id}' field '{CARRY_FORWARD_FIELD}' must "
+            "be true or false",
+            ruleId=rule_id,
+        )
+    if CARRY_FORWARD_FIELD in entry and owner != OWNER_KIRO:
+        raise TransformError(
+            E_TRANSFORM_FAILED,
+            f"contract defect: rule '{rule_id}' declares '{CARRY_FORWARD_FIELD}', "
+            f"which only a '{OWNER_KIRO}'-owned rule can carry: --carry-forward "
+            "never supplies template content",
+            ruleId=rule_id,
+        )
+
     return Rule(
         id=rule_id,
         kind=kind,
@@ -628,6 +668,7 @@ def _parse_rule(entry: Any, *, index: int) -> Rule:
         ),
         template=template,
         owner=owner,
+        carry_forward=carry_forward,
     )
 
 
@@ -1237,6 +1278,11 @@ def _kiro_owned_outputs(
     and `templates/kiro-owned/` comes second, so a destination the existing Power
     has never carried still materializes from the authored content.
 
+    A rule declaring `carryForward: false` consults only the **last** base — the
+    authored tree, which `plan_destinations` always appends last — so the
+    Power's copy is never read for it and the create and update paths take its
+    bytes from the same place.
+
     Returns the outputs and the `rule:dest` pairs that had no authored content in
     any base. An unmaterialized destination is *reported*, not fatal: the
     Schema_Validator owns the skill-inventory gate, and halting the engine here
@@ -1247,10 +1293,11 @@ def _kiro_owned_outputs(
     found: dict[str, tuple[tuple[tuple[str, Path], ...], Path | None]]
 
     for rule in contract.kiro_owned_rules:
+        rule_bases = tuple(bases) if rule.carry_forward else tuple(bases)[-1:]
         found = {}
         for dest in rule.dest:
             found[dest] = ((), None)
-            for base in bases:
+            for base in rule_bases:
                 entries = _kiro_owned_entries(contract, rule, dest, base)
                 if entries:
                     found[dest] = (entries, base)
@@ -1320,6 +1367,8 @@ def plan_destinations(
                 )
             )
 
+    # The authored tree is always the LAST base: a `carryForward: false` rule
+    # reads only that one (see `_kiro_owned_outputs`).
     bases: list[Path] = []
     if plan.carry_forward is not None:
         bases.append(Path(plan.carry_forward))

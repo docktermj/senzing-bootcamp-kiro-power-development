@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.3
-  templateRelease: 0.5.3
+  version: 0.6.1
+  templateRelease: 0.6.1
   templateSkill: module-02-sdk-setup
 ---
 
@@ -95,9 +95,10 @@ supported, so all three are listed):
 verified on MCP server 1.32.9, docs indexed 2026-08-11 20:52 UTC, 2026-08-13.)
 
 If the library is present, report the SDK as installed and skip the **installation** — Step 2, and
-Step 3's install commands. ⛔ **(INV-222) Not Step 3 entirely: its environment-script work still runs**, and it
-is the single most likely thing an existing install is missing — see "Required stops" in the V4.0+
-branch below. Then proceed to Step 4 verification.
+Step 3's install commands (its Phase 1 EULA question and its Phase 2 SDK package).
+⛔ **(INV-339) Not Step 3 entirely: its Phase 3 and its environment-script work still run**, and the
+environment script is the single most likely thing an existing install is missing — see
+"Required stops" in the V4.0+ branch below. Then proceed to Step 4 verification.
 
 ⛔ **Only conclude "not installed" for a platform whose library you actually checked.** If the
 platform is undetermined, or the check could not run, the result is **unknown** — say so and name
@@ -106,9 +107,8 @@ installed" from a path that cannot exist on this platform is how a Bootcamper wi
 gets sent to reinstall it, which is exactly what this step opens by forbidding.
 
 **Reading the version once the library is found:** use the primary route — the language version
-check, or `SzProduct.get_version()`, which returns `VERSION`, `BUILD_DATE`, `BUILD_NUMBER` and
-`NATIVE_API_VERSION` (`search_docs`, server 1.32.9, 2026-08-13). Failing that, build metadata sits
-in `szBuildVersion.json` — see "Comparing the two versions" in Step 1b.
+check, or `SzProduct.get_version()`, whose response fields Step 4 states. Failing that, build
+metadata sits in `szBuildVersion.json` — see "Comparing the two versions" in Step 1b.
 
 ⛔ **(INV-285) Its provenance differs by platform, so it is stated per platform.** One caveat spanning all
 three is what let the Windows half go stale while reading as reviewed.
@@ -131,29 +131,42 @@ three is what let the Windows half go stale while reading as reviewed.
 
 If the file is not where expected, read the version through the SDK rather than concluding the SDK
 is missing.
-<!-- MCP-NEGATIVE: search_docs(query='szBuildVersion.json build version file location') — no indexed document gives that file's path on any platform; every hit is a version-READING example or a build/packaging document, none stating where the file lives — owner: search_docs IS the corpus route for a documented file location, and the version fact the corpus does serve is the SDK's get_version() rather than a file, so the SDK route is where the reader must go (routing negative; NOTE the Windows path IS served, by sdk_guide(topic='install', platform='windows') in its gotchas[] — this claim is scoped to search_docs and to Linux/macOS) — server 1.36.0, 2026-09-02 -->
+<!-- MCP-NEGATIVE: search_docs(query='szBuildVersion.json build version file location') — no indexed document gives that file's path on any platform; the corpus serves SDK version-READING material for it (the get_version() examples) and build/packaging documents, none stating where the file lives — owner: search_docs IS the corpus route for a documented file location, and the version fact the corpus does serve is the SDK's get_version() rather than a file, so the SDK route is where the reader must go (routing negative; NOTE the Windows path IS served, by sdk_guide(topic='install', platform='windows') in its gotchas[] — this claim is scoped to search_docs and to Linux/macOS) — server 1.37.13, 2026-09-26 -->
 
 **If the SDK is found and version is V4.0+:**
 
-Tell the user: "Senzing SDK is already installed (version [X]). No need to reinstall, skipping
-straight to configuration verification."
+Tell the user: "Senzing SDK is already installed (version [X]). No need to reinstall: I'll skip the
+installation, then set up this project's environment script (and your language's bindings, if it
+needs them) before verifying it."
 
 Then run **Step 1b** below to see whether a newer release is available, and offer it. A working
 install is never replaced without the bootcamper saying so.
 
-- **Skip the *installation* — Step 2, and Step 3's install commands.** Not Step 3 entirely: see the
-  required stop below. What is redundant on an existing install is fetching and installing the SDK;
-  nothing else in Step 3 is.
-- **Still do Step 3's environment-script work** ("Create the project-local environment script"), then
+This is the **existing-install path** (INV-339). It is the same whether Step 1b finds no newer version, the
+bootcamper declines the update, or they decline the EULA for it, and an accepted update rejoins it
+(Step 1b, "After updating"):
+
+- **Skip the *installation* — Step 2, and Step 3's install commands: Step 3's Phase 1 (EULA
+  acceptance) and Phase 2 (the SDK package).** Not Step 3 entirely: see the required stops below.
+  What is redundant on an existing install is fetching and installing the SDK; nothing else in
+  Step 3 is.
+- **(INV-338) Do not re-ask the EULA.** Phase 1 gates installing the SDK, and this path installs no SDK.
+  Only an update the bootcamper accepts in Step 1b asks it, because an update is an install.
+- **(INV-339) Still run Step 3's Phase 3** (install language bindings). The Java, C#, Rust and TypeScript
+  bindings are per-project, so an existing SDK install does not provide them. For Python,
+  Phase 3 installs nothing: the bindings ship inside the SDK runtime and are made importable by
+  the environment script.
+- **(INV-339) Still do Step 3's environment-script work** ("Create the project-local environment script"), then
   jump to Step 4 (verify installation) to confirm it works with the chosen language.
 - If Step 4 passes, proceed to Step 5 (License), which confirms the built-in evaluation license
   without prompting (the License Key gate is in Module 4, per INV-093). After Step 5, proceed to
   Step 6 (create the project directory structure), then Step 7 (database).
 - Mark Module 2 as complete once verification passes.
 
-> **Required stops:** These steps are NEVER skipped, even when the SDK is already installed:
+> **Required stops (INV-339):** These steps are NEVER skipped, even when the SDK is already installed:
 >
-> - **Step 3's environment script** (`src/scripts/senzing-env.sh`, or `senzing-env.bat` on Windows):
+> - **Step 3's environment script** (`src/scripts/senzing-env.sh`, or `src\scripts\senzing-env.ps1` on
+>   Windows, dot-sourced; its Windows form is unverified on Windows PowerShell 5.1 here, INV-163):
 >   ⛔ **the single most likely thing an existing install is missing.** Step 3 is titled "Install
 >   Senzing SDK" and does **two** jobs — it installs the SDK *and* it writes the project-local script
 >   that exports the library and Python paths. Only the first is redundant here. Skipping both leaves
@@ -167,6 +180,8 @@ install is never replaced without the bootcamper saying so.
 >   install ran (INV-080). Write the script with the **same** implementation the install path uses:
 >   the zsh/bash path-resolution idiom, the fail-loudly root check, and the empty-value guard (see
 >   "The env script MUST resolve its own path…" in Step 3). One implementation, not two.
+> - **Step 3's Phase 3** (install language bindings): the Java, C#, Rust and TypeScript bindings
+>   belong to the project, not to the SDK install. Python has nothing to install here.
 > - **Step 4** (Verify Installation): confirms the SDK works with the chosen language.
 > - **Step 5** (License): a brief, no-prompt confirmation that the built-in evaluation license is
 >   active (the volume-gated License Key gate itself lives in Module 4, per INV-093).
@@ -201,11 +216,16 @@ MCP server. `get_capabilities` reports `senzing_version` as the string `"current
 
 ⛔ **Two kinds of command follow, and they have different owners. Do not treat them alike.**
 
-- **Server-documented (on loan — re-read it, do not trust the copy below).** The *install* command
-  comes from `sdk_guide(topic='install', platform='<platform>', language='<language>')`. Its live
-  response is authoritative; the forms below are a dated illustration (server 1.32.2, verified
-  2026-07-31) so you can see the shape without a round trip. If the response differs, **the
-  response wins.**
+- **Server-documented (on loan — re-read it, do not trust the copy below).** Two routes carry
+  these. The *install* command comes from
+  `sdk_guide(topic='install', platform='<platform>', language='<language>')`. The macOS and
+  Windows *update* command comes from `search_docs`, which serves the official Homebrew tap and
+  Scoop bucket READMEs (the two queries are under "The update command" below). Each live response
+  is authoritative; the forms below are a dated illustration (install: server 1.32.2, verified
+  2026-07-31; update: server 1.37.14, docs index 2026-09-28 03:23 UTC, verified 2026-09-28) so
+  you can see the shape without a round trip. If a response differs, **the response wins.** If
+  `search_docs` is unreachable, use the update form below as last verified on that date and say
+  that it could not be re-checked (INV-163).
 - **Plugin-owned (there is nothing to re-ask).** The **installed-version query** and the
   **available-version check** are ordinary package-manager commands. `sdk_guide` returns *install*
   commands and *presence* checks (`ls libSz.so`, `Test-Path Sz.dll`) — it documents **no version
@@ -220,16 +240,28 @@ MCP server. `get_capabilities` reports `senzing_version` as the string `"current
   zero-exit-code warning further down without exception. This is the same discipline INV-163
   requires — say what you could not verify — applied to a command rather than a check.
 
-⚠️ **On macOS and Windows the update command is Power-owned too.** The server documents
-`brew install --cask` and `scoop install`, never `brew upgrade --cask` or `scoop update` (checked
-across `install_commands`, `gotchas` and `post_install` for both, re-confirmed 2026-08-13). Only on
-apt and yum is the update command the same server-documented `install` command. That asymmetry is the
-same coverage gap reported upstream on 2026-08-13 — the server documents installing, not updating.
+**The update command.** ⚠️ **On macOS and Windows the update command is server-documented through
+`search_docs`, not through `sdk_guide`.** `sdk_guide(topic='install')` gives the install command;
+the update command is in the official tap and bucket READMEs, which `search_docs` serves (server
+1.37.14, docs index 2026-09-28 03:23 UTC, 2026-09-28):
+
+- **macOS:** `search_docs(query='homebrew-senzingsdk upgrade cask brew upgrade senzingsdk')`
+  returns `senzing/homebrew-senzingsdk`, section "Upgrade": `brew update`, then
+  `brew upgrade --cask senzingsdk`. ⚠️ A V3→V4 migration FAQ ranks above it; read down to the
+  README section rather than concluding from the first result.
+- **Windows:** `search_docs(query='scoop-senzingsdk update scoop update senzingsdk')` returns
+  `senzing/scoop-senzingsdk`, section "Update": `scoop update senzingsdk`.
+
+Only on apt and yum is the update command the same server-documented `install` command from
+`sdk_guide`. The coverage gap reported upstream on 2026-08-13 — the server documented installing,
+not updating — is **partly closed**: the update commands are now served, while the
+installed-version query, the available-version check and version-exact pins for casks and Scoop
+are still absent.
 <!-- Date corrected from 2026-07-31 on 2026-08-13: the earlier claim was unsubstantiated. A
      feature request WAS sent on 2026-07-31, but for the stdio-mode / private-deployment route — a
      different subject — and the two had been conflated, so 2026-08-13 is this gap's first report
      rather than a duplicate. Full evidence chain in the maintainer's development record. -->
-<!-- MCP-NEGATIVE: sdk_guide(topic='install', platform='macos_arm') and the same call with platform='windows' — install_commands, gotchas and post_install carry no brew upgrade --cask and no scoop update — owner: sdk_guide(topic='install', platform=<that platform>) IS the route that would carry an update command for each package manager, and both document installing only (absence negative) — server 1.36.0, 2026-09-02 -->
+<!-- MCP-NEGATIVE: sdk_guide(topic='install', platform='macos_arm') and the same call with platform='windows' — install_commands, gotchas and post_install carry no brew upgrade --cask and no scoop update — owner: search_docs IS the route that carries the update command for each package manager: search_docs(query='homebrew-senzingsdk upgrade cask brew upgrade senzingsdk') returns the tap README's Upgrade section and search_docs(query='scoop-senzingsdk update scoop update senzingsdk') returns the bucket README's Update section, so the reader must go there rather than conclude the command is undocumented (routing negative) — server 1.37.14, 2026-09-28 -->
 
 **Linux, apt (`linux_apt`):**
 
@@ -256,13 +288,15 @@ sudo apt install -y senzingsdk-runtime senzingsdk-setup   # takes the newest ava
 
 **macOS, Homebrew cask (`macos_arm`):**
 
-<!-- MCP-NEGATIVE: sdk_guide(topic='install', platform='macos_arm') — no brew outdated, brew info or brew upgrade anywhere in the response; the brew commands it does carry are tap, trust, install --cask, uninstall --cask, untap, install/link libpq, and --prefix — owner: sdk_guide(topic='install', platform='macos_arm') IS the route that would carry a version-management command for the cask, and it carries none (absence negative) — server 1.36.0, 2026-09-02 -->
+<!-- MCP-NEGATIVE: sdk_guide(topic='install', platform='macos_arm') and search_docs(query='brew outdated brew info senzingsdk installed version check') — neither carries brew outdated or brew info for the cask; the corpus serves the tap README's install, upgrade and uninstall usage for it and no version-check command — owner: sdk_guide(topic='install', platform='macos_arm') IS the route for the cask's commands and search_docs IS the corpus route for the tap README, so the routes that would carry a version check were asked and carry none (absence negative) — server 1.37.14, 2026-09-28 -->
 
 ```bash
-# ALL Power-owned — sdk_guide documents no brew version-management command:
-# never outdated, info or upgrade (checked across its whole response, 2026-08-13)
+# Power-owned — the server documents no brew version check:
+# neither outdated nor info (sdk_guide and search_docs, checked 2026-09-28)
 brew outdated --cask senzingsdk    # nothing printed = up to date
 brew info --cask senzingsdk        # installed and latest versions
+# server-documented — re-read from search_docs; this form is a dated illustration
+brew update
 brew upgrade --cask senzingsdk     # takes the newest available
 ```
 
@@ -282,14 +316,15 @@ paths still resolve.
 
 **Windows, Scoop (`windows`):**
 
-<!-- MCP-NEGATIVE: sdk_guide(topic='install', platform='windows') — no scoop status, scoop info or scoop update anywhere in the response; the scoop commands it does carry are bucket add, install, and config (for the EULA variable) — owner: sdk_guide(topic='install', platform='windows') IS the route that would carry a version-management command for Scoop, and it carries none (absence negative) — server 1.36.0, 2026-09-02 -->
+<!-- MCP-NEGATIVE: sdk_guide(topic='install', platform='windows') and search_docs(query='scoop status scoop info senzingsdk installed version check') — neither carries scoop status or scoop info; the corpus serves the bucket README's install, update and uninstall usage for it and no version-check command — owner: sdk_guide(topic='install', platform='windows') IS the route for the bucket's commands and search_docs IS the corpus route for the bucket README, so the routes that would carry a version check were asked and carry none (absence negative) — server 1.37.14, 2026-09-28 -->
 
 ```powershell
-# Power-owned — sdk_guide documents no scoop version-management command:
-# never status, info or update (checked across its whole response, 2026-08-13)
+# Power-owned — the server documents no scoop version check:
+# neither status nor info (sdk_guide and search_docs, checked 2026-09-28)
 scoop status                          # lists packages with updates available
 scoop info senzingsdk/senzingsdk      # installed and latest versions
-scoop update senzingsdk/senzingsdk    # takes the newest available
+# server-documented — re-read from search_docs; this form is a dated illustration
+scoop update senzingsdk               # takes the newest available
 # server-documented — the presence probe sdk_guide gives under post_install
 Test-Path "$env:SENZING_DIR\lib\Sz.dll"   # verify it actually installed
 ```
@@ -344,7 +379,67 @@ version aloud if what you reported at Step 1 turns out to have been the package 
 or an install that no package manager owns are all *unknown*, and reporting them as current is the
 one outcome worse than not checking.
 
+### Before the offer: read the target's release notes
+
+Only when a newer version is genuinely available. With no newer version, or when the check was
+skipped, there is no lookup and no offer: record the outcome (see the checkpoint below) and continue
+on the existing-install path in Step 1. The **target** is the newest available version. Read its
+notes **now, before the offer**, so that the offer turn relays what applies instead of asking
+before it has looked. A version the bootcamper names in reply to the offer gets the same lookup
+then, before it is installed (see "The offer").
+
+⚠️ **A 4.x → 4.y update is covered by the target version's release notes, not by a generic
+procedure.** `sdk_guide` has no `upgrade` topic, and the migration material a generic upgrade
+query finds is for V3→V4 only. `sz_dbupgrade`, `sz_configupgrade` and `sz_configtool` are V3→V4
+migration tools, and which of them a migration uses depends on the V4 version doing it:
+`sz_dbupgrade` and `sz_configupgrade` for v4.0–v4.3, and `sz_dbtool upgrade` and `sz_configtool`
+(configuration upgrades folded in) for 4.4.0 and later. A 4.x → 4.y update needs none of them.
+(The tool table is in *v4.4.0 Detailed Release Notes*, "Command-line Tools & SDKs", from
+`search_docs(query='sz_dbtool upgrade sz_dbupgrade sz_configupgrade replaced 4.4.0 native command-line tools', category='release_notes')`;
+server 1.37.15, docs index 2026-09-28 23:38 UTC, 2026-09-28.) What a point release needs is in the
+*target* version's "Migration & Action Required" notes, which `search_docs` serves under
+`category='release_notes'` (server 1.37.14, docs index 2026-09-28 03:23 UTC, 2026-09-28). Relay
+what applies in the offer turn, above its question.
+<!-- MCP-NEGATIVE: search_docs(query='upgrade Senzing SDK 4.3 to 4.4 procedure') plus get_capabilities' sdk_guide topic enum — no 4.x-to-4.y procedure for that phrasing; the corpus serves V3-to-V4 migration material for it, and the topic list carries no upgrade entry — owner: search_docs(query='upgrading to 4.4.0 from v4.0.0 through v4.3.x no schema change required migration action required', category='release_notes') IS the route that carries the point-release notes, and it returns the v4.4.0 Detailed Release Notes' Migration & Action Required section, so the reader must go there rather than conclude that no procedure is documented (routing negative) — server 1.37.14, 2026-09-28 -->
+
+- **Target 4.4.0.** Run
+  `search_docs(query='upgrading to 4.4.0 from v4.0.0 through v4.3.x no schema change required migration action required', category='release_notes')`.
+  ⚠️ The first hit is *What's New in v4* "Migration guides", a V3→V4 link list. The section you
+  want, *v4.4.0 Detailed Release Notes* "Migration & Action Required", ranks just below it: read
+  past the first hit rather than concluding the notes are missing. It covers upgrading from
+  v4.0.0 through v4.3.x. Relay the items that apply:
+  - **No schema change required** when upgrading from any v4 version.
+  - **License:** confirm the license string is valid. A corrupt value now fails startup instead
+    of silently falling back to the evaluation license.
+  - **Configuration:** the `WEBSITE` feature, the `TAX_ID_TYPE` attribute and the
+    very-common-attribute performance changes take effect only in a configuration that includes
+    them. A new install's default configuration already does; for an existing configuration,
+    Senzing Support gives the steps.
+  - **SQL Server only:** the datastore must use a UTF-8 collation, which on an existing datastore
+    is a rebuild and reload. Relay it only when the datastore is SQL Server; it does not apply
+    under the SQLite default.
+  - **Coming from 4.2.x or earlier only:** the Windows `.zip` and macOS `.dmg` installers were
+    discontinued in 4.3.0. Relay it only when the installed version is 4.2.x or earlier.
+- **Any other target** (a 4.4.x patch, 4.5 or later). Query `category='release_notes'` for the
+  *target* version's "Migration & Action Required", for example
+  `search_docs(query='upgrading to <target version> migration action required', category='release_notes')`
+  with the version filled in. That phrasing was never executed for a later target, so if the
+  results are empty or off-topic, re-query with the target's own wording before concluding
+  anything. Relay the notes when they cover the installed version. Only when the target's notes
+  do not cover it is the step **undocumented, not known to be unnecessary**; say so in the offer.
+- **`search_docs` unreachable.** Relay the 4.4.0 items above as last verified on 2026-09-28, and
+  say that they could not be re-checked (INV-163).
+
+If the bootcamper already has a populated repository, mention that the update touches the SDK and
+not their data. Add, from the 4.4.0 notes, that many matching improvements apply to already-loaded
+data only after reprocessing, so the new matching does not reach that data by itself. The offer's
+question then lets them decide.
+
 ### The offer
+
+The offer comes only after the lookup above. In the offer turn, above the question, relay the items
+from the target's notes that apply to this install, and the populated-repository note when it
+applies. They are statements, not further questions.
 
 Only when a newer version is genuinely available. **One 👉 question, its own turn** (INV-251), and
 it ends the turn:
@@ -352,20 +447,29 @@ it ends the turn:
 > 👉 **Senzing [available] is available and you have [installed] installed — would you like to
 > update?** (reply no to keep your current version; or name a specific version)
 
-- **On no:** one line — "Keeping [installed]." — then continue to Step 4. Nothing recorded as a
+- **On no:** one line — "Keeping [installed]." — then Step 1's existing-install path. Nothing recorded as a
   failure, and **do not ask again** this session or the next (INV-006).
 - **On yes:** update to the newest available using the platform command above.
-- **On a named version:** on **apt**, use the versioned `direct_download` URL from
+- **On a named version:** run the lookup above for that version and relay what applies (see
+  below), then install. On **apt**, use the versioned `direct_download` URL from
   `sdk_guide(topic='install', platform='linux_apt')` — the filenames carry the version and each
   has a `sha256`; **verify that checksum before installing**, and note the download needs
   `mcp.senzing.com` reachable with no inline fallback. ⛔ For **Homebrew casks and Scoop**, a
   version-exact install is **not documented by the server** — say so and offer the latest instead,
   rather than inventing a pin.
 
-⛔ **Ask the EULA question before any package installs** — reuse the existing wording in Step 3
-Phase 2 rather than writing a second copy. An update is an install.
+**A named version's notes are relayed, not asked about.** When the bootcamper names a version, run
+the lookup above for that version before installing, and relay what applies in the next turn, above
+the EULA question. Do not ask another 👉 question about it (INV-251): the bootcamper has already
+chosen, and the EULA question is the only one left before the install. When that version's notes do
+not cover the installed version, say the step is undocumented, not known to be unnecessary ("Any
+other target" above), then install. On Homebrew or Scoop the offer falls back to the latest, whose
+notes the offer turn already relayed.
 
-⛔ **The EULA variable differs per platform, and a wrong one is silently ignored:**
+⛔ **(INV-338) Ask the EULA question before any package installs** — reuse the existing wording in Step 3
+Phase 1 rather than writing a second copy. An update is an install.
+
+⛔ **(INV-338) The EULA variable differs per platform, and a wrong one is silently ignored:**
 
 | Platform | Variable | Value |
 |---|---|---|
@@ -377,21 +481,22 @@ Phase 2 rather than writing a second copy. An update is an install.
 wrong does not error — the install does nothing and reports success, which is why the
 verification below is required rather than advisory.
 
+**(INV-338) If they decline the EULA here, the working install is kept and Module 2 continues** (non-blocking,
+INV-048). Install nothing. Say one line, "Keeping [installed].", record `update-declined`, and do not
+offer the update again (INV-006). Then continue on the existing-install path in Step 1: Step 3's
+Phase 3 and environment script, then Step 4. A declined EULA here is never recorded as a failure.
+Step 3 Phase 1's "Stop here" does not apply: that branch is for a fresh install or the upgrade from
+below V4.0, where there is no working install to keep.
+
 ### After updating
 
-1. **Re-run Step 4** (verify installation). It is already a required stop; route through it.
+1. **Re-run Step 4** (verify installation), after rejoining the existing-install path in Step 1:
+   Step 3's Phase 3 and its environment script, with the values re-read for the updated install.
+   Step 4 is already a required stop; route through it.
 2. **Probe the platform artifact** as shown above — exit 0 is not evidence (INV-218).
 3. **If verification fails**, say so plainly, **name the version that was working**, and do
    **not** mark Module 2 complete. Reinstalling the previous version is the fallback; on apt its
    exact `.deb` is still addressable by filename.
-
-⚠️ **Senzing documents no 4.x → 4.y update procedure.** `search_docs` returns only V3→V4 migration
-material (`sz_dbupgrade`, `sz_configupgrade`, `sz_configtool`), and `sdk_guide` has no `upgrade`
-topic (re-checked 2026-08-13). So whether a point release needs any schema or config step is
-**undocumented, not known to be unnecessary**. Say that in the offer, and if the bootcamper already
-has a populated repository, mention that the update touches the SDK and not their data — then let
-them decide.
-<!-- MCP-NEGATIVE: search_docs(query='upgrade Senzing SDK 4.3 to 4.4 procedure') plus get_capabilities' sdk_guide topic enum — no 4.x-to-4.y update procedure anywhere; every hit is V3-to-V4 migration material (sz_dbupgrade, sz_configupgrade, breaking-changes, Migration.md) and the topic list carries no upgrade entry — owner: search_docs IS the corpus route for a documented procedure and sdk_guide's own topic enum is the authority on its topics, so both routes that would carry it were asked and both are empty (absence negative) — server 1.36.0, 2026-09-02 -->
 
 **Checkpoint:** record the outcome — `up-to-date`, `update-declined`, `updated-to-[version]`, or
 `check-skipped-[reason]` — under step 1 in `config/bootcamp_progress.json`, so a resumed session
@@ -427,10 +532,20 @@ if uncertain, call `sdk_guide(topic='install')` with no platform to get the live
 
 - `platform='linux_apt'`: Debian/Ubuntu/Mint (apt/dpkg)
 - `platform='linux_yum'`: RHEL/Fedora/Amazon Linux (yum/dnf)
-- `platform='macos_arm'`: macOS Apple Silicon (Homebrew cask)
-- `platform='windows'`: Windows 10/11 (Scoop)
+- `platform='macos_arm'`: macOS Apple Silicon (Homebrew cask; the tap is a preview release, below)
+- `platform='windows'`: Windows 10/11 (Scoop; the bucket is a preview release, below)
 - `platform='docker'`: Platform-independent container; the fallback and the required path for
   several cases below
+
+⚠️ **The Homebrew tap and the Scoop bucket are preview releases that Senzing does not support.**
+Each README opens with "**Preview Release — Unsupported** … provided as-is with no warranty and is
+**not supported**". For `macos_arm`,
+`search_docs(query='homebrew-senzingsdk preview release unsupported tap install cask')` returns it
+as the `senzing/homebrew-senzingsdk` section "homebrew-senzingsdk". For `windows`,
+`search_docs(query='scoop-senzingsdk update scoop update senzingsdk')` returns it at the top of the
+`senzing/scoop-senzingsdk` README (server 1.37.14, docs index 2026-09-28 03:23 UTC, 2026-09-28).
+When you name either route, say this once, as a fact about the tap or the bucket, not as advice
+against it: they remain the native routes in rules 3 and 4 below.
 
 **Routing rules (apply in order):**
 
@@ -447,11 +562,12 @@ if uncertain, call `sdk_guide(topic='install')` with no platform to get the live
    sentence appears under `platform='macos_arm'` and its WSL2 half is wrong there.
 2. macOS Intel → **`platform='docker'`**. There is no native Intel-Mac install: the Homebrew
    tap is Apple Silicon (ARM64) only.
-3. macOS Apple Silicon (non-Python) → **`platform='macos_arm'`**. If the chosen language runs
-   on the JVM (Java), also read "The launch environment" in Step 3 before the first run —
-   installing the SDK is not the same as being able to launch against it.
+3. macOS Apple Silicon (non-Python) → **`platform='macos_arm'`**. Relay the tap's preview
+   status above. If the chosen language runs on the JVM (Java), also read "The launch
+   environment" in Step 3 before the first run — installing the SDK is not the same as being
+   able to launch against it.
 4. Windows without Scoop (non-Python) → **`platform='docker'`**. With Scoop available →
-   **`platform='windows'`**.
+   **`platform='windows'`**, and relay the bucket's preview status above.
 5. Linux → **`platform='linux_apt'`** or **`platform='linux_yum'`** based on the package
    manager.
 
@@ -467,12 +583,45 @@ always has the latest instructions.
 
 ## Step 3: Install Senzing SDK
 
-Follow the platform-specific instructions from `sdk_guide`. Installation has three phases.
+Follow the platform-specific instructions from `sdk_guide`. Installation has three phases, and
+the EULA question comes first: nothing is installed until the bootcamper accepts it (INV-338). An existing
+V4.0+ install (Step 1's existing-install path) skips Phase 1 and Phase 2, is not asked the EULA
+again, and starts at Phase 3; it still writes the environment script ("Create the project-local
+environment script" below) (INV-339).
 
 **Before recommending any approach**, call `search_docs` with `category='anti_patterns'` to
 check for known pitfalls on the user's platform.
 
-**Phase 1: Install the SDK package (execute without stopping):**
+**Phase 1: EULA acceptance (requires bootcamper input, before anything is installed):**
+
+The Senzing SDK requires EULA acceptance before it is installed, so this question comes before
+**every** install command on **every** path: adding the Senzing package repository (the apt or
+yum `senzingrepo` package, the Homebrew tap, the Scoop bucket), installing the SDK package, and
+the `docker` path's in-container `linux_apt` install (INV-338). Tell the bootcamper they can review it at
+<https://senzing.com/end-user-license-agreement/>, then present the EULA question:
+
+👉 **Do you accept the Senzing End User License Agreement (EULA)?** (respond yes or no)
+
+*(Internal: end the turn on this question and wait. Do not proceed until the bootcamper
+answers.)*
+
+Once the bootcamper responds, act on their answer:
+
+- **If they accept the EULA:** proceed to Phase 2 to install the SDK package, then Phase 3 to
+  install the language-specific SDK bindings. Both run without stopping for another question.
+- **(INV-338) If they decline the EULA:** install nothing — no package repository, no SDK package and
+  no language bindings. On a fresh install, or the upgrade from below V4.0, there is no working
+  SDK to fall back on. Explain: "The Senzing SDK cannot be used without EULA acceptance. The
+  remaining installation steps and subsequent bootcamp modules require the SDK." Do not write
+  the checkpoint. Stop here. An update of a working V4.0+ install declined here does not stop:
+  Step 1b states its outcome (keep the working install and continue).
+
+**Phase 2: Install the SDK package (only after EULA acceptance; execute without stopping):**
+
+Before the package install, set the EULA variable for the bootcamper's platform, taking its name
+and value from the table in Step 1b ("The EULA variable differs per platform") (INV-338). The install then
+runs without prompting; a wrong name or value makes it do nothing and report success. On the
+`docker` path, set the `linux_apt` variable inside the container.
 
 For native installs (`linux_apt`, `linux_yum`, `macos_arm`, `windows`):
 
@@ -518,27 +667,13 @@ For the `docker` path (Intel Mac, Python on macOS/Windows, or Windows without Sc
   `docker_containers` for compatibility with in-flight bootcamps, whatever runtime its entries
   name.)
 
-**Phase 2: EULA acceptance (requires bootcamper input):**
+**Phase 3: Install language bindings (after Phase 1's EULA acceptance, or directly on Step 1's
+existing-install path, which skips Phase 1 and Phase 2; INV-338, INV-339):**
 
-The Senzing SDK requires EULA acceptance before use. Tell the bootcamper they can review it at
-<https://senzing.com/end-user-license-agreement/>, then present the EULA question:
-
-👉 **Do you accept the Senzing End User License Agreement (EULA)?** (respond yes or no)
-
-*(Internal: end the turn on this question and wait. Do not proceed until the bootcamper
-answers.)*
-
-Once the bootcamper responds, act on their answer:
-
-- **If they accept the EULA:** proceed to Phase 3 to install language-specific SDK bindings.
-- **If they decline the EULA:** stop the installation. Explain: "The Senzing SDK cannot be used
-  without EULA acceptance. The remaining installation steps and subsequent bootcamp modules
-  require the SDK." Do not install language bindings and do not write the checkpoint. Stop here.
-
-**Phase 3: Install language bindings (only after EULA acceptance):**
-
-3. Install the language-specific SDK bindings — **from that ecosystem's package manager for Java
-   (Maven/Gradle), C# (NuGet) and TypeScript, and NOT from a package manager at all for Python.**
+3. Install the language-specific SDK bindings for the chosen language — Python, Java, C#, Rust or
+   TypeScript — **by the route the Senzing MCP server names for that language, never from a public
+   package registry that route does not name, and NOT from a package manager at all for Python.**
+   Each language's route is below; read it at run time rather than from this file (INV-080).
 
    ⛔ **Python: there is nothing to install here, and `pip install senzing` is an error-severity
    anti-pattern.** (INV-222 — INV-066's pip rules govern the Power's own tooling only.) The `senzing` and `senzing_core` packages **ship inside `senzingsdk-runtime`**,
@@ -614,8 +749,58 @@ Once the bootcamper responds, act on their answer:
    perform: the routes are another language (Java and C# official; Rust and TypeScript
    community-supported) or Docker/WSL2, which this module's platform routing already covers.
 
-   For **Java, C# and TypeScript**, use that ecosystem's package manager as normal. ⚠️ The
-   bare-`pip` prohibition still applies to the Power's **own** tooling installs (`fpdf2`,
+   For **Java, C#, Rust and TypeScript**, the bindings come through that ecosystem's tooling
+   (Maven or Gradle, NuGet, Cargo, npm), but **not from its public registry unless the route
+   names one**. Call `sdk_guide(topic='install', platform='<platform>', language='<language>')`
+   first for every language, then follow the route for the chosen one. The quotes below are
+   dated evidence of what each route said, not the command to run:
+
+   - **Java:** `sdk_guide`'s install reply names no source for the Java bindings, so the route is
+     the Java SDK reference: `search_docs(query='Java SDK sz-sdk.jar Maven Usage local Maven
+     repository')`, and follow its "Maven Usage" and "Installation in Local Maven Repository"
+     sections. Its top hit is an FAQ about a JAR-verification warning: read past the first hit to
+     those two sections. On server 1.37.16 (2026-09-30) they said `sz-sdk.jar` "is not provided via Maven
+     Central" and is the one "provided with the Senzing product", used as a system-scoped
+     dependency or installed into the **local** Maven repository (`java -jar sz-sdk.jar` prints
+     the `mvn install:install-file` command for it).
+     <!-- MCP-NEGATIVE: sdk_guide(topic='install', platform='linux_apt', language='java') — the reply carries no compatibility_notes and no source for the Java bindings, only the platform install and the Python gotcha — owner: search_docs IS the route that carries the Java SDK reference: search_docs(query='Java SDK sz-sdk.jar Maven Usage local Maven repository') returns its "Maven Usage" and "Installation in Local Maven Repository" sections, so the reader must go there rather than conclude the source is undocumented (routing negative) — server 1.37.16, 2026-09-30 -->
+   - **C#:** call `sdk_guide(topic='install', platform='<platform>', language='csharp')` and follow
+     its `gotchas`: where the reply has a C# line, that line names the package source. On server
+     1.37.16 (2026-10-01) the **`windows`** reply's gotcha said "C# / .NET: the Senzing.Sdk NuGet
+     package is included in the SDK install (`sdk\dotnet\`), NOT published to nuget.org. Use:
+     `dotnet nuget add source "$env:SENZING_DIR\sdk\dotnet" --name SenzingLocal; dotnet add
+     package Senzing.Sdk --source SenzingLocal`". That is the `windows` reply's form, with the
+     Windows install variable in its path, so present it to a Windows bootcamper only (INV-283).
+     On the same date the `linux_apt`, `linux_yum` and `macos_arm` replies had no C# line, and
+     `docker` follows `linux_apt`. When the reply names no source, go down this list in order,
+     stop at the first step that gives an answer, and tell the bootcamper which step it was:
+     1. **The C# SDK reference:** `search_docs(query='C# .NET SDK Senzing.Sdk NuGet package')`.
+        On server 1.37.16 (2026-10-01) it said "After adding the `Senzing.Sdk` NuGet package to
+        your project dependencies" and did not say where that package comes from.
+     2. **What this machine's install holds:** look for a `Senzing.Sdk.*.nupkg` file in the
+        `dotnet/` directory of the install's `sdk/` directory. Locate that `sdk/` directory from
+        this platform's own install reply (the directory its `PYTHONPATH` or `sz-sdk.jar` path
+        sits in), never from another platform's reply. If the file is there, use that `dotnet/`
+        directory as a local NuGet source (`dotnet nuget add source <that directory> --name
+        SenzingLocal`, then `dotnet add package Senzing.Sdk --source SenzingLocal`), and tell the
+        bootcamper the source was **observed in their install, not named by the MCP server**
+        (INV-283). No directory, or a directory with no `Senzing.Sdk.*.nupkg`, means nothing
+        was observed.
+     3. **Neither:** tell the bootcamper that no MCP route names the package source for their
+        platform, and that nothing in their install supplied one.
+
+     ⛔ **Never add a public NuGet feed for `Senzing.Sdk` (nuget.org or any other) on your own (INV-222).**
+     <!-- MCP-NEGATIVE: sdk_guide(topic='install', platform='linux_apt', language='csharp'), the same call with platform='linux_yum' and with platform='macos_arm', and search_docs(query='C# .NET SDK Senzing.Sdk NuGet package') — on linux_apt, linux_yum and macos_arm no reply says where the Senzing.Sdk NuGet package comes from: the install replies carry no C# line in their gotchas, and the reference says only "After adding the Senzing.Sdk NuGet package to your project dependencies" — owner: sdk_guide(topic='install', platform=<platform>) IS the route that carries the package source per platform, and its windows reply names it in its gotchas ("included in the SDK install (sdk\dotnet\), NOT published to nuget.org"), so the claim is scoped to the platforms asked and is not a claim that no platform's reply names it; search_docs carries the C# SDK reference ("Senzing.Sdk for C#", the top hit) and states no source (absence negative) — server 1.37.16, 2026-10-01 -->
+   - **Rust:** call `sdk_guide(topic='install', platform='<platform>', language='rust')` and follow
+     its `compatibility_notes`, taking the dependency line from that reply. On server 1.37.16
+     (2026-09-30) it said "The Rust SDK (sz-rust-sdk) is NOT on crates.io. You MUST use a git
+     dependency."
+   - **TypeScript:** call `sdk_guide(topic='install', platform='<platform>', language='typescript')`
+     and follow its `compatibility_notes`, taking the install command from that reply. On server
+     1.37.16 (2026-09-30) it said "The TypeScript/Node.js SDK (sz-napi) is NOT on npm. You MUST
+     install from the GitHub repository". The build-from-source warning below still applies.
+
+   ⚠️ The bare-`pip` prohibition still applies to the Power's **own** tooling installs (`fpdf2`,
    Playwright — INV-066): always an explicit `python3 -m pip`, never a bare `pip`, and PEP 668
    handled with a project-local virtualenv. That rule is about *how* to run pip for the Power's
    helpers; it never authorizes pip for the Senzing SDK, which is not a pip package at all.
@@ -662,7 +847,7 @@ are not bundled as a separate TypeScript reference; source them from the Senzing
 
 | Cause | Failure signal | Fix reference ("Common Environment Issues") |
 |---|---|---|
-| `NODE_VERSION` | `SyntaxError` on modern syntax, `ERR_UNSUPPORTED_ESM_URL_SCHEME`, Node.js older than 18 | "Node.js Version Conflicts" — ⚠️ **on the `docker` path, rule out bind-mount propagation lag first**: retry once (see the Phase 1 `docker` bullets), because a version conflict reproduces and lag does not |
+| `NODE_VERSION` | `SyntaxError` on modern syntax, `ERR_UNSUPPORTED_ESM_URL_SCHEME`, Node.js older than 18 | "Node.js Version Conflicts" — ⚠️ **on the `docker` path, rule out bind-mount propagation lag first**: retry once (see the Phase 2 `docker` bullets), because a version conflict reproduces and lag does not |
 | `NATIVE_ADDON` | `gyp ERR! build error`, `Cannot find module '.../*.node'` | "Native Addon Build Failures (node-gyp)" |
 | `TOOLCHAIN` | missing C++ compiler, missing Rust toolchain, or missing Visual Studio Build Tools | "Native Addon Build Failures (node-gyp)" plus the Windows note above in this Phase 3 |
 | `MODULE_SYSTEM` | `ERR_REQUIRE_ESM`, `Cannot use import statement outside a module` | "ESM vs CommonJS Module Resolution" |
@@ -685,8 +870,8 @@ category='anti_patterns')`. ⛔ **`query` is `search_docs`' only REQUIRED parame
 vocabulary belongs here rather than being left to the reader (INV-212). That query returns
 *Senzing Anti-Patterns: Ecosystem and Dependencies* as its top hit — official-vs-community
 packages, repository choice, and the `senzing-garage` caution — which is the on-point article
-when a community wrapper's from-source build has just failed (verified server 1.33.0,
-2026-08-23). Never paste external URLs into this recovery flow; all
+when a community wrapper's from-source build has just failed (verified server 1.37.19, docs
+index 2026-10-02 18:46 UTC, 2026-10-04). Never paste external URLs into this recovery flow; all
 external/toolchain knowledge comes from the MCP tools. If an MCP tool is unavailable, the
 fallback path still applies, so guidance degrades
 gracefully rather than dead-ending.
@@ -707,12 +892,19 @@ plain language and present the support / next-step options (for example, capture
 details for a support request via `search_docs`, or take the fallback path if not already
 tried). This terminal state names the blocker and the next step rather than looping.
 
+### Create the project-local environment script
+
+(INV-339) Every path through Step 3 ends here, including Step 1's existing-install path, which skips the
+install phases and still writes this script.
+
 **🚨 NEVER modify the user's global shell configuration** (`~/.zshrc`, `~/.bashrc`,
 `~/.profile`, PowerShell `$PROFILE`, etc.) to set Senzing environment variables — **INV-199**.
-Instead, create a project-local environment script at `src/scripts/senzing-env.sh` (or the
-platform equivalent for Windows) that sets `SENZING_ROOT`, library paths, and any other
-Senzing-specific variables. Source this script before running bootcamp tasks. This keeps the
-bootcamp self-contained and avoids side effects on the user's system.
+Instead, create a project-local environment script at `src/scripts/senzing-env.sh` (on Windows,
+`src\scripts\senzing-env.ps1`; see [the Windows script](#env-script-windows)) that sets
+`SENZING_ROOT`, library paths, and any other Senzing-specific variables. Source this script before
+running bootcamp tasks; on Windows, dot-source it with `. .\src\scripts\senzing-env.ps1` (unverified
+on Windows PowerShell 5.1 here, INV-163). This keeps the bootcamp self-contained and avoids side
+effects on the user's system.
 
 ⛔ **`sdk_guide` will tell you to persist to a shell profile. Do not act on it — say so instead.**
 `sdk_guide(topic='install', platform='macos_arm', language='java')` returns *"DYLD_LIBRARY_PATH must
@@ -748,25 +940,30 @@ fi
 _sz_root=$(cd -- "$(dirname -- "$_sz_self")/../.." && pwd)
 
 # --- fail loudly, naming the path that was computed --------------------------
-if [ ! -f "$_sz_root/config/engine_config.json" ]; then
-  printf 'senzing-env.sh: resolved project root has no config/engine_config.json\n' >&2
+# config/bootcamp_progress.json exists from project setup on, so it marks the root
+# at every step this script is sourced from (engine_config.json waits for Step 8).
+if [ ! -f "$_sz_root/config/bootcamp_progress.json" ]; then
+  printf 'senzing-env.sh: resolved project root has no config/bootcamp_progress.json\n' >&2
   printf 'senzing-env.sh:   resolved root: %s\n' "$_sz_root" >&2
   printf 'senzing-env.sh:   this is a path-resolution fault, not your Senzing install\n' >&2
   unset _sz_self _sz_root
   return 1 2>/dev/null || exit 1
 fi
 
-# --- never export an empty configuration ------------------------------------
-_sz_settings=$(cat -- "$_sz_root/config/engine_config.json")
-if [ -z "$_sz_settings" ]; then
+# --- engine configuration: skip while absent, never export an empty one -----
+if [ ! -f "$_sz_root/config/engine_config.json" ]; then
+  # Before Step 8 writes it: leave the variable unset and keep going.
+  printf 'senzing-env.sh: config/engine_config.json not written yet, so SENZING_ENGINE_CONFIGURATION_JSON is not set; source this script again after Step 8\n' >&2
+elif _sz_settings=$(cat -- "$_sz_root/config/engine_config.json"); [ -z "$_sz_settings" ]; then
   printf 'senzing-env.sh: %s is empty — refusing to export an empty configuration\n' \
     "$_sz_root/config/engine_config.json" >&2
   unset _sz_self _sz_root _sz_settings
   return 1 2>/dev/null || exit 1
+else
+  export SENZING_ENGINE_CONFIGURATION_JSON="$_sz_settings"
 fi
 
 export SENZING_PROJECT_ROOT="$_sz_root"
-export SENZING_ENGINE_CONFIGURATION_JSON="$_sz_settings"
 # Platform-specific exports (SENZING_ROOT, DYLD_LIBRARY_PATH / LD_LIBRARY_PATH, jar
 # paths) go here — take them from sdk_guide(topic='install', platform=…, language=…),
 # never from memory or from this file (INV-080).
@@ -834,14 +1031,20 @@ the path to export and the check that confirms it.** Follow it rather than re-de
 here (INV-183, INV-300: the rule lives where the reader needs it, and a second dated copy is a second thing
 to keep true).
 
-Three things in that block are the point, not decoration:
+Four things in that block are the point, not decoration:
 
 - **`return 1`, never `exit 1`.** A sourced script shares the bootcamper's shell, so `exit` closes
   their terminal and `set -e` leaks into their session. `return 1 2>/dev/null || exit 1` returns when
   sourced and still exits if someone runs the file directly.
-- **The guard names the path it computed.** A wrong root that exports nothing produces an error many
+- **The guard names the path it computed (INV-175).** A wrong root that exports nothing produces an error many
   steps later that reads as a Senzing fault; a guard that prints the resolved root is diagnosable on
-  sight (the same fail-loudly rule INV-111 applies to generators).
+  sight (the same fail-loudly rule INV-111 applies to generators). The root marker is
+  `config/bootcamp_progress.json`, which project setup creates, so the guard holds from Step 4 on.
+  It is never `config/engine_config.json`: Step 8 writes that, and a guard on it blames path
+  resolution for what is only step order.
+- **Skip only the settings export while `config/engine_config.json` is absent (INV-175).** Before Step 8 the
+  script prints a one-line notice, leaves `SENZING_ENGINE_CONFIGURATION_JSON` **unset**, still
+  exports `SENZING_PROJECT_ROOT` and the platform variables, and returns 0. Step 8 re-sources it.
 - **Refuse to export an empty value rather than exporting one.** Senzing's own official code snippets
   guard initialization with `if (settings == null)` — they test for **unset**, not empty — so an
   `export SENZING_ENGINE_CONFIGURATION_JSON=""` sails straight past that check and fails later,
@@ -849,9 +1052,107 @@ Three things in that block are the point, not decoration:
   `senzing/code-snippets-v4` `java/snippets/information/GetVersion.java` and the C# equivalents doing
   exactly this; MCP server 1.32.1, 2026-07-28.)
 
-**Windows keeps its own script.** `senzing-env.bat` has no such problem — `%~dp0` is the batch file's
-own directory and is always available — and none of the zsh material applies there. Add the same
-fail-loudly root check to the `.bat`, and confirm the Windows variable set via `sdk_guide`.
+<a id="env-script-windows"></a>
+
+**Windows keeps its own script: `src\scripts\senzing-env.ps1`, dot-sourced.** Assume Windows
+PowerShell 5.1 (the ground rules' "Windows and PowerShell"). A `.bat` file run from PowerShell runs in
+a child `cmd.exe`, so the variables it sets never reach the PowerShell window, and nothing reports it:
+the next program fails later or finds the wrong library. So Windows gets a PowerShell script and no
+`.bat`, and never both: two Windows scripts would drift (one implementation, not two). `$PSScriptRoot`
+is the script's own directory however it was reached, so none of the zsh material applies there. The
+Bootcamper loads it from the project root, in the PowerShell window that will run their programs, with
+`. .\src\scripts\senzing-env.ps1`. This snippet is unverified on Windows PowerShell 5.1 here: CI runs
+it under `pwsh` 7 on Linux only (INV-163).
+
+```powershell
+# --- refuse to run unless dot-sourced ------------------------------------------
+# Every site gives the dot-sourced form. Run any other way, the script prints that
+# form, sets nothing and returns.
+if ($MyInvocation.InvocationName -ne '.') {
+  Write-Host 'senzing-env.ps1: dot-source this script, with the leading dot and space:'
+  Write-Host '  . .\src\scripts\senzing-env.ps1'
+  return
+}
+
+# --- resolve this script's own location -------------------------------------------
+# $PSScriptRoot is this file's directory (src\scripts) however it was reached, so the
+# project root does not depend on the current directory.
+$_sz_root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+
+# --- fail loudly, naming the path that was computed --------------------------------
+# config/bootcamp_progress.json exists from project setup on, so it marks the root
+# at every step this script is loaded from (engine_config.json waits for Step 8).
+# Use return, never exit (INV-175): return ends this script and leaves the
+# session as it was.
+$_sz_progress = Join-Path (Join-Path $_sz_root 'config') 'bootcamp_progress.json'
+if (-not (Test-Path -LiteralPath $_sz_progress -PathType Leaf)) {
+  Write-Host 'senzing-env.ps1: resolved project root has no config/bootcamp_progress.json'
+  Write-Host "senzing-env.ps1:   resolved root: $_sz_root"
+  Write-Host 'senzing-env.ps1:   this is a path-resolution fault, not your Senzing install'
+  Remove-Variable -Name _sz_root, _sz_progress -ErrorAction SilentlyContinue
+  return
+}
+
+# --- engine configuration: skip while absent, never set an empty one ---------------
+$_sz_config = Join-Path (Join-Path $_sz_root 'config') 'engine_config.json'
+$_sz_settings = $null
+if (Test-Path -LiteralPath $_sz_config -PathType Leaf) {
+  # Explicit UTF-8: without -Encoding, Windows PowerShell 5.1 reads the file in the
+  # ANSI codepage (INV-166).
+  $_sz_settings = Get-Content -LiteralPath $_sz_config -Raw -Encoding utf8
+  if ([string]::IsNullOrWhiteSpace($_sz_settings)) {
+    Write-Host "senzing-env.ps1: $_sz_config is empty - refusing to set an empty configuration"
+    Remove-Variable -Name _sz_root, _sz_progress, _sz_config, _sz_settings -ErrorAction SilentlyContinue
+    return
+  }
+} else {
+  # Before Step 8 writes it: leave the variable unset and keep going.
+  Write-Host 'senzing-env.ps1: config/engine_config.json not written yet, so SENZING_ENGINE_CONFIGURATION_JSON is not set; dot-source this script again after Step 8'
+}
+
+$env:SENZING_PROJECT_ROOT = $_sz_root
+if ($null -ne $_sz_settings) {
+  $env:SENZING_ENGINE_CONFIGURATION_JSON = $_sz_settings.Trim()
+}
+# Platform-specific settings go here, each as $env:NAME = '...' -- take them from
+# sdk_guide(topic='install', platform='windows', language=...): its env_vars AND the
+# gotchas[] entry for the chosen language in the SAME response, never from memory or
+# from this file (INV-080). Do not set what that response says the install already
+# sets. Never use setx, which writes the user's global environment (INV-199).
+Remove-Variable -Name _sz_root, _sz_progress, _sz_config, _sz_settings -ErrorAction SilentlyContinue
+```
+
+What the snippet carries, and why (INV-175's rules for a sourced script, in PowerShell). The script is
+unverified on Windows PowerShell 5.1 here, and so is each rule below (INV-163):
+- **Dot-sourced, or nothing.** Run as `.\src\scripts\senzing-env.ps1`, without the leading `. `, it
+  prints the dot-sourced command, sets nothing and returns, so every window loads it the one way
+  every site gives.
+- **`return`, never `exit` (INV-175).** A dot-sourced script runs in the Bootcamper's own session, and
+  `return` ends the script while leaving that session as it was. INV-175 forbids `exit` in a sourced
+  script. What `exit` does there is not the reason: under `pwsh` 7 a dot-sourced `exit` was measured
+  ending only the script, and under Windows PowerShell 5.1 it is unverified here.
+- **The root guard and the settings rule are the `.sh`'s (INV-175).** It checks the resolved root for
+  `config/bootcamp_progress.json` and names the path it computed on failure, setting nothing. While
+  `config/engine_config.json` is absent it prints the one-line notice, leaves
+  `SENZING_ENGINE_CONFIGURATION_JSON` unset, sets the rest and returns normally; Step 8 dot-sources it
+  again. It refuses an empty configuration and sets nothing.
+- **Explicit UTF-8 in, ASCII only in the script (INV-166).** It reads the configuration with
+  `-Encoding utf8`. Write the script itself through your file tools, UTF-8 with no BOM and ASCII only:
+  Windows PowerShell 5.1 reads a `.ps1` that has no BOM in the ANSI codepage, so any other character
+  in it would be misread.
+- **The variable set comes from `sdk_guide` (INV-080).** On `sdk_guide(topic='install',
+  platform='windows', language=…)` (server 1.37.19, 2026-10-04), `env_vars` says the Scoop install
+  sets `SENZING_DIR` and puts `er\lib` on `PATH` itself, and the language's `gotchas[]` entry names
+  what that language adds; for Java it is the SDK jar on `$env:CLASSPATH`. Read them again at run
+  time rather than from this paragraph.
+
+**When PowerShell refuses to run the script.** The Windows client's default execution policy refuses
+scripts. The Scoop install that `sdk_guide` gives sets `RemoteSigned` for the current user, but an
+install made another way may never have run it. When dot-sourcing fails with "running scripts is
+disabled on this system", tell the Bootcamper to run `Set-ExecutionPolicy -Scope Process Bypass` and
+then dot-source `. .\src\scripts\senzing-env.ps1` again. It lasts only for that PowerShell window and
+changes no global configuration (INV-199). This fallback is unverified on Windows PowerShell 5.1
+here (INV-163).
 
 ### The launch environment (JVM languages, and macOS generally)
 
@@ -943,8 +1244,9 @@ classpath bullet above: the jar path is an install-layout observation there, not
 not a JVM-only concern:** on `linux_apt` with **Python**, `LD_LIBRARY_PATH` is required too, and
 `sdk_guide`'s `env_vars` hedges it while its language-specific `gotchas[]` entry does not — see
 Step 3's Python note, which is where a non-JVM author will be. On
-**Windows**, the DYLD/LD variables do not apply at all and the env script is a `.bat`; the
-classpath separator is `;`, not `:`. The zsh word-splitting caveat is macOS/zsh-specific and the
+**Windows**, the DYLD/LD variables do not apply at all and the env script is `senzing-env.ps1`,
+dot-sourced with `. .\src\scripts\senzing-env.ps1` (unverified on Windows PowerShell 5.1 here,
+INV-163); the classpath separator is `;`, not `:`. The zsh word-splitting caveat is macOS/zsh-specific and the
 `timeout` caveat is macOS-specific — **neither applies on Linux**, where both behave as expected.
 Non-JVM languages need none of the JVM-specific items above.
 
@@ -962,6 +1264,24 @@ here **cannot succeed even on a perfectly healthy, current install**.
 This module already says so at its own success indicator: *"an engine-class call
 (`SzEngine`/`SzDiagnostic`) succeeds — a version query alone does not qualify (**Step 9**)"*. That is
 **Step 9**'s bar, after the database and the seeded config exist. Step 4 must not duplicate it early.
+
+**Record the version the SDK reported, because graduation reads it from here.** When
+`SzProduct.get_version()` returns, write the `VERSION` value from its JSON into
+`config/bootcamp_progress.json` as `sdk_version` (the value only, e.g. `4.4.1`, not
+`BUILD_VERSION`, `BUILD_DATE` or the whole document), and record where it came from as
+`sdk_version_measured_at: "module-02 step 4 (SzProduct.get_version)"`, following Step 5a's
+`license_record_limit` pattern. The call is the chosen binding's product version method:
+`get_version()` in Python and Rust, `getVersion()` in Java and TypeScript, `GetVersion()` in C#.
+Its response documents `VERSION` as a top-level string beside `BUILD_VERSION`
+(`get_sdk_reference(topic='response_schemas', filter='getVersion')`, server **1.37.13**,
+2026-09-26). If a value was already recorded and this reading differs, replace it and say so,
+naming both versions. This is the one place the installed version is recorded: graduation's recap
+reads `sdk_version` and records "Unknown" when it is absent, because the Senzing MCP server is
+remote and cannot report what is installed on this machine. (INV-329) So do not fill the field from the
+package manager, `szBuildVersion.json` or the MCP server. A Step 1b update runs before this step,
+so the reading here is already the post-update version. The version does not move when later
+steps write configuration, so unlike `license_record_limit` its marker records provenance, not a
+provisional reading.
 
 ⛔ **(INV-269) Report WHERE the binding resolved from, not only that it loaded — and print it beside the
 version.** A version query answers through the **native library**, so it reports the *engine's*
@@ -1008,7 +1328,7 @@ unreachable at `/opt/senzing/er/sdk/python`; with `PYTHONPATH` set, it resolved 
 Linux-only concern because the Python SDK itself is: *"The Senzing Python SDK is ONLY supported on
 Linux. It is NOT supported on macOS or Windows"* (`sdk_guide(topic='install', platform='macos_arm',
 language='python')` → `compatibility_notes`, server 1.33.0, 2026-08-26). So this check has no
-macOS/Windows Python form to add, and the `DYLD_LIBRARY_PATH` and `senzing-env.bat` guidance stays
+macOS/Windows Python form to add, and the `DYLD_LIBRARY_PATH` and Windows env-script guidance stays
 exactly as it is.
 
 ⚠️ **What it looks like when the engine is attempted here** (measured live on a healthy install,
@@ -1067,8 +1387,9 @@ carries `file_path`, `source_url`, `raw_url`, `size_bytes` and `line_count` per 
 source text**, so there is nothing to "save" until you fetch it: follow the response's own
 `access_steps` step 1 and fetch each `raw_url`
 (`raw.githubusercontent.com/senzing/code-snippets-v4/...`), or clone the repo per step 2 if the
-fetch is blocked. This differs from `sdk_guide`, which does inline a `code.code` string — do not
-carry that expectation across.
+fetch is blocked. If both fail, take the terminal step in `../bootcamp-onboarding/ground-rules.md`
+→ "Once `raw_url` and `git clone` have both failed" (INV-160). This differs from `sdk_guide`, which
+does inline a `code.code` string — do not carry that expectation across.
 
 ⛔ **Never pass `inline=true` to `generate_scaffold`.** Its own `access_steps` step 3 advertises
 that parameter as a "last resort", but the tool's **declared schema has no `inline` parameter at
@@ -1082,7 +1403,8 @@ instead — that path is confirmed working.
 If verification fails, use `explain_error_code` for any SENZ error codes and `search_docs` for
 troubleshooting.
 
-**Checkpoint:** write step 4 to `config/bootcamp_progress.json`.
+**Checkpoint:** write step 4 to `config/bootcamp_progress.json`, together with `sdk_version` and
+`sdk_version_measured_at` from the version reading above.
 
 ## Step 5: License (record capacity)
 
@@ -1163,9 +1485,12 @@ still applies — but record it as provisional, per sub-step 3.
      support data, which is exactly why Step 4's version call succeeds here while engine calls still
      raise `SENZ7426` with Steps 7–8a still ahead. If the license call itself raises `SENZ7426` or
      `SENZ7220`, treat it as the "cannot measure yet" branch below, not as a broken install.
-   - Save the returned JSON to `config/license.json` and **read the saved file to confirm its shape
-     before parsing it** (INV-115) — `get_license` has **no** `response_schemas` entry, so an empty
-     `data` array there is the expected result, not a failed lookup.
+   - Save the returned JSON to `config/license.json`, because later steps read it.
+     `get_sdk_reference(topic='response_schemas', filter='get_license')` documents `recordLimit`
+     (integer) (MCP server 1.37.14, 2026-09-28), so that is the field to parse. An empty or shallow
+     result from that lookup is coverage, not a failed call: do not retry it (INV-149). **Only if
+     `recordLimit` is absent from the saved file, read the file to find the name the field actually
+     carries before parsing it** (INV-115).
    - Parse `recordLimit`: `0` means **no record cap (unlimited)**; a positive value is the cap.
 
 2. **State what was measured** — as a statement, **not a question:** "Your Senzing license allows up
@@ -1223,12 +1548,14 @@ written into this skill on purpose.** The route that answers it is `sdk_guide` w
 sdk_guide(topic='load', language='<chosen_language>', platform='<user_platform>', record_count=1000)
 ```
 
-<!-- MCP-NEGATIVE: search_docs(query='evaluation license record limit how many records without a license') — returns no figure, only EULA grant-of-license and DSR-pricing prose ("solely for up to the number of DSRs designated therein") — owner: sdk_guide(topic='load', record_count=<above the limit>) compatibility_notes give the number, "exceeds the default Senzing license limit of 500", and explain_error_code('SENZ9000') calls it the default 500-DSR free tier; both re-asked today (routing negative — the figure exists, go there) — server 1.36.0, 2026-09-02 -->
-`search_docs` does **not** answer this — asked for the evaluation license's record limit it returns
-EULA and pricing prose with no figure (re-checked 2026-08-13), which is why the tool is named here
-rather than left as "a Senzing MCP tool". Present exactly what the server returns (waiting up to 30
-seconds). If it returns no figure, drop the parenthetical entirely and say the current limit is
-unavailable from the MCP server. Never substitute a hardcoded or remembered figure — the published
+<!-- MCP-NEGATIVE: search_docs(query='evaluation license record limit how many records without a license') — the top-ranked hits are EULA grant-of-license prose ("solely for up to the number of DSRs designated therein") that states no figure; the figure appears only in a lower-ranked FAQ ("limited to 500 Distinct Source Records (DSRs)"), so a guide reading the top hit comes away without it — owner: sdk_guide(topic='load', record_count=<above the limit>) states the figure in a fixed field, compatibility_notes, "exceeds the default Senzing license limit of 500", and explain_error_code('SENZ9000') calls it the default 500-DSR free tier; both re-asked (routing negative — the figure exists, go there) — server 1.37.13, 2026-09-24 -->
+The tool is named here, rather than left as "a Senzing MCP tool", because `sdk_guide` states the
+figure in a fixed field, `compatibility_notes`. `search_docs` ranks its results instead: asked for
+the evaluation license's record limit, its top-ranked hits are EULA grant-of-license prose that
+states no figure, and the figure sits in a lower-ranked FAQ, so a guide reading the top hit comes
+away without it. Present exactly what the server returns (waiting up to 30 seconds). If it
+returns no figure, drop the parenthetical entirely and say the current limit is unavailable from
+the MCP server. Never substitute a hardcoded or remembered figure — the published
 capacity has changed before, and a stale number here is a Senzing fact asserted from memory
 (INV-080), in the one place the bootcamper is most likely to plan against it.
 
@@ -1273,6 +1600,47 @@ Ask: 👉 **Which database would you like to use? Reply with a number:**
 
 *(Internal: end the turn on this question and wait.)*
 
+**Once the Bootcamper answers, before either branch below.** Both instructions sit here, ahead of
+the branches, because every path through this step passes this point; an instruction placed after
+the last branch is skipped by a guide that follows the other one.
+
+1. ⛔ **Record the choice where later modules read it.** Write the engine chosen to
+   `config/bootcamp_preferences.yaml` under the key **`database_type`**, with the value **`sqlite`**
+   or **`postgresql`** (lowercase, exactly these two spellings). Set the key, replacing any earlier
+   value — when Step 7 runs again, on a resume or a changed mind, never add a second entry:
+
+   ```yaml
+   database_type: sqlite   # or: postgresql
+   ```
+
+   This is the **only** step in the bootcamp that knows which engine was chosen. These read
+   `database_type` from that file by name, and each handles an absent key with a fallback of its
+   own:
+
+   - **Module 4** (`../module-04-data-collection/SKILL.md`) **Step 8b**, the SQLite load-time
+     warning — notes the defect and falls back to the engine recorded in
+     `config/bootcamp_progress.json`.
+   - **Module 6** (`../module-06-data-processing/phaseA-build-loading.md`) **§3**, the loader's
+     worker count — treats the engine as SQLite and serializes the writes, which on PostgreSQL is
+     merely slower.
+   - **Module 6**, the same file's **SQLite volume pre-load check** — falls back to
+     `config/bootcamp_progress.json` and notes the gap.
+   - **Graduation** (`../graduation/SKILL.md`) **`## Pre-checks`** — notes the defect and carries
+     on with the value indeterminate; **Step 3**'s production configuration files take the value
+     from there.
+   - **`../graduation/database-backup.md`** — determines the engine from
+     `config/engine_config.json`'s connection string.
+
+   A fallback is a guess about what this write would have said, and a wrong guess hands a
+   PostgreSQL Bootcamper a serialized loader and SQLite warnings with no reason given. Do not
+   record the choice only in `config/bootcamp_progress.json`: the readers look there only after
+   this key is missing, and a different key name is the same failure as no key at all.
+
+2. **Checkpoint:** write step 7 to `config/bootcamp_progress.json` **when the chosen branch's
+   setup is finished, before Step 8** — not now. A checkpoint written as Step 7 starts marks the
+   step done before the database exists, and a resume would skip the setup; until it is written,
+   a resumed session runs Step 7 again.
+
 **For SQLite** (recommended for bootcamp):
 
 ⛔ **Before creating it, check whether the project sits on a mounted host filesystem — measure the
@@ -1297,8 +1665,10 @@ slower, and a Bootcamper has no reason to suspect storage.
    *"Senzing entity resolution is I/O intensive … Avoid network-attached storage (NAS/NFS) for the
    database data directory … Run `check_repository_performance()` to validate your storage meets
    requirements"* — and *"Do Not Skip check_repository_performance() Before Production"*, which says
-   to run it **before** a large load (re-verified server **1.33.0, 2026-08-21**). A mount crossed by
-   a translation layer is that case.
+   to run it **before** a large load (re-verified server **1.37.19**, docs index 2026-10-02 18:46
+   UTC, **2026-10-02**). The second is in the top hit, *Senzing Anti-Patterns: Configuration and
+   Initialization*; the first is in the next, *Architecture and Performance*, so read past the
+   first hit. A mount crossed by a translation layer is that case.
 
 ⚠️ **Observation-only, one workstation, recorded with its conditions rather than asserted as a rule:**
 on Windows 11 + WSL2 Ubuntu with Senzing SDK 4.3.4 and SQLite, `check_repository_performance(5)`
@@ -1385,9 +1755,13 @@ and say so.
 
 **MCP-first (INV-080):** confirm the current PostgreSQL connection-URL format, the schema-DDL path,
 and the engine-config wiring from the Senzing MCP server at runtime — do not treat the values below
-as authoritative. Use `search_docs(query='Senzing engine configuration PostgreSQL connection')` and
-`search_docs(query='PostgreSQL schema DDL initialization', category='anti_patterns')`, and generate
-the engine config with `sdk_guide(topic='configure', ...)` — never hand-construct
+as authoritative. Use `search_docs(query='Senzing engine configuration PostgreSQL connection')`,
+whose top hit is the *Senzing Engine Configuration* page's introduction: read past the first hit
+to the same page's "Section: SQL > CONNECTION", which carries the PostgreSQL connection-URL
+format. Use `search_docs(query='PostgreSQL schema DDL initialization', category='anti_patterns')`,
+whose top hit is *Senzing Anti-Patterns: Database Initialization and Container Setup* → "PostgreSQL
+Schema Is NOT Auto-Created by the SDK", with the schema-DDL path per platform. Generate the engine
+config with `sdk_guide(topic='configure', ...)` — never hand-construct
 `SENZING_ENGINE_CONFIGURATION_JSON`.
 
 **Option 1 — PostgreSQL in a Docker container:**
@@ -1444,28 +1818,12 @@ then wire the `postgresql://` connection via `sdk_guide(topic='configure', ...)`
 the schema DDL to that database, and wire the `postgresql://` connection as above. Managed cloud
 PostgreSQL typically requires SSL (`PGSSLMODE=require`) — confirm via MCP.
 
-**Option 4 — Switch to SQLite:** proceed with the SQLite setup above.
+**Option 4 — Switch to SQLite:** first rewrite `database_type` to `sqlite` by applying
+instruction 1 at the head of this step again (it replaces the `postgresql` value written there),
+then proceed with the SQLite setup above.
 
 SQLite remains the default recommendation for pure evaluation; PostgreSQL (especially via Docker)
 is the production-style path. INV-037 is satisfied by any of these paths.
-
-⛔ **Record the choice where later modules read it.** Whichever option was taken, write the engine
-to `config/bootcamp_preferences.yaml` under the key **`database_type`**, with the value
-**`sqlite`** or **`postgresql`** (lowercase, exactly these two spellings):
-
-```yaml
-database_type: sqlite   # or: postgresql
-```
-
-This is the **only** step in the bootcamp that knows which engine was chosen, and two later steps
-depend on the answer: Module 4 Step 8b's SQLite load-time warning and Module 6's
-`phaseA-build-loading.md` heads-up both read `database_type` from that file by name. Without this
-write, both reads find nothing, both fall through their "indeterminate → say nothing" branches, and
-neither warning can **ever** fire — regardless of the database chosen or the dataset size. Do not
-record it only in `config/bootcamp_progress.json`: nothing reads it from there, and a different key
-name is the same failure as no key at all.
-
-**Checkpoint:** write step 7 to `config/bootcamp_progress.json`.
 
 ## Step 8: Create Engine Configuration
 
@@ -1484,7 +1842,7 @@ raise an error, it just leaves you with the bootstrap code and nothing to config
 bootcamper's platform. If the response has no `environment` key, that is what happened — re-issue
 the call with `platform` rather than reconstructing the paths by hand.
 
-MCP-NEGATIVE: sdk_guide(topic='configure', language='python') — returns no `environment` block, so neither `engine_config` nor `default_paths` — owner: sdk_guide(topic='configure', platform='linux_apt', language='python') IS the route that carries it and returned `environment.default_paths` plus `environment.engine_config` when asked (routing negative) — server 1.36.0, 2026-09-02
+<!-- MCP-NEGATIVE: sdk_guide(topic='configure', language='python') — returns no `environment` block, so neither `engine_config` nor `default_paths` — owner: sdk_guide(topic='configure', platform='linux_apt', language='python') IS the route that carries it and returned `environment.default_paths` plus `environment.engine_config` when asked (routing negative) — server 1.36.0, 2026-09-02 -->
 
 **Build the JSON from `environment.default_paths`, not from the `engine_config` blob.** That response
 carries both — **provided `platform` was passed** (above). `default_paths` gives plain, correct
@@ -1538,27 +1896,35 @@ call for exactly this reason.
 > **The macOS cask has the same defect, and the server documents it in more detail.**
 > `sdk_guide(topic='install', platform='macos_arm')` states that `SENZ7426` on
 > `getEngine`/`getDiagnostic`/`addRecord` "means SUPPORTPATH is WRONG — it is NOT a broken
-> install": the cask's own shipped `etc/sz_engine_config.ini` sets
+> install": on cask 4.4.x and earlier, the cask's own shipped `etc/sz_engine_config.ini` sets
 > `SUPPORTPATH=${INSTALLPATH}/senzing/er/data`, **a directory that does not exist**, while the real
 > support data (`address_datamodel`, `nomicon`, and the `*TransRules.sz` transliteration modules)
 > lives one level up at `$(brew --prefix)/opt/senzing/data`. The server reports this confirmed
 > end-to-end on cask 4.4.0.26206 and **reported against 4.3.3.26191, which ships the same wrong
 > path** (verified on MCP server 1.32.3, 2026-07-31).
 >
-> ⛔ **Both tools state this now, and they agree** — re-verified on **MCP server 1.32.9,
-> 2026-08-12**. `sdk_guide(topic='install', platform='macos_arm', language='java')` carries the
-> gotcha above verbatim, and `explain_error_code('7426')` ranks *"SUPPORTPATH points at a directory
-> with no transliteration modules … This is a configuration error, NOT a broken install"* as
-> `common_causes[0]` with *"Check SUPPORTPATH FIRST"* as `resolution_steps[0]`, naming this same
-> macOS cask case and pointing back at `sdk_guide topic='install'` for the platform detail. So relay
-> either one. Keep `sdk_guide` cited for what it still owns — the paths, env vars and EULA variable
-> — and note that the principle the earlier note rested on is unchanged: **ask the tool that owns
-> the fact.** Only its example is obsolete, because these two coverages have since converged.
+> ⛔ **Both tools agree on the diagnosis and the fix — not on the macOS literal** (INV-169) —
+> re-verified on **MCP server 1.37.14, 2026-09-28**. `explain_error_code('7426')` ranks
+> *"SUPPORTPATH points at a directory with no transliteration modules … This is a configuration
+> error, NOT a broken install"* as `common_causes[0]` with *"Check SUPPORTPATH FIRST"* as
+> `resolution_steps[0]`, naming this same macOS cask case and pointing back at
+> `sdk_guide topic='install'` for the platform detail. Both give the same fix: set `SUPPORTPATH` to
+> `$(brew --prefix)/opt/senzing/data`, and do not use the shipped `.ini` as-is. **They differ on
+> what the shipped ini says.** `explain_error_code`'s macOS cause still quotes the
+> `${INSTALLPATH}/senzing/er/data` literal, which holds for cask 4.4.x and earlier only.
+> `sdk_guide(topic='install', platform='macos_arm', language='java')` now says the literal "has
+> already drifted once" — cask 4.5.0.26245 ships a Linux path instead, and its `CONFIGPATH` and
+> `RESOURCEPATH` are Linux paths too — and tells the reader *"Do not pin the literal"*. So relay
+> either tool for the diagnosis and the fix, relay `sdk_guide` for the platform detail, and never
+> tell a Bootcamper that `explain_error_code`'s macOS literal is what their ini says. Keep
+> `sdk_guide` cited for what it still owns — the paths, env vars and EULA variable — and note that
+> the principle the earlier note rested on is unchanged: **ask the tool that owns the fact.** Only
+> its example is obsolete: the two coverages have converged on the diagnosis, not on the literal.
 >
 > ⚠️ `sdk_guide` gates this response on `language`: asked with `language='python'` for this platform
 > it returns only the "Python is Linux-only" compatibility note and **no install detail at all**, so
 > the gotcha above is invisible. Ask with a macOS-supported binding (Java or C#) to see it.
-> (Observed 1.32.9, 2026-08-12.)
+> (Observed 1.37.14, 2026-09-28.)
 > <!-- MCP-NEGATIVE: sdk_guide(topic='install', platform='macos_arm', language='python') — returns no install detail, only the Linux-only note — owner: sdk_guide(topic='install', platform='macos_arm', language='python') compatibility_notes state the Python SDK is Linux-only — the absence IS the answer, not a gap — server 1.36.0, 2026-09-02 -->
 >
 > `SENZ7426` still fires at `getEngine()`, **before any record is submitted**, so "validate your
@@ -1600,7 +1966,7 @@ MCP-returned JSON remains the starting point.
 > calls "the official Senzing Scoop bucket" (verified on MCP server 1.32.2, 2026-07-30) — places
 > `SENZING_DIR`
 > at the `er` subdirectory within the Scoop app folder (e.g.,
-> `C:\Users\<user>\scoop\apps\senzing\current\er`). The `data` directory containing
+> `C:\Users\<user>\scoop\apps\senzingsdk\current\er`). The `data` directory containing
 > `g2SifterRules.ibm` and other GNR support files is at the Scoop app version root, one level
 > above `er`, rather than inside it. This is why the fallback to `$SENZING_DIR\..\data` is
 > needed for Scoop installs.
@@ -1614,16 +1980,27 @@ sibling of `er` rather than a child.** That is currently **two** platforms, both
 1. Confirm the `SUPPORTPATH` in the MCP-returned configuration exists —
    `test -d "$(brew --prefix)/opt/senzing/data"`, and that it holds the transliteration modules:
    `ls "$(brew --prefix)/opt/senzing/data"/*TransRules.sz`.
-2. If it does not, the cask's own `etc/sz_engine_config.ini` is the likely source: it sets
-   `SUPPORTPATH` to `${INSTALLPATH}/senzing/er/data`, which does not exist. **Do not use the shipped
-   `.ini` as-is, and do not copy transliteration files around** — set `SUPPORTPATH` to
-   `$(brew --prefix)/opt/senzing/data`, the `support_path` `sdk_guide` already returns.
+2. If it does not, the cask's own `etc/sz_engine_config.ini` is the likely source: its
+   `SUPPORTPATH` does not resolve to a directory holding `*TransRules.sz`, whatever its literal.
+   Test the directory's content, never the string — the literal has changed between cask
+   releases, so matching one value misses the next. On cask 4.5.0 the shipped ini's `CONFIGPATH`
+   and `RESOURCEPATH` are Linux paths too, one more reason the file is wrong for a Homebrew
+   install. **Do not use the shipped `.ini` as-is, and do not copy transliteration files around**
+   — set `SUPPORTPATH` to `$(brew --prefix)/opt/senzing/data`, the `support_path` `sdk_guide`
+   already returns.
 3. If neither path exists, report both that were tried rather than guessing a third.
 
 ⚠️ **Linux was not re-checked for this layout** (verified 2026-07-31: `sdk_guide` was asked for
 `macos_arm` and `windows` only). Use the MCP-returned paths on Linux without modification, and if a
 Linux install ever produces `SENZ7426`, ask `sdk_guide(topic='install', platform='linux_apt' |
 'linux_yum')` before assuming this case applies — do not widen it by inference.
+
+**Re-source the env script now that `config/engine_config.json` exists.** Until this step the script
+skipped `SENZING_ENGINE_CONFIGURATION_JSON` with a notice, and a shell that sourced it earlier keeps
+that variable unset until it sources the script again. Source `src/scripts/senzing-env.sh` once more
+(on Windows, dot-source `. .\src\scripts\senzing-env.ps1` again, unverified on Windows PowerShell 5.1
+here, INV-163) in the shell that launches the Bootcamper's programs, and confirm the "not written
+yet" notice no longer prints.
 
 **Checkpoint:** write step 8 to `config/bootcamp_progress.json`.
 
@@ -1720,8 +2097,9 @@ settings it is handed, and until Step 8 wrote `CONFIGPATH` those settings could 
 installed at the system config path. That tier is the third of the four in Step 5's check order, so
 the earlier reading could only ever return one of the first two or the built-in default.
 
-Take the reading exactly as Step 5a's sub-step 1 describes — same method, same
-save-then-read-before-parsing discipline (INV-115) — using the settings that now carry `CONFIGPATH`.
+Take the reading by Step 5a's sub-step 1, which calls `SzProduct.get_license()` and parses
+`recordLimit`; follow it rather than restating it (INV-300), using the settings that now carry
+`CONFIGPATH`.
 Then apply Step 5a's sub-step 3 rules to the result:
 
 - **Write it** to `config/bootcamp_progress.json` as `license_record_limit`, with
@@ -1801,7 +2179,8 @@ call succeeds** (not merely a version query).
 ## Agent Behavior
 
 - Always check for an existing installation first: if the SDK is present and V4.0+, do NOT
-  reinstall. Skip to verification.
+  reinstall. Skip only the installation and continue on Step 1's existing-install path: Step 3's
+  Phase 3 and its environment script still run before verification (INV-339).
 - Do NOT offer alternatives: install the SDK natively (or via Docker where the routing rules
   require it).
 - Use the `sdk_guide` MCP tool for current platform-specific instructions.
@@ -1836,17 +2215,24 @@ call succeeds** (not merely a version query).
   schema-created datastore whose config was never seeded, and it can appear several steps after the
   omission.
 - **`Unable to get settings`, or an empty `SENZING_ENGINE_CONFIGURATION_JSON`? This is the env
-  script's path resolution, not Senzing.** That message carries **no SENZ code** because it is not an
-  engine error: it is the null-check in Senzing's own official snippets, which print
-  `Unable to get settings.` and throw `IllegalArgumentException` / `ArgumentException` when
+  script's path resolution, not Senzing — or a script sourced before Step 8.** That message
+  carries **no SENZ code** because it is not an engine error: it is the null-check in Senzing's
+  own official snippets, which print `Unable to get settings.` and throw `IllegalArgumentException` / `ArgumentException` when
   `SENZING_ENGINE_CONFIGURATION_JSON` is unset. So do not send it through `explain_error_code` — there
   is no code to explain, and hunting through the engine config wastes the time. **First check whether
   the script exists at all** — on the existing-install path it is the artifact most likely to be
-  missing, and asking whether an absent file was sourced sends the reader looking for the wrong
-  fault. If `src/scripts/senzing-env.sh` (or `senzing-env.bat`) is not there, that **is** the
-  finding: write it now per Step 3's environment-script work, with the values from
-  `sdk_guide(topic='install', platform=…, language=…)`. Only if it does exist, check that it was
-  **sourced** (not executed) in this shell, and that it resolved its own path
+  missing (INV-339), and asking whether an absent file was sourced sends the reader looking for the wrong
+  fault. If `src/scripts/senzing-env.sh` (on Windows, `src\scripts\senzing-env.ps1`) is not there,
+  that **is** the finding: write it now per Step 3's environment-script work, with the values from
+  `sdk_guide(topic='install', platform=…, language=…)`. On Windows, a project made before the `.ps1`
+  that has only the old `senzing-env.bat` counts as not there: write the `.ps1` per
+  [the Windows script](#env-script-windows), have the Bootcamper dot-source it with
+  `. .\src\scripts\senzing-env.ps1`, and do not tell them to run the `.bat`, which sets nothing in a
+  PowerShell window (unverified on Windows PowerShell 5.1 here, INV-163). Only if it does exist, check
+  that it was **sourced** (not executed; dot-sourced on Windows) in this shell, and whether it was
+  **sourced before Step 8 wrote
+  `config/engine_config.json`**: the script then printed a "not written yet" notice and left the
+  variable unset, so re-source it now. Then check that it resolved its own path
   under the shell in use — see [the env script's path resolution](#env-script-path-resolution). Under
   zsh, a `${BASH_SOURCE[0]}`-based script computes the wrong root and exports nothing.
   (Snippet guard verified via `search_docs`; MCP server 1.32.1, 2026-07-28.)

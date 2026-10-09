@@ -1,26 +1,31 @@
-# Module 5, Phase 3: Test Load and Validate (Optional) (steps 21–26)
+# Module 5, Phase 3: Test Load and Validate (Optional) (steps 21–25)
 
 Continues from Phase 2. Follow the ground rules; `🛑`/`⛔` are internal directives: do not
 render them. Signal a stop by ending the turn on the single 👉 question and waiting.
 
 > **This phase is optional.** Bootcampers who prefer to write custom loading programs can skip
-> Phase 3 and proceed directly to Data processing. Phase 3 uses `mapping_workflow` steps 5–8 to give
-> immediate feedback on ER quality without leaving Data Quality, Mapping, and Transformation.
+> Phase 3 (step 18a's `skip`): the real load happens in Data processing, which always follows this
+> module. Phase 3 uses `mapping_workflow` steps 5–8 to give immediate feedback on ER quality without
+> leaving Data Quality, Mapping, and Transformation.
 
 > **Entry from the Step 5 `detect_environment` menu:** Phase 3 is entered from the
 > `detect_environment` menu handled in `phase2-data-mapping.md` at **step 18a** — after that
 > source's mapper has been written, run, reviewed and documented (steps 12–18), so the
 > transformation output step 22 samples below actually exists. When the bootcamper explicitly
-> chooses **test_load** or **load+resolve** at that menu, follow the workflow below
-> (`mapping_workflow` steps 5–8, Steps 21–26) unchanged. When sources remain unmapped, the
-> Phase 2 guidance instead recommends **skip** and continues to the next source: the real
-> production load is still deferred to Data processing in either case.
+> chooses **test_load** at that menu, follow the workflow below
+> (`mapping_workflow` steps 5–8, Steps 21–25) unchanged. When sources remain unmapped, the
+> Phase 2 guidance instead recommends **skip** and continues to the next source; at the last
+> source, a step-16 answer that proceeds to loading settles it as **skip**. The real production
+> load is still deferred to Data processing in every case. Phase 3 is a detour for **this source**
+> inside Phase 2's per-source loop, so every way out of it returns to Phase 2: see
+> [Leaving Phase 3](#leaving-phase-3).
 
 **Before starting Phase 3:** The Senzing SDK must be installed and configured (SDK setup). If it
 is not yet set up, inform the bootcamper: "Phase 3 requires the Senzing SDK (from SDK setup). You can
-skip Phase 3 and proceed to Data processing, or complete SDK setup first and return here." If the
-bootcamper chooses to skip, update the data source registry with `test_load_status: skipped`
-for each source and proceed to Data processing.
+skip the test load for this source and carry on mapping (the real load happens in Data processing),
+or complete SDK setup first and return here." If the bootcamper chooses to skip, leave by the
+**skip exit** in [Leaving Phase 3](#leaving-phase-3): `test_load_status: skipped` for **this source
+only**, then Phase 2 step 19.
 
 ## Workflow (per data source that completed Phase 2)
 
@@ -28,7 +33,9 @@ for each source and proceed to Data processing.
 
 Call `mapping_workflow(action='advance')` to advance to step 5 (SDK environment detection). The
 workflow checks whether the Senzing SDK is installed and a database is configured. If detection
-fails, offer to skip Phase 3 or return to Module 2. (Pass the exact `mapping_workflow` state
+fails, offer to skip this source's test load or return to Module 2. If the bootcamper skips, leave
+by the **skip exit** in [Leaving Phase 3](#leaving-phase-3): `test_load_status: skipped` for **this
+source only**, then Phase 2 step 19. (Pass the exact `mapping_workflow` state
 from Phase 2 unchanged; checkpoint to `config/mapping_state_[datasource].json` after this step.)
 
 **Checkpoint:** write step 21 to `config/bootcamp_progress.json`.
@@ -175,66 +182,55 @@ verbatim:
 > `test_entity_count` to the entity count from the test load in `config/data_sources.yaml`. Set
 > `updated_at`.
 
+Handling (INV-284), each named again in [Leaving Phase 3](#leaving-phase-3):
+
+- **yes** → Phase 2 step 19 (`phase2-data-mapping.md`). Step 19 starts the next unmapped source's
+  own `mapping_workflow` run, or, when no unmapped source remains, continues to step 20, which runs
+  Module Completion and asks the transition question. Ask no question about the whole run here
+  (INV-344).
+- **no** → Phase 2 step 17, to iterate on this source, as step 16's iterate options do. Re-entering
+  Phase 3 afterwards needs the bootcamper's explicit **test_load** at step 18a again.
+
 **Checkpoint:** write step 25.
 
-### 26. Module completion and shortcut path decision
+<a id="leaving-phase-3"></a>
 
-After all sources have completed (or skipped) Phase 3, run the standard **Module Completion**
-process in `../bootcamp-onboarding/module-completion.md` (update progress, append the Module 5
-recap section to `docs/bootcamp_recap.md`, and present the end-of-module summary) — this is Module
-5's completion site on the Phase 3 path. Run it **exactly once**: if Phase 2 step 20 already
-completed the module (`data_quality_mapping` in `modules_completed`), do not repeat it. Then
-present the decision gate below.
+## Leaving Phase 3
 
-Data processing is the next module by default. The shortcut path is only
-taken when the bootcamper explicitly requests it (skipping a module requires a bootcamper
-request, per the ground rules):
+⛔ **(INV-344) Every exit from Phase 3 returns to Phase 2's per-source loop.** Phase 3 runs for one
+source, so its exits are gates inside the per-source loop: none asks a question about the whole run,
+none proceeds to Data processing directly, and none writes the registry entry of any source other
+than this one.
 
-- **Shortcut path (→ Query, Visualize and Discover):** For simple use cases: single data source, small dataset
-  (≤1000 records), no production requirements: the Phase 3 test load results may be sufficient.
-  The bootcamper can proceed directly to Query, Visualize and Discover and skip
-  Data processing.
-- **Full path (→ Data processing):** For production requirements, multiple data sources, datasets
-  exceeding 1000 records, or when the bootcamper wants to learn production-quality loading
-  patterns: recommend the full Data processing path.
+| Exit | This source's registry entry | Resumes at |
+|---|---|---|
+| SDK not set up, and the bootcamper skips (Before starting Phase 3) | `test_load_status: skipped` | Phase 2 step 19 |
+| Step 21 detection fails, and the bootcamper skips | `test_load_status: skipped` | Phase 2 step 19 |
+| Step 25 **yes** | `test_load_status: complete`, `test_entity_count` (step 25's registry note) | Phase 2 step 19 |
+| Step 25 **no** | as step 25's registry note left it | Phase 2 step 17 |
 
-👉 **Which path would you like to take? Reply with a number:**
+> **Data source registry (skip exit):** Update **this source's** `test_load_status` to `skipped`
+> in `config/data_sources.yaml` and set `updated_at`. Leave every other source's entry as it is: a
+> source still to be mapped reaches step 18a's decision itself. (Data processing Phase A treats
+> `skipped` and a missing value the same way.)
 
-1. Shortcut path — go directly to Query, Visualize and Discover.
-2. Full path — continue to Data processing for production-quality loading.
-
-*(Internal: end the turn on this question and wait.)*
-
-> **If the bootcamper chooses the shortcut path:** Update `config/bootcamp_progress.json` to
-> mark Module 6 as skipped with reason `shortcut_path`:
->
-> ```json
-> {
->   "modules_skipped": {
->     "6": { "reason": "shortcut_path", "skipped_at": "<timestamp>" }
->   }
-> }
-> ```
-
-> **Data source registry:** If Phase 3 was skipped for any source, update that source's
-> `test_load_status` to `skipped` in `config/data_sources.yaml`. Set `updated_at`.
-
-> **Optional: baseline status summary (advisory, non-blocking):** On Phase 3 completion you
-> MAY surface which data sources still lack an ER baseline (compare the set of
-> `config/er_baseline_*.json` files against the mapped sources). It is read-only, never blocks
-> the workflow, and never creates, modifies, or deletes a baseline. (No baseline-status helper
-> is bundled; report coverage directly if you choose to.)
-
-**Checkpoint:** write step 26.
+⛔ **(INV-076) Phase 3 offers no route past Data processing.** Data processing is a Required
+module, so it always follows this module, in `selected_modules` order. Module 5 is completed only at
+Phase 2 step 20 (`phase2-data-mapping.md`), its single completion site: Phase 3 never runs Module
+Completion, and step 19's per-source mapping-spec gate covers the Phase 3 path too. Step 20 also
+carries the optional baseline status summary.
 
 ## Phase 3 session resume
 
 On session resume during Phase 3, read both the mapping state checkpoint
 (`config/mapping_state_[datasource].json`) and `config/bootcamp_progress.json` to determine
-which Phase 3 steps (21–26) completed. Restart `mapping_workflow` and fast-track through
+which Phase 3 steps (21–25) completed. Restart `mapping_workflow` and fast-track through
 completed steps (5–8). If the test load (step 22) completed but evaluation (step 24) did not,
-re-run evaluation without reloading. If the session was interrupted before the decision gate
-(step 26), present the Phase 3 results again and resume from the decision gate.
+re-run evaluation without reloading. Step 25 is Phase 3's last gate: if the session was interrupted
+before it was answered, present the Phase 3 results again and resume from step 25.
+
+A progress file written under the old flow can record a Module 5 step that this phase no longer
+has, after its Module Completion already ran: this module's `SKILL.md` → "Resuming" handles it.
 
 ## Rules
 
@@ -252,7 +248,7 @@ re-run evaluation without reloading. If the session was interrupted before the d
 
 - ✅ Test load completed for each data source (or explicitly skipped).
 - ✅ Entity resolution results reviewed (deduplication rate, quality assessment).
-- ✅ Decision gate completed (shortcut path or proceed to Data processing).
+- ✅ Step 25 answered, and the flow returned to Phase 2 (step 19, or step 17 to iterate).
 
 ## Interpreting `analyze_record` results
 

@@ -81,9 +81,11 @@ the archive safe to hand over:
 
 - **One top-level directory**, so extraction never scatters files into the recipient's
   working directory.
-- **`OPEN_ME_FIRST.md`** at its root — what this is, open the recap PDF first, the
-  bootcamper's business problem in one line, what is included, what is excluded **and why**,
-  and (transfer only) a pointer to `docs/REVISIT_BOOTCAMP.md` for the restore commands.
+- **`OPEN_ME_FIRST.md`** at its root — what this is, the bootcamper's business problem in one
+  line, what is included, what is excluded **and why**. It says to open the recap PDF first and
+  (transfer only) points at `docs/REVISIT_BOOTCAMP.md` for the restore commands **only when the
+  manifest's `included` list carries that file**; otherwise it says plainly which part is
+  missing and what to do instead.
 - **`PACKAGE_MANIFEST.json`** — profile, plugin version, date, `modules_completed`, every
   included path with SHA-256 and size, the exclusion rules applied, and every path skipped.
   ⚠️ A recipient must be able to tell what is **missing** without guessing; that is what

@@ -1529,7 +1529,9 @@ def _tree_difference(
     }
 
 
-def _kiro_owned_origins(plan: TransformPlan) -> frozenset[Path]:
+def _kiro_owned_origins(
+    plan: TransformPlan, *, carry_forward: bool = True
+) -> frozenset[Path]:
     """The base each `kiro-owned` output's bytes are taken from.
 
     How the test observes that the update path really is the update path: on the
@@ -1537,10 +1539,16 @@ def _kiro_owned_origins(plan: TransformPlan) -> frozenset[Path]:
     Power being carried forward *(R5 AC5)*. Without it, an update run that
     silently ignored `carry_forward` would produce the identical tree clause 1
     asks for and the comparison would prove nothing.
+
+    `carry_forward` selects which rules are observed: the default reads the
+    rules that may be carried forward, `False` reads those declaring
+    `carryForward: false`, whose bytes come from the authored tree on both paths.
     """
     outputs, _ = plan_destinations(plan)
     return frozenset(
-        output.origin_root for output in outputs if output.owner == OWNER_KIRO
+        output.origin_root
+        for output in outputs
+        if output.owner == OWNER_KIRO and output.rule.carry_forward == carry_forward
     )
 
 
@@ -1614,8 +1622,13 @@ def test_create_and_update_produce_identical_output(
         assert update_plan.carry_forward == power
         assert update_plan.contract is create_plan.contract
         assert update_plan.to_json()["contract"] == str(contract.path)
-        # The update path genuinely took `kiro-owned` content from the Power.
+        # The update path genuinely took `kiro-owned` content from the Power —
+        # except for a rule declaring `carryForward: false`, which reads only the
+        # authored tree on either path.
         assert _kiro_owned_origins(update_plan) == {power}
+        authored_wins = _kiro_owned_origins(update_plan, carry_forward=False)
+        assert authored_wins <= {KIRO_OWNED_ROOT}
+        assert _kiro_owned_origins(create_plan, carry_forward=False) == authored_wins
         update = write_staging(update_plan)
         update_tree = _read_tree(update_staging)
 

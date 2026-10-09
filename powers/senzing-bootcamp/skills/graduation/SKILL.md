@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.3
-  templateRelease: 0.5.3
+  version: 0.6.1
+  templateRelease: 0.6.1
   templateSkill: graduation
 ---
 
@@ -71,12 +71,14 @@ them to one line under `concise`. Refer to modules by name, never number (INV-07
    (`docs/bootcamp_recap.pdf`) and a clean, production-ready `production/` project to build on.
 3. **What we'll do.** A brief numbered overview of graduation's steps: (1) note anything that
    tripped us up this session, so the bootcamp itself improves, (2) normalize the `docs/`
-   Markdown and render the recap PDF keepsake, (3) build the `production/` project, (4) create a
+   Markdown and render the recap PDF keepsake, then offer an optional narrated 2-minute graduation
+   video (`docs/bootcamp_recap.mp4`), (3) build the `production/` project, (4) create a
    silent revisit/resume bundle — a database backup plus a return guide — so you can come back
    later (INV-094), and (5) close with the END OF SENZING BOOTCAMP banner.
 4. **Estimated time.** Give an honest, range-based estimate caveated per INV-096 — e.g.
    "⏱️ Roughly 5–15 minutes, depending on your workstation, the database backup size, and PDF
-   rendering speed." If no meaningful estimate is possible, say "hard to estimate" rather than
+   rendering speed, plus a few minutes more if you choose the optional graduation video." If no
+   meaningful estimate is possible, say "hard to estimate" rather than
    inventing a number. Suppress under `minimal`; one line under `concise`.
 
 Bootcamp graduation is terminal, so it has no "what's next / next module" line and no `✅ Module complete`
@@ -86,76 +88,29 @@ forward is the recap PDF and the `production/` project.
 ## Best-value model/effort prompt
 
 After the preface, surface the best-value model/effort before the heavier graduation work.
-Bootcamp graduation is correctness-critical: **Opus 5 + high effort**.
+Bootcamp graduation is correctness-critical — the `production/` project's code, configuration and
+docs are what the bootcamper builds on — so its recommendation is the "Bootcamp graduation" row of
+the per-stage table in `../bootcamp-onboarding/ground-rules.md`.
 
-⛔ **This is unconditional — no preference to read, no mode to choose (INV-137).** There is no
-`model_guidance` key; do not read one, and do not honor a stale one left in an old preferences file.
+The rule itself is stated once (INV-300), in `../bootcamp-onboarding/ground-rules.md` → "Module
+start banners and transitions" (its **Best-value model/effort prompt** bullet), and graduation
+follows it exactly as every module does: whether to ask, the pinned switch question (which reads
+"…for graduation?" here), what the reply does after a yes or a no, and the confirmation gate.
+Do not restate any of it here (INV-300); a second copy is how the two drifted apart. Only what is
+specific to graduation follows.
 
-⛔ **Whether to ask is decided the same way as at any module start** — compare graduation's
-recommendation against **what the bootcamper is running right now**, not against the previous
-stage's recommendation (`../bootcamp-onboarding/ground-rules.md` → "Module start banners and
-transitions"). Bootcamp graduation shares its recommendation with Query, Visualize and Discover, so a
-bootcamper arriving on Opus 5 at high effort is **already there**: give them the one-line statement
-and go straight into Step 1. Do not assume graduation is always a step up — it is not, and asking a
-bootcamper to switch to the model they are already running is the pointless question INV-006 and
-INV-012 forbid. Name only the dial that differs — **including in the answer hint**, where `{dial}`
-resolves to "model", "effort", or "model and effort" to match the stem — and when the recommendation
-sits *below* their current setting, say so in the question itself.
+- **Where the flow resumes (INV-284).** Wherever ground-rules says to present "Step 1", graduation
+  runs the Pre-checks and then its first step, Step 0 — not graduation's own Step 1. That holds on
+  every path: on the turn after the bootcamper confirms the switch, and in the same turn after a no,
+  after a yes whose dial is already set, or when no switch question was asked. The turn ends on the
+  next single 👉 question, as ground-rules says.
+- **Usually there is nothing to ask.** Bootcamp graduation shares its recommendation with Query,
+  Visualize and Discover, so a bootcamper arriving on it is usually **already there**: they get the
+  one-line statement and go straight into the Pre-checks and Step 0, and are not asked. Do not assume
+  graduation is always a step up — it is not, and asking a bootcamper to switch to the model they are
+  already running is the pointless question INV-006 and INV-012 forbid.
 
-When it **does** differ, end this turn with a single 👉 yes/no question — its own turn, not combined
-with another 👉:
-
-On the **Kiro CLI**, pin the switch question verbatim:
-
-> 👉 **Would you like to switch to Opus 5 in the model picker and high in the effort picker for graduation?** (Recommended for best value; reply no to keep your current {dial}.)
-
-In **Kiro, Kiro on the web, or the Kiro IDE** (or an unknown interface), pin
-the intent-based equivalent (INV-098), naming the one interface the bootcamper is on — "in your
-Kiro surface" only when it cannot be determined (INV-158):
-
-> 👉 **Would you like to switch to Opus 5 at high reasoning effort for graduation?** (Recommended for best value; set it with the model and effort controls in {Kiro | Kiro on the web | the Kiro IDE}; reply no to keep your current {dial}.)
-
-The switch question ends this turn. **On yes, read what the dial is actually set to before you
-compose the reply** (INV-236) — the question hands the bootcamper a command, so many will run it in
-the same turn as their yes, which is the natural response to being shown a command rather than an
-edge case. Three shapes, decided by the live setting rather than by the yes alone:
-
-1. **The dial is not yet set** — preface the reply turn with a one-line statement telling the
-   bootcamper how to make the change (run the `/model`/`/effort` commands in the Kiro CLI, or
-   use the model and reasoning-effort controls in Kiro / Kiro on the web / the Kiro
-   IDE), then end the turn on this pinned confirmation gate (its question verbatim,
-   INV-056/INV-069 — only the answer hint adapts) — do NOT start the graduation work yet:
-
-   > 👉 **Are you done modifying the model and effort?** (Reply yes once you've set your model and effort; reply no if you need more time.)
-
-   Run the Pre-checks and the first graduation step on the turn **after** the bootcamper confirms; if
-   they need more time, acknowledge and wait, then continue — do not re-ask this gate (ask-once,
-   INV-006).
-
-2. **The dial is already at the recommended value** — acknowledge it rather than instructing it
-   ("You're on `/effort high` already: that's graduation's recommendation."), then run the Pre-checks
-   and the first step **in the same turn**, with no confirmation gate. Nothing is left to confirm
-   (INV-006/INV-012).
-
-3. **The dial is already at a different value** — state what is in force and leave it there:
-   "You're on `/effort xhigh`; graduation recommends `high`, and running higher is fine — it simply
-   costs more, nothing else." Then run the Pre-checks and the first step in the same turn. ⛔ **Never
-   re-instruct the recommended command once the bootcamper has set a different value** — they
-   answered with an action, and the table is a recommended floor, not a ceiling.
-
-In a non-CLI interface, shapes 2 and 3 name the **setting** rather than a command — "you're already
-on Opus 5 at high reasoning effort" (INV-158).
-
-On **no**, continue straight into the graduation work the same reply turn: run the Pre-checks and
-proceed to the first step, ending that turn on its own 👉 question.
-
-⛔ The confirmation gate follows a **yes that still needs one** — shape 1 above — and nothing else.
-Never after a decline; never when no switch question was asked because the recommendation already
-matched; and never in shapes 2 and 3, where the bootcamper has already set the dial and the gate
-would ask what the transcript has answered. In all of those cases the one-line statement is followed
-straight by the Pre-checks and the first step, in the same turn. You never change the session
-yourself; only the bootcamper can, which is why the switch is offered as a question rather than
-performed. See `../../docs/model-selection.md`.
+See `../../docs/model-selection.md`.
 
 ## Pre-checks
 
@@ -191,9 +146,9 @@ Gather context before any step. Do this silently.
    environment templates, Step 4 into the README and the migration checklist's Deployment section,
    Step 5 into the graduation report.
 
-   ⛔ **Never ask for them here.** They are asked once, in Module 1 (INV-006/INV-097), and Module 1
-   may not even have run under a Customized path (INV-076) — so **absent is normal, silent, and
-   changes nothing**: every step below states its no-value behavior, and each simply stays generic.
+   ⛔ **Never ask for them here.** They are asked once, in Module 1 (INV-006/INV-097), so **absent
+   is normal, silent, and changes nothing**: every step below states its no-value behavior, and each
+   simply stays generic.
    An empty value is the same as absent.
 2. **Read progress:** load `config/bootcamp_progress.json` and extract `modules_completed`.
 3. **Fallback — and distinguish a missing file from a missing key.** They are different failures
@@ -267,13 +222,13 @@ Gather context before any step. Do this silently.
    ⛔ **Both, not either.** Preferences alone once printed `docktermj` on a signed certificate at
    exit 0 with 99% content retention and no warning, because the generator read only the recap line
    — the pre-check asked the question, the Bootcamper answered, and the answer was discarded
-   (INV-065). The generator now prefers preferences and prints a `NOTE:` on stderr when the two
+   (INV-170). The generator now prefers preferences and prints a `NOTE:` on stderr when the two
    disagree; treat that note as work still to do, not as confirmation.
 
    If the bootcamper declines or gives nothing usable, continue
    — graduation is non-blocking and the generator still renders a certificate, warning on stderr
    that it used the "Bootcamper" placeholder. **Never print a rejected system-account value** on the
-   certificate or into the recap (INV-065); ask, and use the answer.
+   certificate or into the recap (INV-113); ask, and use the answer.
 
 ## Step 0: Session retrospective (self-observed feedback)
 
@@ -328,14 +283,17 @@ For each finding, append a `## Improvement:` entry to
   one-line reason. Retrospective findings skew toward MCP-server issues — a tool behaving differently
   than documented is exactly the defect class a bootcamper cannot report — so triage each one rather
   than defaulting it to `plugin`.
-- **`Upstream:`** for an `mcp-server`/`both` verdict, offer the forward **once** per
+- **`Upstream:`** for an `mcp-server`/`both` verdict, append the entry as `offer pending`: it is
+  saved before the question is asked, so no outcome exists yet. Then offer the forward **once** per
   `../bootcamp-onboarding/feedback.md` Step 3c: show the exact message, strip anything identifying
-  (INV-065), and send only on a yes. Batch the offer — one question covering all such findings, not
-  one per finding, so the retrospective stays a single non-blocking step. On decline or failure,
-  record it and continue; every entry is saved locally regardless (INV-015). ⚠️ **(INV-281) A session forbidden to
+  (INV-321), and send only on a yes. Batch the offer — one question covering all such findings, not
+  one per finding, so the retrospective stays a single non-blocking step. The batch also covers
+  entries already reading `offer pending` from the silent in-run append. The one answer replaces
+  every `offer pending` value in the same turn, with the outcome Step 3c step 5 names (INV-281).
+  On decline or failure, record it and continue; every entry is saved locally regardless (INV-015). ⚠️ **(INV-281) A session forbidden to
   send** — a maintainer `/dry-run` — still presents the offer, then records
-  `submission blocked: <reason>`, **never** `offered, declined` (Step 3): a yes that could not be
-  acted on is not a refusal.
+  `submission blocked: <reason>`, **never** `offered, declined` (`feedback.md` Step 3c step 5): a
+  yes that could not be acted on is not a refusal.
 - The same **Context when reported** block, describing what *you* hit rather than what the
   bootcamper saw.
 
@@ -353,7 +311,7 @@ Constraints:
 - **No feedback-flow banners.** The entry/exit banners in `../bootcamp-onboarding/feedback.md`
   mark the boundary of the *bootcamper-driven* feedback flow (INV-074). This is a graduation step,
   not that flow — do not present them.
-- **PII boundary.** Same rule as the recap (INV-065): no hostname, username, IP address, or other
+- **PII boundary.** Same rule as the recap (INV-322): no hostname, username, IP address, or other
   personal/host identifier. OS/architecture, plugin version, and model/effort are diagnostic
   context and are permitted — the line is personal/host identifiers, not environment facts.
 
@@ -362,7 +320,7 @@ Constraints:
 The recap is the crown-jewel deliverable. Produce it before the `production/`
 project so the recap PDF always exists.
 
-A finished-recap sample ships with the Power at
+A finished-recap sample ships with the Power (INV-065) at
 `${PLUGIN_ROOT}/docs/examples/bootcamp_recap.example.pdf` (skill-relative
 fallback: `../../docs/examples/bootcamp_recap.example.pdf`). You may point the
 bootcamper to it so they see what theirs is about to look like — a non-blocking
@@ -408,7 +366,7 @@ later. The shape chosen here is the shape the bootcamper keeps.
 ⛔ **Never invent content to fill a label.** If a module's own record does not support a block, write
 what is true — "(no files — {reason})" for a module that produced none — or leave that one block out
 and let the generator mark it "(not recorded)". A keepsake that overstates what the bootcamper did is
-worse than one that shows a gap (INV-065's principle: never fabricate to fill a field). Like every
+worse than one that shows a gap (INV-157's principle: never fabricate to fill a field). Like every
 graduation step this is non-blocking: warn and continue.
 
 `--check` (Step 1b) reports these gaps per module, so run it after this backfill and re-render if it
@@ -433,21 +391,25 @@ and the hardware/software it ran on. Add these header meta lines (in the preambl
   `<this-skill-dir>/../../plugin.json`, else "Unknown" — and ⛔ never by searching
   the filesystem, which on a machine carrying two Power checkouts records the wrong version in
   the keepsake (INV-252). Record the version only, never the path it resolved from: an absolute
-  path carries a username and this block is PII-free (INV-065).
+  path carries a username and this block is PII-free (INV-322).
 - `**Operating system:**` — OS + architecture, reused from the detected/persisted values in
   `config/bootcamp_preferences.yaml` (INV-061), e.g. `Ubuntu 24.04 (x86_64)`.
 - `**Python version:**` — the `python3 --version` of the environment.
 - `**Language runtime:**` — the bootcamper's chosen-language runtime and version (for a Python
   bootcamp, the same Python).
-- `**Senzing SDK:**` — the Senzing SDK/engine version, obtained from the Senzing MCP tools (INV-080),
-  never guessed; "Unknown" if unavailable.
+- `**Senzing SDK:**` — the `sdk_version` recorded in `config/bootcamp_progress.json` by SDK setup
+  (Module 2 Step 4, marked by `sdk_version_measured_at`): the installed SDK's own report from
+  `SzProduct.get_version()`, `VERSION` only (e.g. `4.4.1`). The Senzing MCP server is remote and
+  cannot know what is installed here, so it is not the source for this line. (INV-329) If `sdk_version` is
+  absent (an older progress file, or Step 4 skipped), record "Unknown" and continue: do not re-run
+  the version call, and do not fill it from the package manager or the MCP server.
 - `**Database:**` — the database backend (e.g. SQLite, or PostgreSQL when chosen).
 
 The renderer renders `Plugin version` on the cover and the `Operating system` / `Python version` /
 `Language runtime` / `Senzing SDK` / `Database` lines as a distinct **Run environment** block (use
 exactly those key names so the renderer groups them). This block is written to `docs/bootcamp_recap.md`
 and the PDF only — it is **never** shown in the bootcamp output (INV-012) — and MUST NOT contain a
-hostname, username, IP address, or any other personal/host identifier (INV-065). Like every
+hostname, username, IP address, or any other personal/host identifier (INV-322). Like every
 graduation step it warns-and-continues: if a value cannot be gathered, record "Unknown" and proceed.
 
 If an in-progress recap checkpoint at `docs/progress/recap_checkpoint.md` still holds a
@@ -516,7 +478,7 @@ none of these are covered by it:
      `not_present`, `not_applicable` and `failed`. A `not_applicable` tab is **not** a shortfall:
      the app suppresses a tab whose data does not exist (Cross-Source with one data source,
      Match Keys and Feature Scores with no multi-record entities), so it was never on screen and
-     is correctly absent from the recap. `generate_recap_pdf.py --check` already reads it and fails on a
+     is correctly absent from the recap. `generate_recap_pdf.py`'s `--check` already reads it and fails on a
      shortfall, naming the missing tab slugs; if `--check` reported
      `SKIPPED: tab-coverage check`, no manifest was found and this check has **not** run — say so
      rather than treating it as passed (INV-163).
@@ -565,9 +527,11 @@ none of these are covered by it:
    of the manifests that existed and false of the bootcamp.
 
    ⛔ **(INV-048, INV-193) Offer the remedy — it is cheap while the artifacts are still on disk.** Re-start the app and
-   re-run the capture against it (`capture_screenshots.py --url http://localhost:<port> --name
-   <name>`), then re-embed via the backfill path, rather than proceeding with a recap that pictures
-   the sample dataset in place of the Bootcamper's results.
+   re-run the capture against it with the bundled tool,
+   `python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/capture_screenshots.py" --url http://localhost:<port> --name <name>`
+   (INV-185; skill-relative fallback `../bootcamp-onboarding/scripts/capture_screenshots.py`, INV-252), then
+   re-embed via the backfill path, rather than proceeding with a recap that pictures the sample
+   dataset in place of the Bootcamper's results.
 
    ⚠️ **None of this is blocking.** The recap PDF is produced unconditionally (INV-048) and a missing
    manifest does **not** fail `--check`; the requirement is that graduation **states** the shortfall,
@@ -670,10 +634,11 @@ should look professional). Install it **robustly**, never with a bare `pip`:
   distros) and never touches the global/system Python:
 
   ```bash
-  python3 -m venv data/temp/recap-venv
   # Linux/macOS:
+  python3 -m venv data/temp/recap-venv
   data/temp/recap-venv/bin/python -m pip install fpdf2
   # Windows:
+  py -3 -m venv data\temp\recap-venv
   data\temp\recap-venv\Scripts\python -m pip install fpdf2
   ```
 
@@ -697,9 +662,14 @@ if you created one above; otherwise `python3`:
 ```bash
 # fpdf2 already importable, or using the stdlib fallback:
 python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_pdf.py"
-# Or, when you installed fpdf2 into the project-local venv above:
+# Or, when you installed fpdf2 into the project-local venv above (Linux/macOS):
 data/temp/recap-venv/bin/python "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_pdf.py"
+# Windows:
+data\temp\recap-venv\Scripts\python "${PLUGIN_ROOT}\scripts\generate_recap_pdf.py"
 ```
+
+The Windows lines are written for PowerShell 5.1 and 7 but are unverified on Windows: no test
+runs them there.
 
 If `${PLUGIN_ROOT}` is not set in the current context, resolve the script
 relative to this skill's directory instead (this skill lives at
@@ -725,7 +695,7 @@ The script reads `docs/bootcamp_recap.md` and writes `docs/bootcamp_recap.pdf`.
   not see: a section damaged after its module closed, a module whose Step 2c check could not run, or
   a whole-file property (image targets, tab coverage, `--expect-modules`) that only exists at
   graduation. Treat a structural finding at this point as a signal worth reading, not routine.
-- **If the bundled script cannot be located or run:** do not stop. Generate the PDF inline instead: parse `docs/bootcamp_recap.md` and render a cover page plus one page per module (each with Information Shared, Questions & Responses, Actions Taken, End-of-Module Summary) using `fpdf2` if importable, else a minimal valid PDF. The recap Markdown at `docs/bootcamp_recap.md` is always the source of truth, so content is never lost.
+- **If the bundled script cannot be located or run:** do not stop. Generate the PDF inline instead: parse `docs/bootcamp_recap.md` and render a cover page plus one page per module (each with Information Shared, Questions & Responses, Actions Taken, End-of-Module Summary) using `fpdf2` if importable, else a minimal valid PDF. On either path, draw every End-of-Module Summary's three labeled blocks — What you accomplished, Files produced, Why it matters — and mark one the recap does not carry as `(not recorded)` rather than omitting it or inventing its content (INV-157). The recap Markdown at `docs/bootcamp_recap.md` is always the source of truth, so content is never lost.
 
 ⛔ **Verify the artifact, not the exit code.** A `PDF generated:` line, a zero exit, and a high
 retention percentage are all necessary and all demonstrably insufficient: in one session four separate
@@ -836,6 +806,428 @@ box) and the image count (which catches silently-dropped screenshots — the fai
 recap with 2 images where 8 were expected, detectable *only* by counting). The page raster is the one
 genuinely tool-gated check; its absence is the thing to announce.
 
+### 1c. Offer the graduation video (optional)
+
+The recap PDF now exists, so the video can reuse its certificate's name and date. The video is
+optional. It is built from the B-roll each module saved (`../bootcamp-onboarding/module-completion.md`
+Step 2e) and rendered by the bundled renderer, `../bootcamp-onboarding/scripts/generate_recap_video.py`, which writes
+`docs/bootcamp_recap.mp4`.
+
+⛔ **(INV-340) The video never blocks graduation (INV-048).** Every failure below, whether a declined install, a
+failed install, an invalid storyboard or a failed render, skips the video with a one-line message
+naming what failed, and graduation continues to Step 2.
+
+**The offer.** When Step 1b is done, end the turn on this pinned question. Ask it once per graduation
+(INV-006, INV-056):
+
+> 👉 **Would you like a narrated 2-minute graduation video of your bootcamp?** (Saved to `docs/bootcamp_recap.mp4`; reply no to skip.)
+
+- **No:** continue straight to Step 2 in the same reply turn.
+- **Yes:** continue below.
+
+⛔ **(INV-340) On no, write no video file at all:** no `docs/video/storyboard.json` and no
+`docs/bootcamp_recap.mp4`. The storyboard is written only after a yes.
+
+**Model quality.** There is no second model question, because graduation's best-value model/effort
+prompt already covers it. Only when the bootcamper answered **no** to that switch question, open the
+yes reply with one statement line, not a question:
+
+> ℹ️ The narration comes out best on graduation's recommended model and effort; I'll write it on your current setting.
+
+Say nothing about the model when no switch question was asked (the bootcamper was already on the
+recommendation) or when they accepted the switch.
+
+#### Write the storyboard
+
+Write `docs/video/storyboard.json` in the renderer's format. Run the renderer with `--schema` to print
+every scene type and its fields; the example below shows the shape. `video.bootcamper` is the name the
+certificate prints (INV-100; pre-check 4: `name` in `config/bootcamp_preferences.yaml`, else the recap's
+`**Bootcamper:**` line, else "Bootcamper"), and `video.graduation_date` is the recap's `**Completed:**`
+date that Step 1a stamped. Set `video.title` to "Senzing Agentic AI Bootcamp". Use the bootcamper's
+name in the narration where it fits: the Intro, the business problem and the certificate.
+
+**Where each scene comes from.** Scenes run in the order the bootcamper experienced the bootcamp:
+the Intro, then Bootcamp preparation, then each module in `modules_completed` order, then the ending.
+
+- **The Intro** always opens the video, on every path. It is one `title_card` built from the
+  `video` object alone, and writes no B-roll entry:
+  - `"_module": "intro"`, the one `_module` tag that is not a module's state token;
+  - `module`: "Senzing Agentic AI Bootcamp";
+  - `highlight`: "[Name] · [Date]";
+  - `narration`: "This is [Name]'s Senzing Agentic AI Bootcamp, [Date]."
+
+  `[Name]` is `video.bootcamper`, so the Intro shows exactly the name the certificate shows, the
+  "Bootcamper" fallback included. `[Date]` is `video.graduation_date`, the recap's `**Completed:**`
+  date, written out in words as the certificate prints it, `Month D, YYYY` (e.g. "October 1,
+  2026"). The Intro carries the bootcamper's own name and the date, as the certificate does, and no
+  record value.
+- **Bootcamp preparation** always comes from `config/bootcamp_preferences.yaml`: the path, the selected
+  modules and the `programming_language`, as one `title_card`. That module writes no B-roll entry
+  (#298).
+- **Every other module** comes from its entry in `docs/video/broll.json`, keyed by its state token.
+  Its name-free `images` (see "Only name-free screenshots" below) become `image` scenes, its
+  `facts` become the scenes in the table below, and its `highlight` becomes the narration, or a
+  `title_card` highlight when it has nothing on screen.
+- **A bootcamp with no `broll.json`** (it started on an older plugin version), or a module with no
+  entry in it: build that module's scenes from its `## {Module name}` section in
+  `docs/bootcamp_recap.md` and the screenshots under `docs/visualizations/` that section embeds.
+  Write the image paths as `docs/visualizations/<file>.png`, relative to the project root, not the
+  recap's `visualizations/…`. Use only the name-free ones among them, by the same rule.
+
+**The five animated scenes.** Each of these modules is required, so each has a scene:
+
+| Module | Scene type | Built from |
+|---|---|---|
+| Discover the Business Problem | `title_card` | the problem the bootcamper described (the entry's `highlight`), elaborated in the narration |
+| Data collection | `counter` | the characteristics of their data: `facts.sources`, records per source |
+| Data Quality, Mapping, and Transformation | `mapping` | `facts.mappings`, one scene per source, at most 8 fields each |
+| Data processing | `loading` | the loading of their data: `facts.records_loaded` and `facts.entities_resolved` |
+| Query, Visualize and Discover | `entity_merge`, then `counter` and `image` scenes | what was found: records, entities and sources, then `facts.statistics` and the name-free results screenshots |
+
+When a module's figures are missing, draw its scene as a `title_card` with its highlight. Never
+invent a number to fill a scene (INV-157's principle: never fabricate to fill a field).
+
+⛔ **(INV-340) Aggregates only: no raw record values anywhere in the storyboard.** A scene may show counts,
+source names, field and attribute names, and statistics. It may not show a name, an address, a phone
+number, an identifier or any other value from the bootcamper's records, in any field, the narration and
+captions included. `broll.json`'s text fields hold only aggregates (INV-341), but its `images` name
+every screenshot the module produced, and a screenshot can show record values. So images pass the
+name-free rule below before they go in. The recap may quote records (an entity the bootcamper
+searched for, say), so on the fallback path lift only its aggregates. The video is a keepsake the
+bootcamper is encouraged to share.
+
+⛔ **(INV-340) Only name-free screenshots go in the video.** An image becomes an `image` scene only
+when its file name is `<name>-<slug>.png` with `<slug>` one of the three name-free tab slugs below
+(`capture_screenshots.py` `TABS` names them). Every other image is left out of the storyboard.
+
+| Image | Tab | In the video |
+|---|---|---|
+| `<name>-match-keys.png` | Match Keys | yes: name-free |
+| `<name>-feature-scores.png` | Feature Scores | yes: name-free |
+| `<name>-cross-source.png` | Cross-Source | yes: name-free |
+| `<name>-merge-statistics.png` | Merge Statistics | no: its "Largest resolved entities" list shows entity names and IDs |
+| `<name>-search-probe.png` | Search / Probe | no: it shows the names that were searched |
+| `<name>-entity-graph.png` | Entity Graph | no: a capture keeps the entity-name node labels whenever the graph has 40 nodes or fewer |
+| `<name>.png`, a single-page capture such as `data_quality_assessment.png` or the mapping summary | none | no: a model-authored page can carry sample values |
+| any other name, including the reserved `relationship-network` and `record-merges` slugs | any other | no: not on the allow-list |
+
+- **The allow-list is the only way in.** A name that matches none of the three slugs is left out,
+  so a new or renamed tab stays out until it is added to this table.
+- **One rule for every image.** It applies to the Truth Set's images (`truthset_verification-…`)
+  as to the bootcamper's own, and on the fallback path to the screenshots under
+  `docs/visualizations/` the recap embeds.
+- **A module left with no image** gets no `image` scene. Draw it as a module with nothing on
+  screen: its `facts` scenes, or a `title_card` with its highlight, in the same seconds.
+- **Nothing is cropped or edited.** A left-out image stays on disk and in the recap PDF.
+
+**The ending (INV-340).** The last two scenes are always the `certificate`, then the `tag_line` with the text
+**"Resolved: [Name], Senzing graduate."**, where `[Name]` is `video.bootcamper`.
+
+**The time budget (INV-340).** The planned length is **2:00**. Each module gets this share of it:
+
+| Module | State token | Share | Seconds (every module taken) |
+|---|---|---|---|
+| Intro | `intro` | 3% | 3.6 |
+| Bootcamp preparation | `bootcamp_preparation` | 3% | 3.6 |
+| Entity Resolution Concepts | `entity_resolution_concepts` | 4% | 4.8 |
+| Discover the Business Problem | `business_problem` | 15% | 18.0 |
+| SDK setup | `sdk_setup` | 3% | 3.6 |
+| System verification | `system_verification` | 3% | 3.6 |
+| Truth Set visualization | `truthset_visualization` | 10% | 12.0 |
+| Data collection | `data_collection` | 10% | 12.0 |
+| Data Quality, Mapping, and Transformation | `data_quality_mapping` | 10% | 12.0 |
+| Data processing | `data_processing` | 5% | 6.0 |
+| Query, Visualize and Discover | `query_visualize_discover` | 30% | 36.0 |
+| You graduated! | `graduation` | 4% | 4.8 |
+
+Intro, Bootcamp preparation and You graduated! always count, whichever optional modules were
+skipped. Every other module counts only when it is in
+`modules_completed`. Leave out the modules the bootcamper did not take (the optional modules skipped
+on a Customized path), and scale the shares of the rest back up to 100%:
+
+`seconds = 120 × share ÷ (sum of the shares that count)`
+
+Round each module to one decimal, and give any rounding remainder to Query, Visualize and Discover so
+the total is exactly 120. For example, a Customized path that skipped Entity Resolution Concepts,
+System verification and Truth Set visualization counts 83%:
+
+| Module | Seconds (83% counted) |
+|---|---|
+| Intro | 4.3 |
+| Bootcamp preparation | 4.3 |
+| Discover the Business Problem | 21.7 |
+| SDK setup | 4.3 |
+| Data collection | 14.5 |
+| Data Quality, Mapping, and Transformation | 14.5 |
+| Data processing | 7.2 |
+| Query, Visualize and Discover | 43.4 |
+| You graduated! | 5.8 |
+
+A module's seconds may be split across several scenes; the scene durations for a module add up to
+its seconds, and You graduated!'s seconds are shared between the certificate and the tag line. Tag
+each scene with its module's state token in a `_module` key (the Intro with `intro`). The renderer ignores keys that begin
+with `_`, and the tag tells you which module a scene belongs to when you re-time it below. The
+renderer lengthens a scene whose narration runs past its planned duration, so keep each narration
+to about 2.5 words for every second of its scene after the first. The Intro's line usually runs a
+little past its 3.6 seconds; the renderer lengthens it and reports it, and the total stays inside
+the tolerance below.
+
+A storyboard for a Core bootcamp, with every module taken:
+
+```json
+{
+  "video": {"bootcamper": "Ada Lovelace", "graduation_date": "2026-09-30", "title": "Senzing Agentic AI Bootcamp"},
+  "scenes": [
+    {"_module": "intro", "type": "title_card", "duration": 3.6, "module": "Senzing Agentic AI Bootcamp", "highlight": "Ada Lovelace · September 30, 2026", "narration": "This is Ada Lovelace's Senzing Agentic AI Bootcamp, September 30, 2026."},
+    {"_module": "bootcamp_preparation", "type": "title_card", "duration": 3.6, "module": "Bootcamp preparation", "highlight": "Core path, 10 modules, Python", "narration": "Ada chose Core: ten modules, in Python."},
+    {"_module": "entity_resolution_concepts", "type": "title_card", "duration": 4.8, "module": "Entity Resolution Concepts", "highlight": "How records become entities", "narration": "First: records that describe one thing become one entity."},
+    {"_module": "business_problem", "type": "title_card", "duration": 18, "module": "Discover the Business Problem", "highlight": "One customer view across two systems", "narration": "Then Ada's own problem. The same customers sat in two systems, under different spellings and addresses, and nobody could say how many customers there really were. That was the question to answer."},
+    {"_module": "sdk_setup", "type": "title_card", "duration": 3.6, "module": "SDK setup", "narration": "The Senzing SDK went in."},
+    {"_module": "system_verification", "type": "title_card", "duration": 3.6, "module": "System verification", "narration": "Its system check passed."},
+    {"_module": "truthset_visualization", "type": "image", "duration": 6, "image": "docs/visualizations/truthset_verification-match-keys.png", "heading": "Truth Set: match keys", "narration": "A practice run on the Truth Set showed resolution at work."},
+    {"_module": "truthset_visualization", "type": "image", "duration": 6, "image": "docs/visualizations/truthset_verification-cross-source.png", "heading": "Truth Set: cross-source overlap", "narration": "And how its sources overlapped."},
+    {"_module": "data_collection", "type": "counter", "duration": 12, "title": "Records per source", "items": [{"label": "CUSTOMERS", "value": 1200}, {"label": "VENDORS", "value": 340}], "narration": "Then Ada's own data: two sources, twelve hundred customer records and three hundred forty vendor records."},
+    {"_module": "data_quality_mapping", "type": "mapping", "duration": 6, "source": "CUSTOMERS", "fields": [{"from": "last_nm", "to": "NAME_LAST"}, {"from": "street", "to": "ADDR_LINE1"}], "narration": "Each field was mapped to a Senzing attribute."},
+    {"_module": "data_quality_mapping", "type": "mapping", "duration": 6, "source": "VENDORS", "fields": [{"from": "vendor_name", "to": "NAME_ORG"}, {"from": "addr1", "to": "ADDR_LINE1"}], "narration": "Vendors too, names and addresses alike."},
+    {"_module": "data_processing", "type": "loading", "duration": 6, "records": 1540, "entities": 1310, "narration": "All 1,540 records loaded into 1,310 entities."},
+    {"_module": "query_visualize_discover", "type": "entity_merge", "duration": 12, "records": 1540, "entities": 1310, "sources": ["CUSTOMERS", "VENDORS"], "narration": "Here is what Senzing found. Records from both sources came together as the entities they really are."},
+    {"_module": "query_visualize_discover", "type": "counter", "duration": 12, "title": "What Senzing found", "items": [{"label": "Entities in both sources", "value": 118}, {"label": "Entities with several records", "value": 190}], "narration": "One hundred eighteen entities appear in both sources, the overlap nobody could see before."},
+    {"_module": "query_visualize_discover", "type": "image", "duration": 12, "image": "docs/visualizations/results_visualization-cross-source.png", "heading": "Your sources, side by side", "narration": "Every one of them is in Ada's own results app."},
+    {"_module": "graduation", "type": "certificate", "duration": 2.0, "narration": "Congratulations, Ada."},
+    {"_module": "graduation", "type": "tag_line", "duration": 2.8, "text": "Resolved: Ada Lovelace, Senzing graduate.", "narration": "Resolved: Ada Lovelace, Senzing graduate."}
+  ]
+}
+```
+
+#### Offer the Piper voice
+
+The renderer narrates with a local Piper neural voice, `en_US-ljspeech-high`, whenever the Python
+that runs it can find `piper` and the voice sits in `data/temp/piper-voices/`. Otherwise it uses the
+computer's built-in voice. Piper is set up when both hold:
+
+- `data/temp/recap-venv/` exists and its Python can find `piper`:
+  `<venv python> -c "import importlib.util, sys; sys.exit(importlib.util.find_spec('piper') is None)"`
+  exits 0. Here `<venv python>` is `data/temp/recap-venv/bin/python` (Windows:
+  `data\temp\recap-venv\Scripts\python`).
+- The voice is in `data/temp/piper-voices/`: `en_US-ljspeech-high.onnx` and its
+  `en_US-ljspeech-high.onnx.json` both exist.
+
+When Piper is set up, make no offer, and run `--check` and the render below with the venv's Python.
+
+**The offer.** When Piper is not set up, end the turn on this pinned question, after the storyboard is
+written and before the first render. Ask it once per graduation (INV-006, INV-056):
+
+> 👉 **May I install the Piper neural voice so the narration sounds natural?** It downloads about 200 MB into this project: `piper-tts` (GPL-3.0, runs on your machine) into `data/temp/recap-venv/`, and the public-domain `en_US-ljspeech-high` voice into `data/temp/piper-voices/`. (Reply no to narrate with your computer's built-in voice.)
+
+When the venv will also get Pillow or `imageio-ffmpeg` (the next paragraph says when), the question
+names them after `data/temp/recap-venv/`: "…into `data/temp/recap-venv/` along with Pillow and
+`imageio-ffmpeg`, which rendering needs, and the public-domain `en_US-ljspeech-high` voice…". Name
+only the one the venv will get when it gets one ("along with Pillow, which rendering needs," or "along
+with `imageio-ffmpeg`, which rendering needs,"). Every other word stays the same.
+
+**On yes,** install into the project only (INV-066), skipping each step that is already satisfied:
+
+1. Create `data/temp/recap-venv/` with `python3 -m venv data/temp/recap-venv` (Windows:
+   `py -3 -m venv data\temp\recap-venv`) if it does not exist.
+2. Run **one** `python -m pip install` with the venv's Python, installing `piper-tts` when the venv
+   cannot find `piper`, plus Pillow when the venv's Python cannot `import PIL`, plus
+   `imageio-ffmpeg` when there is no ffmpeg on `PATH`.
+3. Download the voice by the route `piper-tts` documents, when it is not in
+   `data/temp/piper-voices/` yet.
+
+```bash
+# Linux/macOS (add Pillow and imageio-ffmpeg to the same command when they are missing):
+python3 -m venv data/temp/recap-venv    # only if it does not exist yet
+data/temp/recap-venv/bin/python -m pip install piper-tts
+data/temp/recap-venv/bin/python -m piper.download_voices en_US-ljspeech-high --data-dir data/temp/piper-voices
+# Windows:
+py -3 -m venv data\temp\recap-venv    # only if it does not exist yet
+data\temp\recap-venv\Scripts\python -m pip install piper-tts
+data\temp\recap-venv\Scripts\python -m piper.download_voices en_US-ljspeech-high --data-dir data\temp\piper-voices
+```
+
+The Windows lines are written for PowerShell 5.1 and 7 but are unverified on Windows: no test
+runs them there.
+
+When every step succeeds, **run `--check` and the render below with the venv's Python** from then on.
+The venv now has Pillow and, without an ffmpeg on `PATH`, `imageio-ffmpeg`, so the exit-2 install
+offer cannot follow a successful install.
+
+**On no, or on any failure** (creating the venv, the `pip` install or the download), render with
+the interpreter Step 1b used, as before, and the renderer narrates with the computer's built-in voice.
+Graduation continues (INV-048, INV-340), and the exit-2 install offer still applies to that render.
+
+⛔ **(INV-066, INV-340) Never run `sudo`, a bare `pip`, or an install outside `data/temp/recap-venv/` and
+`data/temp/piper-voices/`.**
+
+#### Render it
+
+Check the storyboard, then render it. Use the venv's Python when Piper is set up (above), otherwise the
+same interpreter Step 1b used (the project-local virtualenv's Python when Step 1b created one,
+otherwise `python3`). Pass no `--voice-model`: the renderer finds the voice at its default path,
+`data/temp/piper-voices/en_US-ljspeech-high.onnx`.
+
+```bash
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_video.py" --check
+python3 "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_video.py"
+# or, if PLUGIN_ROOT is unset: python3 <this-skill-dir>/../bootcamp-onboarding/scripts/generate_recap_video.py
+# With Piper set up (Linux/macOS; Windows: data\temp\recap-venv\Scripts\python):
+data/temp/recap-venv/bin/python "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_video.py" --check
+data/temp/recap-venv/bin/python "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_video.py"
+```
+
+The renderer reads `docs/video/storyboard.json` and writes `docs/bootcamp_recap.mp4`. Act on its exit
+code:
+
+- **0, rendered.** It prints `Video generated:`, a `Duration:` line, a `Voice:` line and a `Music:`
+  line. Go on to "Verify the video" below.
+- **1, invalid storyboard.** Each `INVALID:` line names the field at fault. Fix those fields and run
+  it again. If it is still invalid, skip the video.
+- **2, a capability is missing.** No usable ffmpeg, or no Pillow; the `ERROR:` line says which. Make
+  the install offer below.
+- **3, the render failed.** Skip the video.
+
+⛔ **(INV-340) Keep the storyboard whenever it was written.** Skipping the video leaves
+`docs/video/storyboard.json` in place, so the video can be rendered later by running the renderer
+again. The skip message says so, for example: "🎬 I couldn't render the graduation video (ffmpeg is
+missing). Its storyboard is saved at `docs/video/storyboard.json`, so it can be rendered later." Then
+continue to Step 2.
+
+**The install offer (exit 2).** Offer it once (INV-006, INV-340), pinned:
+
+> 👉 **Rendering the video needs ffmpeg. May I install `imageio-ffmpeg` into this project's virtualenv?** (Reply no to skip the video; its storyboard is kept so you can render it later.)
+
+When Pillow is missing as well, name it in the same question: "Rendering the video needs ffmpeg and
+Pillow. May I install `imageio-ffmpeg` and Pillow into this project's virtualenv?", with the same
+answer hint. Pillow is missing when the virtualenv does not exist yet or its Python cannot run
+`import PIL`. When ffmpeg is on `PATH` and only Pillow is missing, the question names Pillow alone.
+
+On yes, install into the project-local virtualenv (INV-066). Step 1b's `fpdf2` install may have created
+it already:
+
+```bash
+# Linux/macOS (add Pillow when it is missing):
+python3 -m venv data/temp/recap-venv    # only if it does not exist yet
+data/temp/recap-venv/bin/python -m pip install imageio-ffmpeg
+data/temp/recap-venv/bin/python "${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_video.py"
+# Windows:
+py -3 -m venv data\temp\recap-venv    # only if it does not exist yet
+data\temp\recap-venv\Scripts\python -m pip install imageio-ffmpeg
+data\temp\recap-venv\Scripts\python "${PLUGIN_ROOT}\scripts\generate_recap_video.py"
+```
+
+The Windows lines are written for PowerShell 5.1 and 7 but are unverified on Windows: no test
+runs them there.
+
+On no, or when the venv or the install fails, skip the video and keep the storyboard.
+
+#### Verify the video
+
+⛔ **Verify the rendered video, not the exit code (INV-129, INV-340).** Each check is best-effort and
+non-blocking. A check that cannot run is recorded as skipped, naming the check (INV-163). Use the
+ffmpeg the render used: `ffmpeg` on `PATH`, or the `imageio-ffmpeg` binary, whose path
+`<venv python> -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"` prints. Use
+`ffprobe` where it exists. ⛔ **Never install a tool only to run a check (INV-129).**
+
+1. **Duration: within 2:00 ± 10 s**, that is 1:50 to 2:10. Read it from the file (`ffprobe`, or the
+   `Duration:` line `ffmpeg -i docs/bootcamp_recap.mp4` prints), not only from the renderer's own
+   line.
+2. **Frames.** Extract one frame at the midpoint of each scene, including the certificate and the
+   tag line, and look at each one. For example, after creating `data/temp/video-check/`:
+   `ffmpeg -ss <seconds> -i docs/bootcamp_recap.mp4 -frames:v 1 data/temp/video-check/scene-<n>.png`.
+   Work the midpoints out from the planned durations, lengthened as the renderer's `OVERRUN:` lines
+   report. Confirm that each frame shows its scene, that the certificate carries the right name and
+   that the tag line reads "Resolved: [Name], Senzing graduate.".
+3. **Audio.** Read the renderer's `Voice:` and `Music:` lines. There is an audio stream whenever
+   either one is present: a `Voice:` line naming an engine (`Voice: <engine> (<n> of <m> scenes
+   narrated)`), or `Music: yes`. Then the file carries an audio stream (`ffprobe`, or the `Audio:`
+   stream line of `ffmpeg -i`). `Voice: none (…)` names why no voice spoke (`--no-voice`, `no speech
+   engine found`, or `<engine> voiced no scene`): the captions carry the narration, and that is not a
+   failure. Only with `Voice: none (…)` and `Music: off (storyboard)` together is there no audio
+   stream.
+
+**Out of tolerance.** When the duration is outside 1:50 to 2:10, shorten the narration (a video that
+runs long) or lengthen it (a video that runs short), starting with the scenes the `OVERRUN:` lines
+name, and re-render **once**. If it is still outside, keep the video and say so, with its duration.
+
+Tell the bootcamper in one line, naming the voice from the renderer's `Voice:` line: the engine it
+names, for example "🎬 Your graduation video is at `docs/bootcamp_recap.mp4` (2:03), narrated by Piper
+(en_US-ljspeech-high).". When the `Voice:` line is `Voice: none (…)`, that line only notes there is
+no voice: "🎬 Your graduation video is at `docs/bootcamp_recap.mp4` (2:03), with no voice." Keep the
+reason and any guidance for the closing announcement (below). Name any check that did not run, and
+continue to Step 2.
+
+#### When the video has no voice
+
+Read the reason in the renderer's `Voice: none (…)` line (#339) and keep it, with the `Music:` line,
+for the closing announcement, which is where the bootcamper hears it. There are three cases:
+
+| `Voice:` line | What the closing announcement adds |
+|---|---|
+| `Voice: none (no speech engine found)` | the platform's speech engine, its install hint and the re-render command, below |
+| `Voice: none (<engine> voiced no scene)` | names `<engine>` and says it could not voice the narration; no install hint, because the engine is installed |
+| `Voice: none (--no-voice)` | nothing about installing; graduation never passes `--no-voice`, so this case is defensive |
+
+A `Voice:` line that names an engine means the video has a voice, even when some scenes went
+unvoiced: none of this applies, and the renderer's per-scene notes on stderr cover the rest.
+
+This guidance is about the platform's speech engine only. Piper is a separate, opt-in voice, offered
+once before the render ("Offer the Piper voice" above). When the bootcamper declined it, or its
+install or its narration failed, the renderer fell back to the platform engine, so
+`Voice: none (no speech engine found)` still means no platform engine was found. Give the platform
+guidance below, and do not offer Piper again.
+
+**The platform's speech engine (no speech engine found).** State it in one sentence:
+
+- **Linux, WSL included:** the voice comes from `espeak-ng`. Read `ID` and `ID_LIKE` in
+  `/etc/os-release` (a plain file; reading it installs nothing) and take the first row whose names
+  appear in `ID`, then in `ID_LIKE`:
+
+  | `ID` / `ID_LIKE` names | Install hint |
+  |---|---|
+  | `debian`, `ubuntu` | `sudo apt install espeak-ng` |
+  | `fedora`, `rhel`, `centos` | `sudo dnf install espeak-ng` |
+  | `arch` | `sudo pacman -S espeak-ng` |
+  | `suse`, or a name starting `opensuse` | `sudo zypper install espeak-ng` |
+  | none of these, or no `/etc/os-release` | install `espeak-ng` with your package manager |
+
+- **macOS:** `say` is built in to macOS, so not finding it is unusual; say so. Give
+  `brew install espeak-ng` as the fallback, because the renderer tries `espeak-ng` after `say`.
+- **Windows:** the voice uses System.Speech, which comes with Windows PowerShell 5.1
+  (`powershell.exe`). PowerShell 7 (`pwsh`) alone cannot load it, which is what the renderer's
+  "not loadable" means; say so. There is no install command to give.
+
+⛔ **(INV-066, INV-340) The install hint is the bootcamper's to run.** Never run `sudo` or a system
+package manager (`apt`, `dnf`, `pacman`, `zypper`, `brew`) for it, and never install the engine for
+them.
+
+**The re-render command (no speech engine found).** The storyboard is kept, so once the engine is
+installed the same command renders the video again with a voice. Write it out with resolved
+absolute paths, so it runs as-is in the bootcamper's own terminal. `${PLUGIN_ROOT}` is unset
+there, so never write it, a `<this-skill-dir>` placeholder or a relative path into the command.
+Resolve three paths:
+
+- **The interpreter Step 1c rendered with:** the project-local virtualenv's Python under the project
+  root (`<project>/data/temp/recap-venv/bin/python`; on Windows
+  `<project>\data\temp\recap-venv\Scripts\python.exe`), or else the absolute path of `python3`
+  (`command -v python3`).
+- **The renderer:** the absolute path that `${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/generate_recap_video.py`
+  expands to in your shell (or the skill-relative fallback, resolved).
+- **The project root:** the absolute path of the bootcamper's project.
+
+The renderer's defaults are relative to the current directory, so pass the storyboard, the output and
+the project root explicitly, and the command works from any directory. Use the platform's shell
+syntax:
+
+- **Linux and macOS** (POSIX, single-quoted):
+  `'<interpreter>' '<renderer>' --storyboard '<project>/docs/video/storyboard.json' --output '<project>/docs/bootcamp_recap.mp4' --project-root '<project>'`
+- **Windows** (PowerShell, double-quoted, through the `&` call operator):
+  `& "<interpreter>" "<renderer>" --storyboard "<project>\docs\video\storyboard.json" --output "<project>\docs\bootcamp_recap.mp4" --project-root "<project>"`
+
+⛔ **(INV-048, INV-340) This guidance is a statement, never a question, and it never blocks graduation.**
+It changes nothing about Step 1c's outcome: the video was produced, and graduation continues to
+Step 2.
+
 ## Step 2: Build the production project
 
 If `production/` already exists, pin this 👉 question verbatim (neutral lead + numbered list):
@@ -858,6 +1250,7 @@ does not exist; on a copy failure, log and continue):
 | `src/query/**` | `production/src/query/` | Query/discovery code |
 | `src/utils/**` | `production/src/utils/` | Shared helpers |
 | `data/senzing-ready/**` | `production/data/senzing-ready/` | Senzing-ready data |
+| `config/data_sources.yaml` | `production/config/data_sources.yaml` | Data-source registry, written as a projection (below), not copied whole |
 | `requirements.txt` / `pom.xml` / `Cargo.toml` / `package.json` / `*.csproj` | `production/` | Dependency manifest |
 
 ⛔ **Every destination above keeps the source's path relative to the project root, and
@@ -867,12 +1260,37 @@ step "Mapped sources"), so flattening the data to `production/data/` hands the b
 whose loader points at a directory that does not exist. Copy the tree, do not rewrite the code: the
 loader is theirs, and a path edited by graduation is a change they never saw made.
 
+⛔ **(INV-186) `config/data_sources.yaml` is written to `production/config/data_sources.yaml` as a
+projection, never copied whole, and never left out.** The multi-source orchestrator in `src/load/**`
+reads each source's registry entry when it runs (`../module-06-data-processing/phaseC-multi-source.md`
+step 17, INV-320), so without the registry at that path the copied loader stops at its first lookup.
+The projection describes what production loads, not what the evaluation loaded:
+
+- **Keep only:** `version`, the `sources:` mapping with its keys as the registry has them, and per
+  source `name`, `file_path` and `format`.
+- **Strip:** every other field, including `load_subset:`, `sample:`, `quality_score`,
+  `quality_intent`, `provenance`, `validation_status`, `validation_checks`, `mapping_status`,
+  `load_status`, `record_count`, `expected_record_count`, `file_size_bytes` and the timestamps.
+- **Sources:** every source whose `file_path` is non-null, fast-pathed sources included (their
+  `data/raw/` input is disclosed as the paragraph on fast-pathed sources below says). Omit a source
+  whose `file_path` is null, such as a documented-location-only source.
+- **Why `load_subset:` goes:** it is the evaluation's limit. An `overlap_preserving` block names a
+  subset file under the excluded `data/subsets/` (below), and a `first_n` block's `limit` is the
+  evaluation's license or SQLite cap. A source with no block loads its whole registry `file_path`
+  (step 17), which is what production loads. `sample:` goes for the same reason: its file is under
+  the excluded `data/samples/`.
+- **Merge** regenerates the projection, as it does every generated file. A missing registry is
+  skipped like any other missing source; a write failure is logged and the step continues.
+
 Create `production/database/.gitkeep` as an empty placeholder (never copy the
 eval database itself).
 
 **Exclude (never copy):** `config/bootcamp_progress.json`,
 `config/bootcamp_preferences.yaml`, `docs/bootcamp_recap.md`, `docs/bootcamp_notes.md`,
-`data/samples/`, `data/raw/`, `logs/`, `backups/`, and `docs/feedback/`.
+`data/samples/`, `data/raw/`, `data/subsets/`, `logs/`, `backups/`, and `docs/feedback/`.
+
+`data/subsets/` is excluded because a subset is the evaluation's license-capped or volume-capped
+slice (Module 6), not the data production loads.
 
 ⛔ **`docs/bootcamp_notes.md` is a bootcamp artifact, not production content** — exactly as
 `docs/bootcamp_recap.md` and `docs/feedback/` are. It holds the bootcamper's own ideas and
@@ -922,6 +1340,11 @@ the files are exactly as they were before this paragraph.
 ## Step 4: Production README and migration checklist
 
 - **`production/README.md`:** parameterized by `programming_language`, `database_type`, and the data sources from `config/data_sources.yaml`. Use no bootcamp language (no "bootcamp", "module", "track", or "bootcamper"). Sections: Project Overview, Prerequisites, Installation, Configuration, Usage, Project Structure. Show it to the bootcamper and apply any requested revisions.
+  - **Configuration names the registry.** Say that `config/data_sources.yaml` is the registry the
+    loader reads, holding each source's `file_path` and `format` (the Step 2 projection). Then name
+    each source the evaluation loaded as a subset (one whose bootcamp registry entry has a
+    `load_subset:` block), and say that production loads its whole `file_path`. No source was loaded
+    as a subset → omit that sentence.
   - **Where `integration_targets` is known** (INV-097), name those systems in **Project Overview** as what the resolved entities are meant to feed, and in **Configuration** as the integration points a reader will need to wire up — the resolved data exists to reach them, so a README that never mentions them describes half the job. Absent → omit; never write "none" or a placeholder.
 - **`production/MIGRATION_CHECKLIST.md`:** `- [ ]` checkboxes under six sections (Database, Security, Licensing, Performance, Data, Deployment). Because the bootcamp does not include dedicated performance/security/monitoring/deployment modules, add a note at the top: "⚠️ Some production topics (performance, security, monitoring, deployment) are not covered in depth during the bootcamp: complete these items before deploying," and mark those items with ⚠️.
   - **The Performance section MUST carry the DEFAULT-flags item** — ⚠️ *"Replace `*_DEFAULT_FLAGS`
@@ -956,7 +1379,9 @@ above, the `- [ ]` checkboxes, and the tables are content, not formatting.
 
 Always generate `production/GRADUATION_REPORT.md`, even if earlier steps had
 errors. Include: completion timestamp, bootcamp path (Core/Customized) and the modules completed,
-`programming_language`, `database_type`, a files-generated table, a files-excluded table, and
+`programming_language`, `database_type`, a files-generated table (it lists
+`production/config/data_sources.yaml`, the Step 2 registry projection, with the other generated
+files), a files-excluded table, and
 next steps (fill in secrets, obtain a production license, work through the
 checklist, configure CI/CD, test with production data). Record the Module 1 answers too when
 present — the intended `deployment_target`/`cloud_provider` and the `integration_targets`
@@ -1059,8 +1484,9 @@ emoji cannot be set in the PDF's Latin-1 core fonts and is dropped from that lin
 expected and harmless.** The marker is a machine-readable flag for the Power's own branches
 (Module 4 Step 2, Module 6 Phase C step 15, Module 6 Phase D step 25a), every one of which reads it from
 the **Markdown**; nothing reads it from the PDF. So do not substitute a name, do not add an ASCII
-description, and above all do not edit the marker out of the Markdown to quiet the renderer — four
-files match that exact string and changing it breaks them silently.
+description, and above all do not edit the marker out of the Markdown to quiet the renderer —
+several shipped files and the recap renderer match that exact string, and changing it breaks them
+silently.
 
 ⛔ **This exemption is the marker line and nothing else (INV-266).** The renderer suppresses only the tally
 entry whose passage *is* that line; a ROBOT FACE anywhere else in the document, and every other
@@ -1122,14 +1548,20 @@ Cover:
 - **What you accomplished** — per completed module, drawn from the recap.
 - **Your business problem and data sources** — from `docs/business_problem.md` /
   `config/data_sources.yaml`.
-- **Restore the database** — the exact SQLite copy-back or PostgreSQL `pg_restore` / `psql` command
-  recorded in Step 6a.
-- **Re-initialize and re-run** — how to re-source `src/scripts/senzing-env.sh` (if present) and
-  re-init the engine, then re-run the loader, queries, and visualization.
+- **Restore the database** — the exact SQLite copy-back or PostgreSQL `pg_restore -d` / `psql -f`
+  command recorded in Step 6a, as `database-backup.md` → "Restore" writes it: never a `<` or `>`
+  redirection, which Windows PowerShell 5.1 rejects or re-encodes.
+- **Re-initialize and re-run** — how to re-run the project env script created in Module 2
+  (`source src/scripts/senzing-env.sh` on Linux/macOS, `. .\src\scripts\senzing-env.ps1` on Windows,
+  dot-sourced in the PowerShell window that runs the programs; the Windows form is unverified on
+  Windows PowerShell 5.1 here, INV-163) and re-init the engine, then re-run the loader, queries, and
+  visualization.
 - **License** — where the license lives (`licenses/g2.lic` when custom, else the built-in
   evaluation license) and any expiry.
 - **Where things are** — point at `backups/revisit/` (state + database backup), the recap PDF, and
-  `docs/visualizations/`.
+  `docs/visualizations/`. Name `docs/bootcamp_recap.mp4` too when Step 1c produced it (INV-340). When Step 1c
+  wrote a storyboard but skipped the video, say that `docs/video/storyboard.json` is kept so the
+  video can be rendered later with the bundled renderer, `generate_recap_video.py`.
 
 Then present a one-line summary of what the bundle saved and where, and continue to Step 7.
 
@@ -1167,11 +1599,29 @@ This runs exactly once, after the report, before graduation is reported finished
    (INV-048). This step is the **only** place these two reach the bootcamper — graduation is
    terminal, so a PDF unnamed here is one they never learn they have.
 
+   **(INV-340) Also name the graduation video, `docs/bootcamp_recap.mp4`, only if Step 1c produced it:** a
+   2-minute video of their bootcamp, to keep and share. When its duration stayed outside
+   2:00 ± 10 s after the one re-render, say so here, with its duration. When a video check did not
+   run, say which, in the same plain sentence as the PDF note below (INV-163).
+
+   ⛔ **(INV-340) Call the video narrated only when the renderer's `Voice:` line named an engine.**
+   With `Voice: none (…)`, call it a 2-minute graduation video "with captions and music, no voice",
+   or "with captions, no voice" when the renderer printed `Music: off (storyboard)`. The same
+   sentence then carries, once, what Step 1c's "When the video has no voice" gives for its case:
+   for `no speech engine found`, the platform's speech engine, its install hint and the re-render
+   command; for `<engine> voiced no scene`, the engine that could not voice the narration, with no
+   install hint; for `--no-voice`, nothing more. It is a statement, not a question (INV-048).
+
    **If any Step 1b verification check was skipped for a missing tool, say so here in one plain sentence** — name what was not checked, not the tool names. On Windows this is the common case (poppler is typically absent, so the page raster could not run). One sentence is enough: *"One note: I verified the PDF's contents but couldn't check its page layout on this machine, so if anything looks visually off, tell me and I'll re-render."* Never describe the keepsake as verified when a check did not run — and never turn this into a 👉 question or a to-do for the bootcamper.
 
 Example (list only what exists):
 
-> 🎓 **Here's your bootcamp recap.** Your complete recap is at `docs/bootcamp_recap.pdf`: a shareable PDF that opens with a summary and then walks through every module you completed, capturing the Information Shared, Questions & Responses, Actions Taken, and End-of-Module Summary for each. Your production project is ready in `production/`: start with `production/GRADUATION_REPORT.md` and work through `production/MIGRATION_CHECKLIST.md`. Two more keepsakes are alongside the recap: `docs/business_problem.pdf`, the problem you set out to solve, and `docs/data_source_evaluation.pdf`, how ready your sources were and what was left unmapped.
+> 🎓 **Here's your bootcamp recap.** Your complete recap is at `docs/bootcamp_recap.pdf`: a shareable PDF that opens with a summary and then walks through every module you completed, capturing the Information Shared, Questions & Responses, Actions Taken, and End-of-Module Summary for each. Your production project is ready in `production/`: start with `production/GRADUATION_REPORT.md` and work through `production/MIGRATION_CHECKLIST.md`. Two more keepsakes are alongside the recap: `docs/business_problem.pdf`, the problem you set out to solve, and `docs/data_source_evaluation.pdf`, how ready your sources were and what was left unmapped. And your narrated 2-minute graduation video is at `docs/bootcamp_recap.mp4`.
+
+When the video has no voice because no speech engine was found, its sentence reads like this instead
+(Ubuntu, with music; the paths are illustrative):
+
+> And your 2-minute graduation video, with captions and music, no voice, is at `docs/bootcamp_recap.mp4`: no speech engine was found, and on Ubuntu the voice comes from `espeak-ng`, which you can install with `sudo apt install espeak-ng`; then run `'/home/ada/projects/my-bootcamp/data/temp/recap-venv/bin/python' '/opt/plugins/senzing-bootcamp/scripts/generate_recap_video.py' --storyboard '/home/ada/projects/my-bootcamp/docs/video/storyboard.json' --output '/home/ada/projects/my-bootcamp/docs/bootcamp_recap.mp4' --project-root '/home/ada/projects/my-bootcamp'` to render it again with a voice.
 
 3. **End on the single closing question (INV-251).** The announcement carries no 👉. After it, end the graduation turn with exactly one 👉 question:
 

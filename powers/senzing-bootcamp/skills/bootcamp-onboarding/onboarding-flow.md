@@ -150,9 +150,9 @@ trying to honor a preference that cannot exist yet, and do not ask for verbosity
 
 Then give the overview (cover naturally, do not ask a question yet).
 
-⛔ **Every bullet below has a verbosity treatment — none is unconditional.** Two carry their own
-(the version line above and the feedback-trigger bullet below); the rest are governed as a group,
-so there is no bullet whose behavior under a preset is left to guesswork:
+⛔ **Every bullet below has a verbosity treatment — none is unconditional (INV-214).** Three carry
+their own (the version line above, and the feedback-trigger and make-a-note bullets below); the rest
+are governed as a group, so there is no bullet whose behavior under a preset is left to guesswork:
 
 | Preset | The overview is |
 |---|---|
@@ -183,8 +183,9 @@ file.
 - One thing to know if you customize: *Truth Set visualization* is the interactive web app that
   shows Senzing working on your machine — if you deselect it, you won't see that visual
   verification.
-- Licensing: a built-in evaluation license covers the bootcamp's demos; more capacity options
-  exist and SDK setup walks through them.
+- Licensing: a built-in evaluation license covers the bootcamp's demos. If your own data needs
+  more capacity, Data collection checks once your record count is known and walks you through the
+  options then.
 - If you hit unfamiliar terms (Entity Specification, DATA_SOURCE, entity resolution), ask and
   I'll look up the current definition from the Senzing docs on demand.
 - **How long it takes:** the bootcamp is **module-sized, not clock-sized** — each module tells you

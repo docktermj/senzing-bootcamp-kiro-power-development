@@ -39,27 +39,32 @@ helper; compare against `config/cord_metadata.yaml` and give the reminder inline
 ### Anti-pattern check
 
 Call `search_docs(query="loading", category="anti_patterns", version="current")`. Key pitfalls:
-bulk-loading issues, threading problems, redo processing, load-order dependencies.
+bulk-loading issues, threading problems, redo processing, load-order dependencies. The top hit is
+*Senzing Anti-Patterns: Configuration and Initialization*; read past the first hit to *Senzing
+Anti-Patterns: Architecture and Performance*, which carries "Do Not Use Single-Threaded Loading",
+"Do Not Use SQLite in Production" and the redo anti-patterns.
 
 ## 1. Assess production record volume
 
-Present this pinned question verbatim (INV-056), including the explanation — the explanation is
-what stops the bootcamper answering with the bootcamp's record count instead of their real target:
+Present this pinned question verbatim (INV-056), including the explanation, which **precedes** the
+👉 as its framing (INV-211) — the explanation is what stops the bootcamper answering with the
+bootcamp's record count instead of their real target. The options sit directly beneath the 👉, and
+nothing follows them:
 
-> 👉 **In production — not in this bootcamp — how many records do you expect to load? Reply with a number:**
+> The question below is about the system you're ultimately building, **not** the dataset we're
+> working with here. It changes the loading program's *architecture*: a demo loader and a
+> fifty-million-record loader are genuinely different programs (single-threaded vs. thread-pooled,
+> batching, checkpoint/resume, throughput instrumentation, queue-based distribution). Answer for
+> your real target volume even if it dwarfs the bootcamp dataset. This program is yours to take home.
 >
-> This is about the system you're ultimately building, **not** the dataset we're working with here.
-> It changes the loading program's *architecture*: a demo loader and a fifty-million-record loader
-> are genuinely different programs (single-threaded vs. thread-pooled, batching, checkpoint/resume,
-> throughput instrumentation, queue-based distribution). Answer for your real target volume even if
-> it dwarfs the bootcamp dataset. This program is yours to take home.
+> If you're not sure, pick the range your best estimate falls in — it can be revisited.
+>
+> 👉 **In production — not in this bootcamp — how many records do you expect to load? Reply with the option number:**
 >
 > 1. 500 or fewer — demo/evaluation
 > 2. More than 500, up to 500,000 — small production
 > 3. More than 500,000, up to 10,000,000 — medium production
 > 4. More than 10,000,000 — large production
->
-> Not sure yet? Give your best estimate — we'll build for that, and it can be revisited.
 
 ⛔ Never substitute the bootcamp's own record count into this question — reference it dynamically or
 not at all, or the pinned wording goes stale the moment the dataset changes.
@@ -73,11 +78,20 @@ deliberate: `sdk_guide` returns the single-threaded demo template at or below 50
 is 500 records" below), so classifying exactly 500 as `small` would route the bootcamper to the
 threaded-pattern instructions and then hand them a loader the tool itself labels "demo-only".
 If the reply is a bare option number (1–4),
-select that tier directly. If it is free text, parse the number and classify. If it is
-unparseable, ask ONE clarifying follow-up presenting the four numbered tiers, then classify; if
-still unparseable, default to `demo` and tell the bootcamper demo/evaluation was selected as
-the default. Persist `production_volume` (`tier` and `raw_value`) to
-`config/bootcamp_preferences.yaml` and checkpoint step 1 to `config/bootcamp_progress.json`.
+select that tier directly and persist `raw_value: null`.
+⛔ **(INV-328) An option picks a range, not a count, so the option number is never stored in `raw_value`.**
+Steps 3 and 4 pass `raw_value` to
+`sdk_guide` as `record_count`, and an option number there reads as a count below the demo cutover:
+picking **3 — medium production** returned the single-threaded demo loader
+(`sdk_guide(topic='load', language='java', record_count=3)` → `LoadRecords.java`, server 1.37.13,
+2026-09-26). If it is free text, parse the number, classify, and store the parsed number as
+`raw_value`. If it is unparseable, ask ONE clarifying follow-up presenting the four numbered
+tiers, then classify; if still unparseable, default to `demo`, persist `raw_value: null`, and tell
+the bootcamper demo/evaluation was selected as the default. Persist `production_volume` (`tier`
+and `raw_value`) to `config/bootcamp_preferences.yaml` and checkpoint step 1 to
+`config/bootcamp_progress.json`. ⚠️ **`raw_value: null` beside a set `tier` is a recorded answer —
+"no count was given" — not a missing or unreadable value.** The tier still decides, and every step
+that reads `raw_value` has a branch for `null`.
 
 (No answer-parsing or volume helper is bundled; apply the parsing and persistence logic inline.)
 
@@ -87,7 +101,9 @@ discover once the loader is written. For example: "Medium production, so I'll bu
 loader with batching, checkpoint/resume, and throughput reporting — say the word if that volume
 isn't right." For `demo`, name what they are getting and why: "Demo/evaluation, so a single-threaded
 loader — simplest to read, and appropriate below the license limit. If your real target is larger,
-tell me now and I'll build the threaded version instead."
+tell me now and I'll build the threaded version instead." When `raw_value` is null, also say that
+no count was given, so the Bootcamper knows the build follows the range: "Medium production — you
+picked a range rather than a count, so I'll build for the range: a thread-pooled loader…"
 
 **License framing (default + expansion paths).** After the tier is classified, present
 licensing as a default the bootcamper already has, never as a hard cap:
@@ -167,7 +183,7 @@ above 500 (or when the count is omitted) it returns the threaded production patt
 few thousand records returns the thread-pool template and labels the single-threaded alternative
 "demo-only, single-threaded — do not use for production volumes (>500)". This matches
 `search_docs(query="loading", category="anti_patterns")` → "Senzing Anti-Patterns: Architecture and
-Performance" → **"Do Not Use Single-Threaded Loading"**, whose remedy is a thread pool of 2–8
+Performance" (its second hit: read past the first) → **"Do Not Use Single-Threaded Loading"**, whose remedy is a thread pool of 2–8
 workers per CPU core. Re-confirm the threshold from MCP at implementation time; do not carry this
 number forward as a remembered fact.
 
@@ -205,13 +221,9 @@ persists it from `SzProduct.get_license()`) and apply the same effective-limit r
   often. It also contradicts a higher-precedence rule: a value you measured on this machine governs
   over generic guidance about that same value, and `ground-rules.md` names the license record limit
   explicitly (INV-012). It is one SDK call away.
-  - **Measure it** by the procedure Module 4 Step 8a already defines — generate a scaffold calling
-    `SzProduct.get_license()`, save the returned JSON, read it to confirm the shape before parsing
-    (INV-115), and parse `recordLimit`. Follow that step rather than re-deriving it (INV-300); the module
-    already builds and runs SDK programs in the bootcamper's language, so this needs no new
-    machinery. (`get_sdk_reference(topic='response_schemas', filter='getLicense')`, server 1.32.9,
-    2026-08-14, confirms the method in every binding — `SzProduct.getLicense() -> String`,
-    `get_license() -> str`.)
+  - **Measure it** by Module 4 Step 8a sub-step 7, which calls `SzProduct.get_license()` and parses
+    `recordLimit`. Follow that step rather than re-deriving it (INV-300); the module already builds
+    and runs SDK programs in the bootcamper's language, so this needs no new machinery.
   - **Persist it** as `license_record_limit` in `config/bootcamp_progress.json`, together with
     `license_record_limit_measured_at: "module-06 phase A (engine configuration in force)"`, so later
     steps, Phase B and graduation see a detected value instead of the same absence — and can tell it
@@ -231,9 +243,14 @@ So only the `demo` tier — which is below the default license limit anyway — 
 loader. Every tier that represents a real production system gets the threaded pattern:
 
 - **`small`, `medium`, or `large`:** call `sdk_guide(topic='load', language='<chosen_language>',
-  record_count=<raw_value>)` for the threaded production pattern. Add a code comment stating the
+  record_count=<raw_value>)` for the threaded production pattern. **When `raw_value` is null**
+  (the tier came from an option, so no count was given), call `sdk_guide(topic='load',
+  language='<chosen_language>')` **without** `record_count`: omitting it returns the threaded
+  pattern, the same safe default the "Missing or unreadable" branch below relies on. Never pass
+  the null, or an option number, as `record_count` (INV-328). Add a code comment stating the
   tier and the architecture recommendation (thread pool for small and medium; distributed /
-  queue-based for large).
+  queue-based for large). When `raw_value` is null, the comment also says the tier came from a
+  range and no count was given.
 
   ⛔ **(INV-296) The tier picks the PATTERN; `database_type` picks the WORKER COUNT — read both.** Read
   `database_type` from `config/bootcamp_preferences.yaml` (the key SDK setup's Step 7 writes when the
@@ -245,10 +262,11 @@ loader. Every tier that represents a real production system gets the threaded pa
 
   **The server makes this a database question, in its own words.**
   `search_docs(query='loading', category='anti_patterns')` → *"Do Not Use Single-Threaded Loading"*
-  says *"Start with 2-8 workers per CPU core and **tune based on your database and storage
+  (in its second hit, *Senzing Anti-Patterns: Architecture and Performance*: read past the first
+  hit) says *"Start with 2-8 workers per CPU core and **tune based on your database and storage
   throughput**"*, and *"Do Not Use SQLite in Production"* says SQLite *"does not support concurrent
   writes"*, listing *"Database locked errors under concurrent access"* among its symptoms (server
-  **1.36.0**, 2026-09-02). So:
+  **1.37.19**, docs index 2026-10-02 18:46 UTC, 2026-10-02). So:
 
   - **`postgresql`** (or any supported RDBMS) — take the tier's full concurrency. This is the case
     the 2-8-per-core figure is written for; nothing is capped.
@@ -275,6 +293,14 @@ loader. Every tier that represents a real production system gets the threaded pa
   template. Add a code comment stating the tier and that single-threaded loading is appropriate at
   demo scale **and is a documented anti-pattern above it**, so the bootcamper knows what to change
   if their volume grows.
+  **When `raw_value` is null** (an option reply, or the unparseable default), pass the **demo
+  cutover** as `record_count`: the top of the single-threaded range, as `sdk_guide`'s own
+  `record_count` contract states it **at call time**. Read it from that parameter's description,
+  never from this file (INV-080). That returns the single-threaded demo template Step 1's echo
+  promised. The code comment says the count is the tier's upper bound, not the Bootcamper's
+  figure. If the contract can't be read (the MCP server is unavailable), take the "Missing or
+  unreadable" branch below, and say in the code comment that the demo loader couldn't be
+  selected.
 - **Missing or unreadable:** call `sdk_guide(topic='load', language='<chosen_language>')` with no
   `record_count`. Omitting it yields the threaded pattern, which is the safe default — a loader that
   is threaded when it need not be merely does extra setup, while one that is single-threaded when it
@@ -324,7 +350,10 @@ Call `generate_scaffold` with workflow `add_records` and the chosen language for
 SDK code. Call `sdk_guide(topic='load', language='<chosen_language>', record_count=<raw_value>)`
 for platform-specific loading
 patterns — as in step 3, `record_count` belongs to `sdk_guide` and is what selects the threaded
-versus single-threaded template.
+versus single-threaded template. **When `raw_value` is null**, use step 3's null branch for the
+tier: for `small`, `medium` or `large`, omit `record_count`; for `demo`, pass the demo cutover
+read from `sdk_guide`'s `record_count` contract at call time. Never pass the null, or an option
+number, as `record_count` (INV-328).
 
 **Checkpoint:** write step 4.
 
@@ -454,28 +483,67 @@ stop-and-confirm heads-up, NOT a mandatory gate, the bootcamper may always proce
 1. **Read inputs** from `config/bootcamp_preferences.yaml`: `production_volume.tier`,
    `production_volume.raw_value`, and `database_type` — the last is the key
    `../module-02-sdk-setup/SKILL.md` Step 7 writes when the engine is chosen, valued `sqlite` or
-   `postgresql`. If any value is missing/unreadable, treat it as indeterminate, do not fail; fall
-   back to the existing advisory behavior and continue to the load.
+   `postgresql`. Also read the **loadable total:** the record count across **every** mapped
+   source's file in `data/senzing-ready/` together, since they all land in the same SQLite
+   database across Phases B and C. If any value is missing/unreadable, or the loadable total
+   cannot be computed, treat it as indeterminate, do not fail; fall back to the existing advisory
+   behavior and continue to the load.
    - ⛔ **An absent `database_type` is a recording failure, not a non-SQLite answer.** Because
      step 3 prompts only when the database *is* SQLite, a missing key silently disables this
      heads-up entirely. Before treating it as indeterminate, fall back to the engine Module 2
      recorded in `config/bootcamp_progress.json`, and note the gap internally so it reaches the
      recap rather than vanishing.
 2. **Decide whether it was already decided.** If a `sqlite_volume_prompt` marker in preferences
-   is `decided: true` and its `tier`/`raw_value` match the current selection (or an applicable
-   Module 4 SQLite load-time decision covers this same load), skip the prompt and proceed.
+   is `decided: true` and its `loadable` matches the current loadable total for this same load (or
+   a `sqlite_load_time_prompt` marker covers this same load, as the sub-items below say), skip the
+   prompt and proceed. (INV-331) `tier`/`raw_value` do not decide the match; a marker with no `loadable` (written before
+   the field existed) does not match, so re-evaluate on the loadable total.
+
+   `sqlite_load_time_prompt` is Module 4's marker in `config/bootcamp_preferences.yaml`, defined by
+   [data collection Step 8b](../module-04-data-collection/SKILL.md#8b-sqlite-load-time-warning-collection-time-heads-up)
+   sub-step 4, which gives its fields. Its `loadable` is Step 8b's figure, pre-mapping and
+   license-capped, not the mapped-file total item 1 reads, so the two are never compared directly.
+   These sub-items are the one statement of how Module 6 matches it; Phase B Step 7 cites them
+   (INV-300).
+
+   1. **It covers this same load only when Step 8b's figure still holds.** Recompute
+      `min(collected_total, effective_limit)` from the current `config/data_sources.yaml` and
+      license state by Step 8b sub-step 1's rules, counting each source as sub-step 4's
+      `collected_total` does. The marker matches only when that figure equals its `loadable`. A
+      source added or removed, a re-sample, or a license applied or changed since Module 4 gives a
+      different figure, so the marker does not match. Mapping that changes the record count (for
+      example, embedded masters) does not affect the match, because the recomputation reads the
+      registry and not `data/senzing-ready/`. A marker with no `loadable` does not match.
+   2. **An unreadable registry or license state is indeterminate, so the marker does not match.**
+      This overrides Step 8b sub-step 1's "treat an unreadable license state as unbounded" for this
+      recomputation. That fallback lets the collection-time warning still fire; here it would
+      invent the figure that decides whether a recorded answer applies, so evaluate the load on
+      item 3's trigger instead.
+   3. **A matching marker covers the load according to its `choice`.**
+      - `proceed`: covers the load as this check's own **Proceed on SQLite** does. Skip the
+        prompt, and still say item 4's serialized-writer line (INV-296), applying the writer
+        reduction if step 3 did not.
+      - `sample`: covers the load. The sample is what Module 5 mapped, and `collected_total`
+        already counts the sample's `record_count`.
+      - `switch_db`: covers the load only when `database_type` is no longer `sqlite`, and on a
+        non-SQLite engine item 3 does not prompt anyway. While `database_type` is still `sqlite`,
+        the marker does not cover the load: say first, in one line, that the switch chosen at data
+        collection was not applied, then evaluate the load on item 3's trigger.
+   4. **An absent marker is "not asked", never "answered" (INV-244).** Step 8b writes the marker
+      only when its warning fired, so an absent one means the loadable total was at or below the
+      threshold, the engine was not SQLite, or the inputs were indeterminate. Evaluate the load on
+      item 3's trigger, as for a marker that does not match.
 3. **Prompt only when it matters.** Present the prompt only when the database is SQLite AND it was
-   not already decided AND the volume is production-scale for SQLite — that is, the tier is
-   `medium` or `large`, **or** the tier is `small` with a `raw_value` above the SQLite guidance
-   threshold. Source that threshold from MCP rather than from this file (a sourcing
-   floor); `search_docs(query="loading",
-   category="anti_patterns")` → "Do Not Use SQLite in Production" gives it as roughly 100,000
-   records ("use SQLite only for quick local testing with small datasets"), well inside the
-   `small` tier's span (above 500, up to 500,000), which is why the tier alone is not a sufficient
-   trigger. For
-   `demo`, a small-tier volume below that threshold, any non-SQLite engine, indeterminate inputs,
-   or an already-recorded choice: say nothing new about volume/SQLite and proceed to the Phase B
-   load.
+   not already decided AND the **loadable total** exceeds the SQLite guidance threshold. (INV-331) The
+   production tier does not trigger this prompt: it describes the take-home system, not the load
+   about to run (the production line below covers it). Source that threshold from MCP rather than
+   from this file (a sourcing floor); `search_docs(query="loading",
+   category="anti_patterns")` → "Do Not Use SQLite in Production", in its second hit (read past
+   the first hit), gives it as roughly 100,000 records ("use SQLite only for quick local testing with small datasets"). If MCP does not return
+   it, the threshold is indeterminate — never substitute a remembered figure (INV-080). For a
+   loadable total at or below that threshold, any non-SQLite engine, indeterminate inputs, or an
+   already-recorded choice: say nothing new about volume/SQLite beyond the production line and
+   proceed to the Phase B load.
 4. **When prompting**, explain that SQLite entity resolution slows as the database grows, then end
    the turn on this pinned question (INV-056), verbatim — a neutral lead + numbered list (INV-051) —
    and wait (internal stop); do not start the load yet:
@@ -488,8 +556,8 @@ stop-and-confirm heads-up, NOT a mandatory gate, the bootcamper may always proce
    *(Internal: end the turn on this question and wait.)* Then act on the choice:
 
    - **Proceed on SQLite:** record `sqlite_volume_prompt` = `{decided: true, choice: "proceed",
-     tier, raw_value}` in preferences, then continue to the Phase B load. Do not re-present this
-     prompt for the same load.
+     loadable, tier, raw_value}` in preferences, then continue to the Phase B load. Do not
+     re-present this prompt for the same load.
      ⛔ **(INV-296) Proceeding keeps SQLite *and* the serialized writer count step 3 selected for it — say
      so in one line.** Both options in this question are about **where** the data lands; neither
      mentions **how** it is written, so "proceed" reads as accepting a known slowdown rather than
@@ -499,8 +567,18 @@ stop-and-confirm heads-up, NOT a mandatory gate, the bootcamper may always proce
      `database_type` was absent then and is known now — apply it before the load rather than
      carrying a thread-pooled loader into a datastore this question just confirmed is SQLite.
    - **Migrate to PostgreSQL:** record `sqlite_volume_prompt` = `{decided: true, choice:
-     "migrate", tier, raw_value}` in preferences, then hand off to the database-migration
+     "migrate", loadable, tier, raw_value}` in preferences, then hand off to the database-migration
      guidance (PostgreSQL migration is a production follow-up; see the graduation migration checklist). Do not restate migration steps here (INV-300).
+
+   In both branches `loadable` is the total item 3 compared; `tier` and `raw_value` are kept for
+   the record only and decide nothing.
+
+**Production line (a statement about the take-home system, no 👉).** Once, at this same point,
+when the database is SQLite and `production_volume.tier` is `medium` or `large`, say one line and
+ask nothing: "At your production scale, plan on PostgreSQL rather than SQLite; the graduation
+migration checklist covers the move." Say it whether or not item 4's question fires — before that
+question when it does, so the turn still ends on the question. (INV-331) It changes nothing about today's
+load. On PostgreSQL, or on a `demo`/`small` tier, say nothing.
 
 *(Internal: when this heads-up fires, end the turn on the pinned question in item 4 and wait.)* Use
 only synthetic/persisted values, never echo credentials or connection strings. (No volume,

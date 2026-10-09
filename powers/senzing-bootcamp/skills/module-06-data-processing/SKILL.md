@@ -5,8 +5,8 @@ license: Apache-2.0
 compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
-  version: 0.5.3
-  templateRelease: 0.5.3
+  version: 0.6.1
+  templateRelease: 0.6.1
   templateSkill: module-06-data-processing
 ---
 
@@ -27,6 +27,9 @@ absolute precedence as a mandatory gate.
 
 **First:** Read `config/bootcamp_progress.json`, then (per ground-rules) show the module start
 banner, journey map, before/after framing, a brief numbered overview of this module's steps, an estimated time-to-complete (INV-096), and the recommended model/effort nudge (INV-063), before any module work.
+**When it carries a `quality_iteration`, none of this runs:** go straight to Phase B →
+[Receiving a `quality_iteration`](phaseB-load-first-source.md#receiving-a-quality-iteration). A
+return runs only the steps it names, so the steps it leaves out are not skipped steps.
 
 **Purpose:** Guide the Data Processing workflow: build a production-quality loading program,
 load all data sources into Senzing, process redo records, and validate entity resolution
@@ -51,15 +54,19 @@ When the bootcamper hits an error during this module:
 1. **SENZ error code** (message contains `SENZ` + digits, e.g. `SENZ2027`): call
    `explain_error_code(error_code="<code>", version="current")` and present the fix. If it
    returns nothing, continue to step 2.
-2. Present the matching pitfall/fix for this module. There is no bundled `common-pitfalls`
-   reference, so use `search_docs` to look up the symptom, e.g.
-   `search_docs(query="loading", category="anti_patterns", version="current")`.
+2. Present the matching pitfall/fix for this module (full `common-pitfalls` reference is a
+   later porting phase; for now, use `search_docs` to look up the symptom, e.g.
+   `search_docs(query="loading", category="anti_patterns", version="current")`, whose loading
+   pitfalls are in its second hit, *Senzing Anti-Patterns: Architecture and Performance*: read
+   past the first hit).
 
 ## Loading code and safety (applies to every load step)
 
 - **Loading, redo, and query code come from the MCP tools, never hand-written.** Use
   `generate_scaffold` (workflows `add_records`, `redo`, `query`) and `sdk_guide` for
-  version-correct SDK code. Inline examples may use outdated SDK patterns.
+  version-correct SDK code. Inline examples may use outdated SDK patterns. The rule covers
+  the Senzing SDK calls; code that only orchestrates them is ordinary code (see the
+  Phase C header, `phaseC-multi-source.md`).
 - **Override MCP-suggested paths.** If a generated scaffold uses `/tmp/`, `ExampleEnvironment`,
   or any path outside the working directory, override the database path to `database/G2C.db`
   and keep all output files project-relative.
@@ -67,9 +74,11 @@ When the bootcamper hits an error during this module:
   failed load can be recovered (see Phase D → Recovery from Failed Load).
 - **No direct SQL.** Never generate SQL against `database/G2C.db` or its internal tables. All
   entity access goes through generated SDK code. Counts, stats, and reporting come from
-  `reporting_guide` — **with a topic named**: `topic='evaluation'` for this module's statistics,
-  `topic='export'` for extraction. Not `topic='reports'`, whose SQL targets a data mart the bootcamp
-  never builds (see Phase D's header note).
+  `reporting_guide` — **with a topic named**:
+  `reporting_guide(topic='evaluation', language='<chosen_language>')` for this module's statistics,
+  `reporting_guide(topic='export', language='<chosen_language>')` for extraction. Not
+  `topic='reports'`, whose SQL targets a data mart the bootcamp never builds (see Phase D's header
+  note).
 
 ## Phases
 

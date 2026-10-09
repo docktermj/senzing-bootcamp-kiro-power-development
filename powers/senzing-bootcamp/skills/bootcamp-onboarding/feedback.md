@@ -13,7 +13,7 @@ an issue". Follow `ground-rules.md`: one 👉 question per turn (INV-251), end t
 ## Step 0: Capture context silently
 
 Before asking anything, silently capture as much relevant context as possible, so
-the bootcamper never has to re-explain it and so `feedback-to-specs` can later
+the bootcamper never has to re-explain it and so the maintainer triage can later
 reconstruct the exact situation. Gather only from available sources — never ask an
 extra question for this — and record "Unknown"/"Unavailable" (never a guess) when a
 source is missing:
@@ -136,6 +136,10 @@ reaches the wrong maintainer and gets fixed nowhere.
 Append a formatted entry to the "Your Feedback" section. Append only: never
 rewrite the file, so earlier entries are preserved.
 
+Write `**Upstream:**` as `offer pending` when Step 2b's verdict is `mcp-server` or `both`: the
+entry is saved before Step 3c asks, so no outcome exists yet. Step 3c replaces it. Every other
+verdict gets `not applicable`.
+
 ```markdown
 ## Improvement: [brief title from the bootcamper's description]
 
@@ -144,7 +148,7 @@ rewrite the file, so earlier entries are preserved.
 **Priority:** [High/Medium/Low]
 **Source:** bootcamper-reported
 **Routing:** [plugin | mcp-server | both | host | unclear] — [one-line reason, per Step 2b]
-**Upstream:** [not applicable | offered, declined | submitted YYYY-MM-DD | submission failed: reason | submission blocked: reason]
+**Upstream:** [not applicable | offer pending | offered, declined | submitted YYYY-MM-DD | submission failed: reason | submission blocked: reason]
 
 ### What happened
 
@@ -163,7 +167,7 @@ rewrite the file, so earlier entries are preserved.
 - **Time:** [YYYY-MM-DD HH:MM local, or "Unknown"]
 - **Plugin version:** [the version captured above, or "Unknown"]
 - **Workstation:** [OS name and version, and architecture; e.g. "Linux 6.17.0-35-generic (x86_64)", or "Unknown"]
-- **Model / effort:** [model name and reasoning-effort level; e.g. "Opus 5 / high", or "Unknown"]
+- **Model / effort:** [model name and reasoning-effort level; e.g. "Opus 5.5 / high", or "Unknown"]
 - **Context size:** [approximate tokens and/or % of context window in use; e.g. "~85k tokens (~42% of window)", or "Unknown"]
 - **Module / step:** [`current_module` / `current_step` from `config/bootcamp_progress.json`, or "Unknown"]
 - **Recent questions:** [the last few 👉 questions asked]
@@ -211,7 +215,7 @@ never automatic.
    verbatim error text when there is one. Keep it factual — no speculation about internals.
 
 2. ⛔ **Strip everything identifying.** No hostname, username, file path under a home directory, IP
-   address, email, company name, or data values from the bootcamper's records (INV-065). Entity names
+   address, email, company name, or data values from the bootcamper's records (INV-321). Entity names
    and record IDs from their data are **theirs** — describe the shape of the problem, never the
    content. The bootcamper's own data must never leave the machine as part of a bug report.
 
@@ -241,14 +245,16 @@ never automatic.
    **verbatim** — it carries the anonymity notice and the support address, and those are the
    bootcamper's only follow-up route.
 
-5. **Record the outcome** in the entry's `**Upstream:**` field: `submitted YYYY-MM-DD`,
-   `offered, declined`, `submission failed: <reason>`, or `submission blocked: <reason>`. Update
-   the entry in place for this field only — do not rewrite the prose (append-only elsewhere).
+5. **Record the outcome** in the entry's `**Upstream:**` field, replacing `offer pending` with the value of its closed set
+   (`not applicable | offer pending | offered, declined | submitted YYYY-MM-DD | submission failed: <reason> | submission blocked: <reason>`) that says what happened.
+   Update the entry in place for this field only — do not rewrite the prose (append-only
+   elsewhere). ⛔ (INV-281) **Never leave `offer pending` once an answer exists.** It means only
+   that the question is still open.
 
    ⛔ **(INV-281) `submission blocked:` is for a *consented* send the runner was forbidden to make — it is
-   not a synonym for the other three.** Use it when the answer was **yes** and the send could not
+   not a synonym for any other value.** Use it when the answer was **yes** and the send could not
    happen because the session operates under a no-send rule (a maintainer `/dry-run`, which
-   forbids calling `submit_feedback` under any category). ⚠️ **Never record that as
+   never sends on a Bootcamper's in-character yes). ⚠️ **Never record that as
    `offered, declined`.** The bootcamper agreed; writing down that they refused is false, and it
    is the one value that reads as *"this was considered and rejected"* to anyone deciding later
    whether the finding is still owed upstream. `submission failed:` is also wrong — nothing
@@ -259,6 +265,26 @@ never automatic.
    The local entry is the durable record; upstream delivery is a bonus.
 
 ⛔ Ask this **once** (INV-006). If the bootcamper declines, do not re-offer for the same entry.
+
+### Unanswered offer on resume
+
+An entry still reading `offer pending` means the offer was presented, or was due, and never
+answered: the session ended on the question, or graduation's batch never got its answer. It is
+the open question, not an answered one.
+
+⛔ (INV-006) **On resume, present the unanswered offer once more, then never again.** This is
+the unanswered question being presented, not a re-ask. When a resumed session finds one or more
+`offer pending` entries in `docs/feedback/SENZING_BOOTCAMP_POWER_FEEDBACK.md`:
+
+1. Show the draft for each, stripped as step 2 requires, and ask step 3's pinned 👉 question once
+   for all of them, the way graduation Step 0 batches its offer.
+2. ⛔ (INV-251) **The offer is its own turn.** End the turn on it. Re-present the pending bootcamp
+   👉 question on the next turn, after the answer, never beside the offer.
+3. Replace every `offer pending` value with the outcome, as step 5 does, and handle a failure as
+   step 6 does. The answer applies to every entry in the batch.
+
+An entry the bootcamp never returns to stays `offer pending`, and `/feedback-to-issues` treats its
+report as still owed.
 
 ## Step 4: Confirm and return
 
@@ -294,9 +320,10 @@ by `../graduation/SKILL.md` Step 0, which files the same way at the end of the r
    - **`Module:`** the module you were in when the reversal happened.
    - **`Routing:`** the Step 2b verdict with its one-line reason. A reversed *mapping* is usually
      `plugin` (the guidance let you do it), but triage rather than defaulting.
-   - **`Upstream:`** `not applicable` unless Step 2b says `mcp-server`/`both`. ⛔ **Do not offer
-     the upstream forward here** — that offer needs a 👉 question, which this path must not ask.
-     Leave it for graduation's Step 0, which batches one offer for the whole session.
+   - **`Upstream:`** `not applicable`, or `offer pending` when Step 2b says `mcp-server`/`both`.
+     ⛔ (INV-012) **Do not offer the upstream forward here** — that offer needs a 👉 question, which
+     this path must not ask. Leave it for graduation's Step 0, which batches one offer for the
+     whole session and replaces the value.
    - **What happened / Why it matters / Suggested fix** describing what *you* did and withdrew,
      in the plain past tense. The decision, the evidence that overturned it, and the effect of
      withdrawing it.

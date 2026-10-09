@@ -61,8 +61,8 @@ immediately before Step 1:
    ⛔ **Do not pre-decide whether to ask — compare against what the bootcamper is running right
    now** (INV-138), not against the previous module's recommendation. This step used to assert the
    recommendation was "unchanged from System verification" and therefore a statement rather than a
-   question; that became false when this module was re-rated to Opus 5 / high effort while System
-   verification stayed on Sonnet 5, so a bootcamper who took the previous module's recommendation
+   question; that became false when this module was re-rated to Opus 5.5 / high effort while System
+   verification stayed on Sonnet 5.5, so a bootcamper who took the previous module's recommendation
    was never offered the switch for the module that *generates* the visualization server. Read the
    table, compare, and let the comparison decide: differing → the pinned 👉 switch question naming
    only the dial that differs; matching → the one-line statement.
@@ -92,7 +92,7 @@ The Senzing MCP server is the primary and preferred source; it always takes prec
    per-source record counts you will need in 1.2 and in the report, then the records themselves. Take
    the codes and counts from the response, never from this file (INV-080).
 
-   > Verified on MCP server 1.32.2, 2026-07-30: `dataset='list'` returns **four** datasets — the three
+   > Verified on MCP server 1.37.14, 2026-09-28: `dataset='list'` returns **four** datasets — the three
    > CORD collections plus `truthset` (`available: true`) — and `dataset='truthset', source='list'`
    > returns the Truth Set's sources with their record counts. So the primary path normally succeeds;
    > treat the fallback below as genuinely exceptional rather than expected. Re-check rather than
@@ -229,8 +229,8 @@ Whatever the language, the server MUST reproduce the reference's behavior:
 - ⛔ **(INV-122) Implement `?tab=<id>` and `?q=<text>` deep-linking, applied at the end of `init()`** — after
   the async data load and `buildNav()` have settled. It is specified under *"Tab identifiers and
   deep-linking (required)"* in `visualization-api-reference.md`, and it is **not decoration: it is
-  the only way a tab of the LIVE app can be selected for a screenshot.** `capture_screenshots.py
-  --url` drives a live server solely by appending `?tab=`; the injected `activate()` with its
+  the only way a tab of the LIVE app can be selected for a screenshot.** `capture_screenshots.py`'s
+  `--url` drives a live server solely by appending `?tab=`; the injected `activate()` with its
   `#navbtn-` click fallback runs against a saved **snapshot** only. ⚠️ **A server with every tab,
   section id and nav id correct but no deep-linking is indistinguishable from a correct one until
   you open the images** — it serves its default tab for every request, so the capture writes one
@@ -243,6 +243,12 @@ Whatever the language, the server MUST reproduce the reference's behavior:
   `../bootcamp-onboarding/scripts/vendor/d3.v7.min.js`, INV-252) into both
   the live page and the standalone snapshot; never fetch from a CDN. (D3 runs in the browser, so
   this holds regardless of the server's language.)
+  - ⛔ **(INV-091) Refuse to render when the vendored D3 is missing or unreadable.** The server
+    MUST fail visibly, with an error that names the missing asset (`d3.v7.min.js`), and MUST
+    write no page or snapshot. It MUST NOT fall back to the `d3js.org` CDN or any other network
+    source for D3: a fallback would break the offline guarantee that is the reason D3 is vendored
+    at all. Check for the asset before serving or writing anything, by whatever means your
+    language reads a file.
 - **Use the Senzing brand (INV-081):** take the palette and typography from the shipped brand
   tokens (`${PLUGIN_ROOT}/skills/bootcamp-onboarding/scripts/brand_tokens.py`, skill-relative fallback
   `../bootcamp-onboarding/scripts/brand_tokens.py` — INV-252; mirrored in `senzing_viz_server.py`). A non-Python server
@@ -259,8 +265,9 @@ Whatever the language, the server MUST reproduce the reference's behavior:
 
 Save the generated server and its assets under `src/server/` (INV-050). The Senzing native library
 must be importable, so run everything with the project env sourced (the `src/scripts/senzing-env.sh`
-/ `senzing-env.bat` created in Module 2): `source src/scripts/senzing-env.sh` on Linux/macOS, or
-`src\scripts\senzing-env.bat` on Windows first.
+/ `src\scripts\senzing-env.ps1` created in Module 2): `source src/scripts/senzing-env.sh` on
+Linux/macOS, or `. .\src\scripts\senzing-env.ps1` on Windows first, dot-sourced in the PowerShell
+window that runs the server (the Windows form is unverified on Windows PowerShell 5.1 here, INV-163).
 
 ### 2.1 Choose the path
 
@@ -318,24 +325,30 @@ re-run SDK initialization from Module 2 / System Verification; check `config/eng
 and retry until the snapshot is written — the module does not complete without it.
 
 ⛔ **Run the encoding self-check against the running server BEFORE capturing — and stop on a
-mismatch (INV-270, INV-259, INV-265).** Fetch the graph endpoint and compare the number of distinct color keys the legend names
-against `encoding_check.distinct_source_set_keys` (the contract's "The encoding self-check" defines
-both). They MUST be equal; fewer legend keys means nodes are colored by one member of their source
-set rather than the whole set (INV-259), which renders every cross-source entity as single-source
-under a legend saying otherwise. **On a mismatch, fix the encoding and re-render before capture** —
-the screenshots persist into the recap and the production project, so capturing first ships the wrong
+mismatch (INV-270, INV-259, INV-265).** Fetch the graph endpoint and compare the number of
+**combination rows** the source legend names against `len(encoding_check.combination_keys)` (the
+contract's "The encoding self-check" defines both; `encoding_check.distinct_source_set_keys` is the
+total those combinations are drawn from). They MUST be equal; fewer combination rows means nodes are
+colored by one member of their source set rather than the whole set (INV-259), which renders every
+cross-source entity as single-source under a legend saying otherwise. ⛔ Count the combination rows (INV-270)
+only — the per-source rows are not source-set keys, and counting them raises a false mismatch
+whenever a source appears in view only inside combinations. ⛔ Read the **source** legend (INV-270): uncheck
+"Show only entities with relationships" first, because above 400 nodes the graph opens in
+relationship mode, whose legend has no source colors. That changes only where the check is read;
+captures are taken as before. **On a mismatch, fix the encoding and re-render before capture** — the
+screenshots persist into the recap and the production project, so capturing first ships the wrong
 picture.
 
-⚠️ **Report `not exercised`, not `passed`, when `encoding_check.status` is `not_exercised`** — fewer
-than two distinct source-set keys means the comparison could not have failed (INV-265). Say which of
-the two happened; do not report silence as agreement.
+⚠️ **Report `not exercised`, not `passed`, when `encoding_check.status` is `not_exercised`** — no
+combination key in view means the comparison could not have failed (INV-265). Say which of the two
+happened; do not report silence as agreement.
 
 ⛔ **On the Truth Set, expect a real verdict — `not_exercised` here is a signal, not the norm (INV-270).** The
 Truth Set registers **three** data sources (CUSTOMERS, REFERENCE, WATCHLIST — 159 records;
 `get_sample_data(dataset='truthset', source='list')`, server 1.33.0, 2026-08-28) and resolves
 entities across them, so the check has teeth in **this** module, not only in Module 7 step 3c
 against the bootcamper's data. If it reports `not_exercised` here, fewer sources loaded than the
-Truth Set carries — investigate that before moving on.
+Truth Set carries, or they resolved no shared entity — investigate that before moving on.
 
 **Capture screenshots for the recap (optional, non-blocking).** Defer this until the live server is
 running (2.3) and capture from **`--url http://localhost:<port>`** — substituting the port the
@@ -378,7 +391,9 @@ captured empty or inactive, say so in the caption — an undisclosed empty panel
 having nothing in it (INV-123).
 
 If the server could not be started, fall back to `--html docs/visualizations/truthset_verification.html`
-and either omit the Search / Probe tab or caption it as the inactive state. If no headless capability
+and caption the Search / Probe tab as the inactive state; omitting it is not an alternative (INV-123,
+INV-146; `../bootcamp-onboarding/module-completion.md` → "Capturing visualization screenshots"
+says why). If no headless capability
 is available it skips silently; otherwise **keep every captured tab and embed them all** in this
 module's recap `Actions Taken`, in the app's tab order — capture is one image per tab (INV-122), so
 there is nothing redundant to drop and a count cap can only delete unique content (INV-146). This is
