@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
-"""Publisher — adapt a built Bootcamp_Power for the publication repository.
+"""Propagator — mirror a built Bootcamp_Power into the public working tree.
 
-    publish.py --power powers/senzing-bootcamp
-               --target <checkout of Senzing/senzing-bootcamp-kiro-power>
-               [--contract tools/bootcamp-transform/publication.yaml]
-               [--expect-version <semver>]
-               [--report <file>]
-               [--check]     # decide and report; write nothing anywhere
+    propagate.py --power powers/senzing-bootcamp
+                 --target <checkout of Senzing/senzing-bootcamp-kiro-power>
+                 [--contract tools/bootcamp-transform/publication.yaml]
+                 [--expect-version <semver>]
+                 [--report <file>]
+                 [--check]     # decide and report; write nothing anywhere
 
-JSON goes to stdout; human-readable narration goes to stderr. The publish skill
-reads the JSON, so agent behavior stays out of the deterministic path — the same
-split ``resolve_release.py`` and ``transform.py`` use.
+JSON goes to stdout; human-readable narration goes to stderr. The
+``propagate-to-public`` skill reads the JSON, so agent behavior stays out of the
+deterministic path — the same split ``resolve_release.py`` and ``transform.py`` use.
+
+Where it stops
+--------------
+It writes into ``<target>/<powerDirectory>`` of an existing checkout and nowhere
+else. It never clones, commits, pushes, branches, opens a pull request, creates a
+release, or edits the publication repository's own files. The Maintainer reviews
+the resulting diff and publishes by hand: that diff is the last gate before a
+bootcamper sees the change, and a command that pushed would move it to after the
+push. The target's ``origin`` must be the publication repository, so a path
+pointing at the wrong checkout is refused before anything is staged.
 
 What it is for
 --------------
@@ -63,9 +73,9 @@ rebuild will silently revert. The justification here is that these edits are not
 corrections to the build. They are differences between two repositories that
 both keep their current jobs, so there is no upstream edit that would make them
 unnecessary. ``--report`` prints that justification rule by rule, which is what
-the publication pull request needs to say.
+the Maintainer's eventual publication commit needs to say.
 
-Publication is a swap
+Propagation is a swap
 ---------------------
 The adapted tree is staged as a sibling of the target directory and moved into
 place by rename, so the target is either wholly its old self or wholly its new
@@ -81,7 +91,8 @@ Condition                                   ``error``                      exit
 Published (or, with ``--check``, would be)  (absent)                       0
 ``--check`` and something would change      (absent, ``wouldChange``)      1
 Power root is not a Power                   ``E_NOT_A_POWER``              2
-Target is not a publication checkout        ``E_NOT_A_PUBLICATION``        2
+Target is not a publication checkout, or    ``E_NOT_A_PUBLICATION``        2
+its ``origin`` is another repository
 ``--expect-version`` /= plugin.json         ``E_VERSION_MISMATCH``         1
 A substitution matched nothing              ``E_SUBSTITUTION_UNAPPLIED``   1
 An exclude/dropKeys rule matched nothing    ``E_RULE_INERT``               1
@@ -97,8 +108,8 @@ Testability
 -----------
 ``adapt_text``, ``drop_pointer``, ``forbidden_findings`` and ``plan_publication``
 are pure over their inputs, so the tests drive them with in-memory trees and no
-filesystem. ``publish`` takes the staging root as an argument for the same
-reason.
+filesystem. ``mirror_into_place`` takes the staging root as an argument for the
+same reason.
 """
 
 from __future__ import annotations
@@ -106,7 +117,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -128,7 +141,8 @@ __all__ = [
     "forbidden_findings",
     "load_contract",
     "plan_publication",
-    "publish",
+    "mirror_into_place",
+    "origin_slug",
     "build_parser",
     "main",
 ]
@@ -676,7 +690,35 @@ def plan_publication(power: Path, staging: Path, contract: dict, expect_version:
     return plan
 
 
-def publish(staging: Path, target_power: Path) -> None:
+#: `owner/name` out of an https, ssh, or scp-style GitHub remote URL.
+_GITHUB_REMOTE = re.compile(
+    r"github\.com[:/](?P<slug>[^/\s]+/[^/\s]+?)(?:\.git)?/?$", re.IGNORECASE
+)
+
+
+def origin_slug(target: Path) -> str | None:
+    """The `owner/name` the target checkout's `origin` points at, if discoverable.
+
+    `None` when git is unavailable, there is no `origin`, or it is not a GitHub
+    URL — each of which the caller treats as "not provably the publication
+    repository", never as permission.
+    """
+    try:
+        done = subprocess.run(
+            ["git", "-C", str(target), "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if done.returncode != 0:
+        return None
+    match = _GITHUB_REMOTE.search(done.stdout.strip())
+    return match.group("slug") if match else None
+
+
+def mirror_into_place(staging: Path, target_power: Path) -> None:
     """Move the staged tree into place by rename, then delete the old one."""
     target_power.parent.mkdir(parents=True, exist_ok=True)
     previous = target_power.with_name(target_power.name + ".previous")
@@ -696,8 +738,12 @@ def publish(staging: Path, target_power: Path) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--power", required=True, help="the built Power to publish")
-    parser.add_argument("--target", required=True, help="a checkout of the publication repository")
+    parser.add_argument("--power", required=True, help="the built Power to propagate")
+    parser.add_argument(
+        "--target",
+        required=True,
+        help="an existing checkout of the publication repository; never cloned here",
+    )
     parser.add_argument(
         "--contract",
         default=str(DEFAULT_CONTRACT),
@@ -705,13 +751,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--expect-version",
-        help="refuse unless plugin.json declares this version; pass the tag being published",
+        help="refuse unless plugin.json declares this version; pass the tag being propagated",
     )
     parser.add_argument("--report", help="write the PublicationReport JSON here as well as to stdout")
     parser.add_argument(
         "--check",
         action="store_true",
-        help="decide and report, write nothing; exit 1 if publishing would change the target",
+        help="decide and report, write nothing; exit 1 if propagating would change the target",
     )
     return parser
 
@@ -749,6 +795,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"error: {payload.message}", file=sys.stderr)
         return payload.exit_code
 
+    # The Maintainer supplies the path, so prove it is the publication repository
+    # before staging anything inside it: a mirror landing in the wrong checkout is
+    # a write outside the public working tree.
+    expected = str(contract["publication"]["repository"])
+    actual = origin_slug(target)
+    if actual is None or actual.lower() != expected.lower():
+        payload = PublicationError(
+            E_NOT_A_PUBLICATION,
+            f"{target}: its origin is {actual or 'not discoverable'}, not {expected}; "
+            "refusing to mirror into a checkout that is not the publication repository",
+            exit_code=2,
+        )
+        print(json.dumps(payload.payload(), indent=2), flush=True)
+        print(f"error: {payload.message}", file=sys.stderr)
+        return payload.exit_code
+
     target_power = target / str(contract["publication"]["powerDirectory"])
     # A sibling of the target, so the swap is a rename on one filesystem.
     staging = target_power.with_name(target_power.name + ".staging")
@@ -771,7 +833,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         payload["published"] = False
 
         if not arguments.check:
-            publish(staging, target_power)
+            mirror_into_place(staging, target_power)
             payload["published"] = True
 
         report = json.dumps(payload, indent=2)
@@ -792,12 +854,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         if arguments.check:
             print(
                 "check only: nothing was written." if not changed else
-                "check only: nothing was written, and publishing would change the target.",
+                "check only: nothing was written, and propagating would change the target.",
                 file=sys.stderr,
             )
             return 1 if changed else 0
 
-        print(f"Published to {target_power}.", file=sys.stderr)
+        print(
+            f"Propagated to {target_power}. Nothing was committed or pushed; review "
+            f"`git -C {target} status` and `git -C {target} diff`, then publish by hand.",
+            file=sys.stderr,
+        )
         return 0
 
     except PublicationError as error:

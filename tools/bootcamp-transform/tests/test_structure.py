@@ -1249,16 +1249,19 @@ MAINTAINER_POWER_NAME = MAINTAINER_POWER_DIR.rsplit("/", 1)[-1]
 #: `description`: that is the text a Maintainer's statement is matched against, so
 #: a description missing it is a skill with no way to be invoked (R8 AC6).
 #:
-#: `publish-bootcamp-power` is the third, and it is a different kind of skill from the
-#: other two. They produce the Power; it moves an already-produced Power into
-#: `Senzing/senzing-bootcamp-kiro-power`, where bootcampers install from. It therefore
+#: `release` and `propagate-to-public` are the family's canonical phase-4 operations
+#: (FAMILY_WORKFLOW R4, R8), and they are a different kind of skill from create and update.
+#: Those produce the Power; `release` records that a version of it exists — changelog entry,
+#: commit and tag, in this repository only — and `propagate-to-public` mirrors it into a
+#: working tree of `Senzing/senzing-bootcamp-kiro-power` and stops there. The propagator
 #: drives `publication.yaml` rather than `contract.yaml`, which is why the contract-metadata
 #: assertions below read the key out of each skill's own frontmatter instead of assuming one
 #: shared value.
 MAINTAINER_TRIGGER_PHRASES = {
     "create-bootcamp-power": "create the senzing bootcamp power",
     "update-bootcamp-power": "update the senzing bootcamp power",
-    "publish-bootcamp-power": "publish the senzing bootcamp power",
+    "release": "release the senzing bootcamp power",
+    "propagate-to-public": "propagate the senzing bootcamp power to public",
     "parity-check": "check the senzing bootcamp power for parity",
     "escalate-to-parent": "escalate feedback to the parent",
 }
@@ -1269,11 +1272,11 @@ MAINTAINER_TRIGGER_PHRASES = {
 #: the maintainer Power names `contract.yaml`.
 TRANSFORMATION_SKILLS = ("create-bootcamp-power", "update-bootcamp-power")
 
-#: The publication half: one skill, one contract, single-sourced the same way and for the
+#: The propagation half: one skill, one contract, single-sourced the same way and for the
 #: same reason. It is separate because the two contracts answer different questions — what a
 #: template file becomes, versus what differs between this repository and the public one —
 #: and collapsing them would put publication policy in the path of every rebuild.
-PUBLICATION_SKILL = "publish-bootcamp-power"
+PUBLICATION_SKILL = "propagate-to-public"
 PUBLICATION_CONTRACT_PATH = f"{ENGINE_DIR}/publication.yaml"
 
 #: Where each maintainer skill records the contract it drives, under `metadata`.
@@ -1480,7 +1483,7 @@ def test_the_maintainer_manifest_and_both_skills_name_one_and_the_same_contract(
     )
 
 
-def test_the_publish_skill_names_the_one_publication_contract_and_the_manifest_agrees():
+def test_the_propagate_skill_names_the_one_publication_contract_and_the_manifest_agrees():
     """The publication half is single-sourced too, and at its own path.
 
     The same argument as R3 AC1, applied to the other contract: if the publication
@@ -1510,7 +1513,7 @@ def test_the_publish_skill_names_the_one_publication_contract_and_the_manifest_a
         f"{PUBLICATION_CONTRACT_PATH}; found {namespace.get('publicationContract')!r}"
     )
     assert (REPO_ROOT / PUBLICATION_CONTRACT_PATH).is_file(), (
-        f"the publish skill and the manifest both name {PUBLICATION_CONTRACT_PATH}, "
+        f"the propagate skill and the manifest both name {PUBLICATION_CONTRACT_PATH}, "
         "which does not exist"
     )
 

@@ -26,11 +26,11 @@ working as intended — it is what keeps every platform on one curriculum.
 ## This command owns the repository boundary
 
 **`escalate-to-parent` is the only command that files a GitHub issue into another
-repository.** Every other maintainer skill writes only inside this repository:
-`create-bootcamp-power`, `update-bootcamp-power`, and `parity-check` never write
-upstream, and `publish-bootcamp-power` writes to the public runtime repository through
-its own publication contract, not as an issue. One owner means one place to audit
-cross-repo traffic.
+repository.** No other maintainer skill writes upstream or files anything anywhere:
+`create-bootcamp-power`, `update-bootcamp-power`, `parity-check`, and `release` write only
+inside this repository, and `propagate-to-public` writes only into a local working tree
+of the public runtime repository, through its own publication contract — never a commit,
+a push, or an issue. One owner means one place to audit cross-repo traffic.
 
 This is distinct from `submit_feedback`, the Senzing MCP call that reports a **server**
 defect to Senzing: that is a different upstream (the MCP server operator, not the parent

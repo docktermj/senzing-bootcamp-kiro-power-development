@@ -471,6 +471,10 @@ and Windows — and commit that record. An unrecorded platform is a fail, not a 
 recorded file, together with the passing validation report from step 7 for that exact version,
 is the tagging gate *(R6)*. A previous version's record does not carry over.
 
+Once the record is committed, [`release`](../release/SKILL.md) enforces that gate, writes the
+changelog entry and creates the tag; [`propagate-to-public`](../propagate-to-public/SKILL.md)
+follows it. This skill does neither.
+
 ## What a newer release may ask you to author
 
 Most of an update is mechanical, and the engine does it. A short list is not, because it needs a
