@@ -41,8 +41,9 @@ side is a release blocker, not advisory documentation.
 
 ## Maintaining this file
 
-1. Never delete, reuse, or renumber an existing `KINV-NNN` identifier. Mark an obsolete
-   invariant as superseded and name its replacement rather than removing it.
+1. Never delete, reuse, or renumber an existing `KINV-NNN` identifier. An obsolete invariant
+   stays in place and is marked superseded in the family's one syntax (FAMILY_WORKFLOW R12),
+   described under "Supersession" below.
 2. Edit an existing invariant only to clarify its wording without changing its meaning. Record
    a changed guarantee as a new invariant with the next unused identifier.
 3. Add new invariants using the next unused, zero-padded identifier, and add that identifier to
@@ -51,6 +52,36 @@ side is a release blocker, not advisory documentation.
 5. Keep the structural linter (`specs/check_invariants.py`) passing; extend it when a new
    invariant can be checked mechanically.
 6. Treat a failed invariant as a release blocker, not as advisory documentation.
+
+### Supersession
+
+When a guarantee is replaced, the old entry keeps its identifier and text, and **both** entries
+carry a marker — each a bullet of its own, nested under its definition, with a zero-padded
+identifier:
+
+```markdown
+- **KINV-011** — <the old guarantee, unchanged>
+  - **Superseded by:** KINV-024 — the hook moved from Stop to a Tier-1 instruction
+- **KINV-024** — <the new guarantee>
+  - **Supersedes:** KINV-011
+```
+
+Where only a **clause** is replaced, the old entry carries
+`- **Partly superseded by:** KINV-NNN — <what was replaced, and what still stands>`; it stays
+active and still binds in full, so its successor carries no back-link.
+
+⛔ **Nothing else establishes supersession** — not prose, not a status word, not a
+strikethrough. An entry carrying `Superseded by:` has status `superseded`; one that does not has
+status `active`. **There is no third status.** The back-link is required because a
+one-directional record reads, from the successor's side, as a new rule; that is how the parent
+came to write supersession six different ways. `specs/check_invariants.py` fails on a
+non-conforming marker, a one-directional pair, a marker naming an identifier that is not
+defined, and supersession stated anywhere else in a definition.
+
+⛔ **These markers name `KINV-NNN` only.** What this port did with an inherited `INV-NNN` —
+including one the parent has superseded — is the Invariant_Discount_Register's subject, and it
+arrives through `parity-check` against a newer tag. Never write a `Supersedes:` bullet about the
+parent's identifiers here; the two registers keep their two subjects (see the boundary above).
 
 ## Index by subject
 
