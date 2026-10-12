@@ -90,7 +90,7 @@ from transform import (
     POWER_LICENSE,
     SKILL_ENTRY_POINT,
     SKILL_REQUIRED_FIELDS,
-    TEMPLATE_RELEASE_FIELD,
+    PARENT_VERSION_FIELD,
     license_identifier,
     split_frontmatter,
 )
@@ -2547,7 +2547,7 @@ def test_the_upstream_watch_detects_through_the_resolver_and_transforms_nothing(
 
     # The version compared against is read from the Power's own provenance
     # (R2 AC5) with the Build_Manifest as the fallback, so a rebuild moves it.
-    assert "templateRelease" in text, (
+    assert "PARENT_VERSION" in text, (
         f"{WATCH_WORKFLOW_PATH} must read the current Template_Release from the "
         "committed Power's recorded provenance rather than carrying a copy of it"
     )
@@ -2738,14 +2738,14 @@ def test_the_committed_record_header_agrees_with_the_committed_power():
     provenance = (_power_manifest().get("extensions") or {}).get(
         EXTENSION_NAMESPACE
     ) or {}
-    expected_release = str(provenance.get(TEMPLATE_RELEASE_FIELD, "")).strip()
+    expected_release = str(provenance.get(PARENT_VERSION_FIELD, "")).strip()
     assert expected_release, (
         f"{POWER_PLUGIN_PATH} records no "
-        f"extensions[{EXTENSION_NAMESPACE!r}][{TEMPLATE_RELEASE_FIELD!r}], so the "
+        f"extensions[{EXTENSION_NAMESPACE!r}][{PARENT_VERSION_FIELD!r}], so the "
         "record has no provenance to agree with"
     )
-    assert record.template_release == expected_release, (
-        f"{_record_path()} names Template_Release {record.template_release!r} but "
+    assert record.parent_version == expected_release, (
+        f"{_record_path()} names Template_Release {record.parent_version!r} but "
         f"the Power records {expected_release!r} as its provenance"
     )
 

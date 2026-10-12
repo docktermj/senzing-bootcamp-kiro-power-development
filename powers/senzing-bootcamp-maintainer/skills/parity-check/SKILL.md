@@ -34,8 +34,8 @@ every change is reviewable and tracked before it is applied.
 
 The release this port is currently level with is recorded in the committed Power, per
 the provenance convention (`docs/provenance-convention.md`, issue #9). Read it — do
-**not** introduce or read a `PARENT_VERSION` file; that earlier proposal is superseded
-by the in-manifest block:
+read the `PARENT_VERSION` **field** in the in-manifest block — never a top-level
+`PARENT_VERSION` file, which the determinism gate rejects:
 
 ```
 python3 - <<'PY'
@@ -45,9 +45,9 @@ plugin, manifest = power / "plugin.json", power / ".build-manifest.json"
 pinned = ""
 if plugin.is_file():
     ext = (json.loads(plugin.read_text()).get("extensions") or {}).get("com.senzing.bootcamp") or {}
-    pinned = str(ext.get("templateRelease") or "").strip()
+    pinned = str(ext.get("PARENT_VERSION") or "").strip()
 if not pinned and manifest.is_file():
-    pinned = str(json.loads(manifest.read_text()).get("templateRelease") or "").strip()
+    pinned = str(json.loads(manifest.read_text()).get("PARENT_VERSION") or "").strip()
 print(pinned or "UNPINNED")
 PY
 ```
@@ -133,7 +133,7 @@ one place, the parent, and reach this port only through parity.
 - Compare against a tagged parent release, never HEAD (step 1).
 - Pull, not push: file issues **here** only; never write to the parent.
 - Provenance is the single source of the pinned release (issue #9); never read or
-  create a `PARENT_VERSION` file.
+  create a top-level `PARENT_VERSION` or `PARENT_COMMIT` file; read the fields.
 - An already-current repository files nothing.
 - This skill runs the transform on nothing and edits `powers/senzing-bootcamp/` never;
   applying a release is `update-bootcamp-power`'s job.

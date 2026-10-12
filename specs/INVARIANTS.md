@@ -67,7 +67,7 @@ side is a release blocker, not advisory documentation.
 - **KINV-001** — The Bootcamp_Power MUST be packaged in Agent Plugins v1.0.0 format, with its
   `plugin.json` manifest at the Power root and never inside a `.claude-plugin/` directory.
 - **KINV-002** — The resolved Template_Release version MUST be recorded under `plugin.json` at
-  `extensions` → `com.senzing.bootcamp` → `templateRelease`, outside the fixed Agent Plugins
+  `extensions` → `com.senzing.bootcamp` → `PARENT_VERSION`, outside the fixed Agent Plugins
   top-level field set, so provenance survives schema validation rather than being dropped as an
   unknown top-level field.
 - **KINV-003** — The Senzing MCP server MUST be declared in an `mcp.json` document at the Power

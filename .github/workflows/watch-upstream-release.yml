@@ -19,8 +19,8 @@
 #
 # The version compared against is read from the committed Power rather than
 # hardcoded here — `plugin.json` records it under
-# `extensions["com.senzing.bootcamp"].templateRelease`, with
-# `.build-manifest.json` `templateRelease` as the fallback. The upstream
+# `extensions["com.senzing.bootcamp"].PARENT_VERSION`, with
+# `.build-manifest.json` `PARENT_VERSION` as the fallback. The upstream
 # repository is not named here either: the resolver reads `template.repository`
 # from `contract.yaml`, which is the contract's to own.
 
@@ -109,18 +109,18 @@ jobs:
               if PLUGIN.is_file():
                   data = json.loads(PLUGIN.read_text(encoding="utf-8"))
                   extension = (data.get("extensions") or {}).get("com.senzing.bootcamp") or {}
-                  candidate = str(extension.get("templateRelease") or "").strip()
+                  candidate = str(extension.get("PARENT_VERSION") or "").strip()
                   if candidate:
                       version = candidate
-                      source = f'{PLUGIN} extensions["com.senzing.bootcamp"].templateRelease'
+                      source = f'{PLUGIN} extensions["com.senzing.bootcamp"].PARENT_VERSION'
               # The Build_Manifest records the same tag, so it covers a Power
               # whose plugin.json is missing or mid-edit.
               if not version and MANIFEST.is_file():
                   data = json.loads(MANIFEST.read_text(encoding="utf-8"))
-                  candidate = str(data.get("templateRelease") or "").strip()
+                  candidate = str(data.get("PARENT_VERSION") or "").strip()
                   if candidate:
                       version = candidate
-                      source = f"{MANIFEST} templateRelease"
+                      source = f"{MANIFEST} PARENT_VERSION"
 
           if version:
               print(f"comparing against Template_Release {version}, read from {source}")

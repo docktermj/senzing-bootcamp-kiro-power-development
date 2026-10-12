@@ -183,6 +183,10 @@ EXIT_FAILURE = 1
 #: same version while remaining distinct strings (R2 AC1 stamps the string).
 _SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
+#: PARENT_COMMIT: the full, lowercase 40-hex commit SHA a release tag names. Never an
+#: abbreviation — a short SHA can become ambiguous — and never a branch name.
+_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+
 #: `owner/name`, validated before it reaches an argv or a URL.
 _REPO_RE = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
 
@@ -366,14 +370,26 @@ def is_newer(tag: str, min_version: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
+def is_commit(value: Any) -> bool:
+    """Whether `value` is a full, lowercase 40-hex commit SHA — a PARENT_COMMIT."""
+    return isinstance(value, str) and _COMMIT_RE.match(value) is not None
+
+
 def resolved_release(
     repository: str,
     record: Mapping[str, Any],
     plugin_root: str,
     extracted_to: str | os.PathLike[str],
     attempts: int,
+    commit: str | None = None,
 ) -> dict[str, Any]:
-    """The `ResolvedRelease` record, in the design's field order *(R1 AC5)*."""
+    """The `ResolvedRelease` record, in the design's field order *(R1 AC5)*.
+
+    `commit` is the full SHA of the commit the tag names — the value recorded as
+    PARENT_COMMIT — or None when it was not looked up (a test's injected fetcher).
+    """
+    if commit is not None and not is_commit(commit):
+        raise ValueError(f"not a full 40-hex commit SHA: {commit!r}")
     tag = record["tagName"]
     version = parse_semver(tag)
     if version is None:  # pragma: no cover - selection guarantees a parse
@@ -387,6 +403,7 @@ def resolved_release(
         "sourceRef": source_ref(tag),
         "pluginRoot": plugin_root,
         "extractedTo": str(extracted_to),
+        "commit": commit,
         "attempts": attempts,
     }
 
@@ -709,6 +726,39 @@ def _download_tarball(
     return target
 
 
+def tag_commit(repository: str, tag: str, *, timeout: float) -> str:
+    """The full SHA of the commit `refs/tags/<tag>` names — the PARENT_COMMIT.
+
+    `git ls-remote` first, reading the peeled `^{}` entry of an annotated tag in
+    preference to the tag object itself, so the SHA is always a commit's. The REST
+    API is the fallback. Only the tag ref is ever asked for (R2): a branch name has
+    no `refs/tags/` entry, so it cannot resolve here.
+    """
+    _require_repo(repository)
+    if parse_semver(tag) is None:
+        raise ValueError(f"not a bare semver tag: {tag!r}")
+    ref = source_ref(tag)
+    if shutil.which("git"):
+        try:
+            listed = _run(
+                ["git", "ls-remote", f"https://github.com/{repository}.git", ref, f"{ref}^{{}}"],
+                timeout=timeout,
+            )
+            entries = dict(
+                reversed(line.split("\t", 1)) for line in listed.splitlines() if "\t" in line
+            )
+            sha = (entries.get(f"{ref}^{{}}") or entries.get(ref) or "").strip()
+            if is_commit(sha):
+                return sha
+        except Exception as exc:  # noqa: BLE001 - fall back to the REST API
+            _narrate(f"`git ls-remote` for {ref} failed ({exc}); trying the REST API")
+    url = f"https://api.github.com/repos/{repository}/commits/{ref}"
+    sha = str(json.loads(_read_url(url, timeout=timeout)).get("sha") or "").strip()
+    if not is_commit(sha):
+        raise RuntimeError(f"{repository} {ref} did not resolve to a commit SHA: {sha!r}")
+    return sha
+
+
 def fetch_source_tree(
     repository: str,
     tag: str,
@@ -831,6 +881,7 @@ def resolve(
     plugin_root: str | None = None,
     lister: Callable[[float], Iterable[Mapping[str, Any]]] | None = None,
     fetcher: Callable[[float], Path] | None = None,
+    committer: Callable[[float], str] | None = None,
     clock: Callable[[], float] = time.monotonic,
     sleeper: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:
@@ -847,8 +898,10 @@ def resolve(
     `E_RESOLVE_FAILED`, all of which halt the build with no artifact
     *(R1 AC4, AC6)*.
 
-    `lister`, `fetcher`, `clock`, and `sleeper` exist so tests can drive the
-    resolver without a network or a wall clock.
+    `lister`, `fetcher`, `committer`, `clock`, and `sleeper` exist so tests can
+    drive the resolver without a network or a wall clock. The tag's commit SHA (the
+    PARENT_COMMIT) is looked up on a real fetch; with an injected `fetcher` and no
+    `committer` it is not looked up, and the record carries `commit: null`.
     """
     contract_repository, contract_plugin_root = contract_template()
     repository = _require_repo(repository or contract_repository)
@@ -923,7 +976,24 @@ def resolve(
     )
     _narrate(f"extracted to {extracted_to}")
 
-    return resolved_release(repository, selected, plugin_root, extracted_to, attempts)
+    commit: str | None = None
+    lookup = committer or (
+        None
+        if fetcher is not None
+        else (lambda timeout: tag_commit(repository, tag, timeout=timeout))
+    )
+    if lookup is not None:
+        commit, _ = _attempt_loop(
+            lookup,
+            what=f"resolve the commit {source_ref(tag)} names",
+            budget=budget,
+            sleeper=sleeper,
+        )
+        _narrate(f"{source_ref(tag)} names commit {commit}")
+
+    return resolved_release(
+        repository, selected, plugin_root, extracted_to, attempts, commit=commit
+    )
 
 
 # ---------------------------------------------------------------------------

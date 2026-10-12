@@ -105,7 +105,8 @@ from transform import (
     SKILL_METADATA_FIELD,
     SKILL_REQUIRED_FIELDS,
     SKILL_TEMPLATE_SKILL_FIELD,
-    TEMPLATE_RELEASE_FIELD,
+    PARENT_VERSION_FIELD,
+    PARENT_COMMIT_FIELD,
     VENDOR_SEGMENT,
     Contract,
     TransformError,
@@ -227,7 +228,7 @@ __all__ = [
     "EXTENSION_NAMESPACE",
     "POWER_VERSION_FIELD",
     "PROVENANCE_PATH",
-    "TEMPLATE_RELEASE_FIELD",
+    "PARENT_VERSION_FIELD",
     "VERSION_COMPARISONS",
     "VERSION_ROLES",
     "VERSION_ROLE_PROVENANCE",
@@ -648,7 +649,7 @@ class ValidationReport:
     input produce byte-identical JSON.
     """
 
-    template_release: str
+    parent_version: str
     power_version: str | None
     checks: tuple[CheckResult, ...]
     report_version: int = REPORT_VERSION
@@ -686,7 +687,7 @@ class ValidationReport:
     def to_json(self) -> dict[str, Any]:
         return {
             "reportVersion": self.report_version,
-            "templateRelease": self.template_release,
+            "PARENT_VERSION": self.parent_version,
             "powerVersion": self.power_version,
             "status": self.status,
             "checks": [check.to_json() for check in self.checks],
@@ -2585,7 +2586,7 @@ def check_cross_references(context: ValidationContext) -> CheckResult:
 # * the **Power version** — `plugin.json` `version`, the string a client displays
 #   *(R2 AC1, AC2)*.
 # * the **recorded provenance** — `plugin.json`
-#   `extensions["com.senzing.bootcamp"].templateRelease`, which says which
+#   `extensions["com.senzing.bootcamp"].PARENT_VERSION`, which says which
 #   upstream release the content came from *(R2 AC5)*.
 #
 # The namespace key and the field name are imported from the engine rather than
@@ -2630,14 +2631,14 @@ EXTENSIONS_FIELD = "extensions"
 PROVENANCE_PATH: tuple[str, ...] = (
     EXTENSIONS_FIELD,
     EXTENSION_NAMESPACE,
-    TEMPLATE_RELEASE_FIELD,
+    PARENT_VERSION_FIELD,
 )
 
 #: The three strings, named. These are the keys `extra` and `details` carry, so a
 #: report consumer reads a mismatch by role rather than by position.
 VERSION_ROLE_TAG = "resolvedTag"
 VERSION_ROLE_STAMP = "powerVersion"
-VERSION_ROLE_PROVENANCE = "templateRelease"
+VERSION_ROLE_PROVENANCE = "PARENT_VERSION"
 
 VERSION_ROLES: tuple[str, ...] = (
     VERSION_ROLE_TAG,
@@ -2722,7 +2723,7 @@ class VersionStrings:
             tag=tag,
             stamp=document.get(POWER_VERSION_FIELD),
             provenance=(
-                namespace.get(TEMPLATE_RELEASE_FIELD)
+                namespace.get(PARENT_VERSION_FIELD)
                 if isinstance(namespace, Mapping)
                 else None
             ),
@@ -2860,6 +2861,42 @@ def _version_mismatch_record(finding: Finding) -> dict[str, Any]:
     }
 
 
+#: PARENT_COMMIT's only legal shape when present: a full, lowercase 40-hex SHA.
+_PARENT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def parent_commit_findings(document: Any) -> tuple[Finding, ...]:
+    """PARENT_COMMIT, when recorded, is a full commit SHA — never a branch or an abbreviation.
+
+    Absent or `null` is not a finding here: a Power built without the resolver's
+    commit is structurally valid. That the committed Power carries one, and that it
+    is the commit the tag names today, is the determinism gate's to prove (R2).
+    """
+    if not isinstance(document, Mapping):
+        return ()
+    extensions = document.get(EXTENSIONS_FIELD)
+    namespace = extensions.get(EXTENSION_NAMESPACE) if isinstance(extensions, Mapping) else None
+    if not isinstance(namespace, Mapping):
+        return ()
+    commit = namespace.get(PARENT_COMMIT_FIELD)
+    if commit is None or (isinstance(commit, str) and _PARENT_COMMIT_RE.match(commit)):
+        return ()
+    location = document_location((EXTENSIONS_FIELD, EXTENSION_NAMESPACE, PARENT_COMMIT_FIELD))
+    return (
+        Finding(
+            code=E_VERSION_MISMATCH,
+            message=(
+                f"{PLUGIN_MANIFEST} '{location}' is {commit!r}; PARENT_COMMIT is the "
+                "full, lowercase 40-hex SHA of the commit the PARENT_VERSION tag names, "
+                "never a branch name, HEAD, or an abbreviated SHA"
+            ),
+            target=PLUGIN_MANIFEST,
+            location=location,
+            details={PARENT_COMMIT_FIELD: commit},
+        ),
+    )
+
+
 def version_match_result(document: Any, tag: str) -> CheckResult:
     """The recorded result for one parsed manifest and one resolved tag.
 
@@ -2868,7 +2905,7 @@ def version_match_result(document: Any, tag: str) -> CheckResult:
     version strings.
     """
     versions = VersionStrings.read(document, tag)
-    findings = version_mismatch_findings(versions)
+    findings = version_mismatch_findings(versions) + parent_commit_findings(document)
     return CheckResult(
         id="version-match",
         findings=findings,
@@ -4978,7 +5015,7 @@ class ManifestDocument:
     records: tuple[ManifestRecord, ...] = ()
     unusable: tuple[str, ...] = ()
     findings: tuple[Finding, ...] = ()
-    template_release: str | None = None
+    parent_version: str | None = None
     contract_version: int | None = None
     manifest_version: int = MANIFEST_VERSION
 
@@ -5126,13 +5163,13 @@ class ManifestDocument:
         for path in unusable:
             records = [record for record in records if record.path != path]
 
-        release = document.get("templateRelease")
+        release = document.get("PARENT_VERSION")
         contract_version = document.get("contractVersion")
         return cls(
             records=tuple(records),
             unusable=tuple(sorted(set(unusable))),
             findings=tuple(findings),
-            template_release=release if isinstance(release, str) else None,
+            parent_version=release if isinstance(release, str) else None,
             contract_version=(
                 contract_version if isinstance(contract_version, int) else None
             ),
@@ -5357,7 +5394,7 @@ def check_manifest_hashes(context: ValidationContext) -> CheckResult:
         findings=comparison.findings,
         extra={
             "manifest": BUILD_MANIFEST,
-            "templateRelease": manifest.template_release,
+            "PARENT_VERSION": manifest.parent_version,
             "recorded": len(manifest.records),
             "compared": len(comparison.compared),
             "matched": len(comparison.matched),
@@ -7500,7 +7537,7 @@ def run_checks(
         results.extend(_run_one(check, context))
 
     return ValidationReport(
-        template_release=context.tag,
+        parent_version=context.tag,
         power_version=context.power_version,
         checks=tuple(results),
     )
@@ -7514,7 +7551,7 @@ def _unreadable_staging_report(tag: str, reason: str) -> ValidationReport:
     no report at all.
     """
     return ValidationReport(
-        template_release=tag,
+        parent_version=tag,
         power_version=None,
         checks=tuple(
             _unevaluated(check_id, E_CHECK_UNEVALUATED, reason)

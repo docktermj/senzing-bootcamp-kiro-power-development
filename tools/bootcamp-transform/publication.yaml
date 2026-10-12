@@ -72,7 +72,7 @@ dropKeys:
     reason: >-
       Build provenance nothing on the installed side reads. Neither Kiro nor the Power
       itself consults extensions["com.senzing.bootcamp"], and all three of its values are
-      already available where they are actually used: templateRelease and contractVersion
+      already available where they are actually used: PARENT_VERSION and contractVersion
       in .build-manifest.json, and the template repository as a constant in the
       Transformation_Contract rather than a per-build value. The update path's version
       floor is the top-level `version`, which this rule does not touch. The publication

@@ -1,6 +1,6 @@
 {
   "reportVersion": 1,
-  "templateRelease": "0.6.1",
+  "PARENT_VERSION": "0.6.1",
   "powerVersion": "0.6.1",
   "status": "passed",
   "checks": [
@@ -278,8 +278,8 @@
       "manifest": "plugin.json",
       "resolvedTag": "0.6.1",
       "powerVersion": "0.6.1",
-      "templateRelease": "0.6.1",
-      "provenanceField": "extensions.com.senzing.bootcamp.templateRelease",
+      "PARENT_VERSION": "0.6.1",
+      "provenanceField": "extensions.com.senzing.bootcamp.PARENT_VERSION",
       "compared": 2,
       "mismatches": [],
       "findings": []
@@ -307,14 +307,16 @@
       "id": "invariant-discounts",
       "result": "pass",
       "register": "invariantDiscounts",
-      "entries": 0,
+      "entries": 1,
       "requiredFields": [
         "invariant",
         "conflictsWith",
         "resolution"
       ],
       "honoredInvariant": "INV-052",
-      "discounted": [],
+      "discounted": [
+        "INV-108"
+      ],
       "incomplete": [],
       "disallowed": [],
       "findings": []
@@ -345,7 +347,7 @@
       "id": "manifest-hashes",
       "result": "pass",
       "manifest": ".build-manifest.json",
-      "templateRelease": "0.6.1",
+      "PARENT_VERSION": "0.6.1",
       "recorded": 104,
       "compared": 104,
       "matched": 104,

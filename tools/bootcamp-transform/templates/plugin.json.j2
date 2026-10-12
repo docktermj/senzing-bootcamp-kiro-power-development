@@ -12,8 +12,12 @@
 
     tag                  str  ResolvedRelease.tag — the resolved Template_Release
                               tag, e.g. "0.5.1". Written to `version` and to
-                              `extensions[...].templateRelease` character-for-character
+                              `extensions[...].PARENT_VERSION` character-for-character
                               (R2 AC1, AC2, AC5).
+    parent_commit        str|None  ResolvedRelease.commit — the full 40-hex SHA of the
+                              commit the tag names, written to `extensions[...].PARENT_COMMIT`.
+                              None renders `null`: a Power built without it is
+                              structurally valid and not release-clean.
     template_repository  str  ResolvedRelease.repository — the Template_Plugin
                               "owner/name" slug, e.g. "Senzing/senzing-bootcamp-claude-plugin".
     contract_version     int  contract.yaml `contractVersion` — the transformation
@@ -56,7 +60,8 @@
   "extensions": {
     "com.senzing.bootcamp": {
       "templateRepository": {{ template_repository_url | tojson }},
-      "templateRelease": {{ tag | tojson }},
+      "PARENT_VERSION": {{ tag | tojson }},
+      "PARENT_COMMIT": {{ parent_commit | tojson }},
       "contractVersion": {{ contract_version | int }}
     }
   }

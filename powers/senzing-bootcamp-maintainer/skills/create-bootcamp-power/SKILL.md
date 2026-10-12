@@ -56,9 +56,10 @@ mid-run.
 python3 tools/bootcamp-transform/resolve_release.py --out /tmp/senzing-bootcamp-build
 ```
 
-JSON on stdout, narration on stderr. Read `tag`, `extractedTo`, and `pluginRoot` from the JSON
-rather than reconstructing them: `extractedTo` is the extracted repository root and the resolved
-tag is used character-for-character everywhere downstream *(R1 AC5, R2)*.
+JSON on stdout, narration on stderr. Read `tag`, `commit`, `extractedTo`, and `pluginRoot` from the
+JSON rather than reconstructing them: `extractedTo` is the extracted repository root, the resolved
+tag is recorded as `PARENT_VERSION` and used character-for-character everywhere downstream, and
+`commit` — the full SHA that tag names — is recorded as `PARENT_COMMIT` *(R1 AC5, R2)*.
 
 The resolver picks the semver maximum among published, non-draft, non-prerelease releases with a
 bare semver tag, and fetches the tree at `refs/tags/<tag>` — never `main`. Do not pass
@@ -88,8 +89,8 @@ leave an empty directory behind as evidence of a build that did not happen.
 
 - Name the path exactly: `powers/senzing-bootcamp/`.
 - Say what is already there. `powers/senzing-bootcamp/plugin.json` carries the current
-  `version` and `extensions["com.senzing.bootcamp"].templateRelease`, and
-  `powers/senzing-bootcamp/.build-manifest.json` carries the `templateRelease` of the last
+  `version` and `extensions["com.senzing.bootcamp"].PARENT_VERSION`, and
+  `powers/senzing-bootcamp/.build-manifest.json` carries the `PARENT_VERSION` of the last
   successful build. Report both against the tag resolved in step 1, so the Maintainer can see
   whether this would be a rebuild of the same release or a change of release.
 - Say that a Power already exists, so `update-bootcamp-power` is very likely the skill they
@@ -110,6 +111,7 @@ On **explicit confirmation**: proceed to step 3. Anything short of an explicit y
 python3 tools/bootcamp-transform/transform.py \
   --source <extractedTo from step 1> \
   --tag <tag from step 1> \
+  --commit <commit from step 1> \
   --staging powers/.senzing-bootcamp.staging
 ```
 
@@ -124,7 +126,7 @@ every source file matched and writes nothing, not even to staging.
 
 On success the JSON reports `"status": "staged"`, the counts (enumerated, matched, ignored,
 outputs, written), the per-file `ruleId` and `owner` for everything written, and
-`.build-manifest.json` recording the `templateRelease` and a SHA-256 per output. Narration also
+`.build-manifest.json` recording the `PARENT_VERSION` and a SHA-256 per output. Narration also
 lists any `unmaterialized` destination — a `kiro-owned` rule with no authored content behind it.
 Read those warnings; a missing authored destination means a skill or asset set the contract
 promised is simply not there.

@@ -49,8 +49,10 @@ from resolve_release import (
     RESOLUTION_BUDGET_SECONDS,
     contract_template,
     fetch_source_tree,
+    is_commit,
     parse_semver,
     source_ref,
+    tag_commit,
 )
 from strategies import SENZING_MCP_URL, TEMPLATE_PLUGIN_ROOT
 from transform import MANIFEST_FILENAME, SKILL_ENTRY_POINT, swap_into_place
@@ -186,7 +188,7 @@ def _skip_unreachable(reason: str) -> None:
     pytest.skip(f"not exercised: {reason}")
 
 
-def _recorded_template_release() -> str:
+def _recorded_parent_version() -> str:
     """The Template_Release the committed Power records in its Build_Manifest."""
     manifest_path = COMMITTED_POWER / MANIFEST_FILENAME
     assert manifest_path.is_file(), (
@@ -194,12 +196,23 @@ def _recorded_template_release() -> str:
         "is the baseline these tests build against (task 14.1)"
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    tag = str(manifest["templateRelease"])
+    tag = str(manifest["PARENT_VERSION"])
     assert parse_semver(tag) is not None, (
-        f"the committed Build_Manifest records templateRelease {tag!r}, which is "
+        f"the committed Build_Manifest records PARENT_VERSION {tag!r}, which is "
         "not a bare semver tag"
     )
     return tag
+
+
+def _recorded_parent_commit() -> str:
+    """The PARENT_COMMIT the committed Power records: the SHA its tag named at build time."""
+    manifest = json.loads((COMMITTED_POWER / MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    commit = str(manifest.get("PARENT_COMMIT") or "")
+    assert is_commit(commit), (
+        f"the committed Build_Manifest records PARENT_COMMIT {commit!r}, which is not a "
+        "full 40-hex SHA (#26)"
+    )
+    return commit
 
 
 def _release_skill_names(source: Path) -> tuple[str, ...]:
@@ -436,7 +449,7 @@ def recorded_release(
     Between an upstream release and the Maintainer's update run they differ, and
     the golden tree must be rebuilt from the tag it was actually built from.
     """
-    tag = _recorded_template_release()
+    tag = _recorded_parent_version()
     if str(latest_release["tag"]) == tag:
         return tag, Path(str(latest_release["extractedTo"]))
     try:
@@ -464,6 +477,8 @@ def fresh_build(scratch: Path, recorded_release: tuple[str, Path]) -> _Build:
         str(source),
         "--tag",
         tag,
+        "--commit",
+        _recorded_parent_commit(),
         "--staging",
         str(staging),
     )
@@ -616,7 +631,7 @@ def test_the_end_to_end_build_reproduces_the_release_inventory_and_validates(
         "'passed':\n" + "\n".join(_failing_checks(report))
     )
     assert report["tagAllowed"] is True
-    assert report["templateRelease"] == fresh_build.tag
+    assert report["PARENT_VERSION"] == fresh_build.tag
     assert report["powerVersion"] == fresh_build.tag
     assert fresh_build.validate_status == 0, (
         "validate.py exited non-zero for a report it marked tagAllowed"
@@ -626,6 +641,19 @@ def test_the_end_to_end_build_reproduces_the_release_inventory_and_validates(
 # ===========================================================================
 # 3. Golden tree and manifest hashes — R3 AC5, R16 AC9
 # ===========================================================================
+
+
+def test_the_recorded_tag_still_names_the_recorded_commit() -> None:
+    """A moved tag is the drift PARENT_COMMIT exists to catch (#26, R2)."""
+    tag = _recorded_parent_version()
+    try:
+        live = tag_commit(TEMPLATE_REPOSITORY, tag, timeout=RESOLUTION_BUDGET_SECONDS)
+    except (urllib.error.URLError, socket.timeout, TimeoutError, OSError, RuntimeError) as error:
+        _skip_unreachable(f"{source_ref(tag)} could not be resolved ({error})")
+    assert live == _recorded_parent_commit(), (
+        f"{source_ref(tag)} now names {live}, but the committed Power records "
+        f"PARENT_COMMIT {_recorded_parent_commit()}: the tag moved since the Power was built"
+    )
 
 
 def test_the_committed_power_equals_a_fresh_build_of_its_recorded_release(
@@ -943,6 +971,10 @@ def _update(
         str(source),
         "--tag",
         tag,
+        # Every caller updates to the recorded release, so the commit is the one the
+        # committed Power records — exactly what the update skill passes from step 2.
+        "--commit",
+        _recorded_parent_commit(),
         "--staging",
         str(staging),
         "--carry-forward",

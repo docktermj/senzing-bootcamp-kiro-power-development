@@ -63,7 +63,7 @@ It refuses, and changes nothing, unless all of these hold:
 | the working tree is clean | the release commit carries the changelog entry and nothing else, and the tag must name a tree whose gate files are committed. **No override.** |
 | HEAD is on `main` | a tag on a feature branch can name a commit `main` never contains. `--allow-branch` if you mean it |
 | the version is newer than every tag, and not already one | re-pointing a tag rewrites what anyone who fetched it already has |
-| every entry in `VERSION_SITES` states the version | `plugin.json` `version` and its `templateRelease` provenance, `.build-manifest.json`, and the validation report and test record for that version. A disagreement is fixed by rebuilding or re-emitting, never by hand |
+| every entry in `VERSION_SITES` states the version | `plugin.json` `version` and its `PARENT_VERSION` provenance, `.build-manifest.json`, and the validation report and test record for that version. A disagreement is fixed by rebuilding or re-emitting, never by hand |
 | `docs/test-records/<version>-validation.json` reads `passed` with `tagAllowed` true | the Schema_Validator half of the tagging gate *(R13 AC5)* |
 | `docs/test-records/<version>.md` permits tagging | the Test_Checklist half *(R6)*, computed exactly as `testrecord.py check` computes it. An `_unrecorded_` step or platform cell is a fail, not a blank |
 

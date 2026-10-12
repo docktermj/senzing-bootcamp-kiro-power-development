@@ -1336,7 +1336,7 @@ def _reconcile_triple(draw: Any, intents: Sequence[str]) -> ReconcileTriple:
     return ReconcileTriple(
         manifest={
             "manifestVersion": 1,
-            "templateRelease": draw(semver_tag()),
+            "PARENT_VERSION": draw(semver_tag()),
             "contractVersion": 1,
             "files": manifest_files,
         },

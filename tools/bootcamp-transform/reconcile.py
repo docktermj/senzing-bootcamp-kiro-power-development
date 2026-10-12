@@ -427,7 +427,7 @@ class ManifestBaseline:
     """
 
     entries: Mapping[str, ManifestEntry]
-    template_release: str | None = None
+    parent_version: str | None = None
     contract_version: int | None = None
     manifest_version: int = MANIFEST_VERSION
 
@@ -470,11 +470,11 @@ class ManifestBaseline:
                 )
             entries[entry.path] = entry
 
-        release = document.get("templateRelease")
+        release = document.get("PARENT_VERSION")
         contract_version = document.get("contractVersion")
         return cls(
             entries=entries,
-            template_release=release if isinstance(release, str) else None,
+            parent_version=release if isinstance(release, str) else None,
             contract_version=(
                 contract_version if isinstance(contract_version, int) else None
             ),
@@ -1503,7 +1503,7 @@ def reconcile(
     return ReconciliationReport(
         to_release=to_release,
         from_release=(
-            previous.template_release if from_release is None else from_release
+            previous.parent_version if from_release is None else from_release
         ),
         classifications=classify(
             previous, on_disk, staging, authored_wins=authored_wins
@@ -1542,7 +1542,7 @@ def reconcile_directories(
         Path(manifest) if manifest is not None else Path(power) / MANIFEST_FILENAME
     )
     resolved_from = (
-        baseline.template_release if from_release is None else from_release
+        baseline.parent_version if from_release is None else from_release
     )
 
     flagged: tuple[FlaggedDiscount, ...] = ()
@@ -2431,7 +2431,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--from-release",
         default=None,
         help=(
-            "the release the Power was built from (default: the templateRelease "
+            "the release the Power was built from (default: the PARENT_VERSION "
             "recorded in the previous build manifest)"
         ),
     )

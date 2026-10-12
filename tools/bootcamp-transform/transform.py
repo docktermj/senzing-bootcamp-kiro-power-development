@@ -170,7 +170,8 @@ __all__ = [
     "REPOSITORY_ROOT",
     "SENZING_MCP_URL",
     "SENZING_SERVER_KEY",
-    "TEMPLATE_RELEASE_FIELD",
+    "PARENT_VERSION_FIELD",
+    "PARENT_COMMIT_FIELD",
     "license_identifier",
     "mcp_document_context",
     "plugin_manifest_context",
@@ -882,6 +883,10 @@ class TransformPlan:
     ignored: tuple[IgnoredFile, ...]
     staging: Path | None = None
     carry_forward: Path | None = None
+    #: PARENT_COMMIT — the full SHA of the commit the tag names, as the resolver
+    #: reported it. None when the caller did not supply one; the Power then records
+    #: `null`, and only a Power built with it is release-clean.
+    parent_commit: str | None = None
 
     @property
     def outputs(self) -> tuple[PlannedFile, ...]:
@@ -902,7 +907,8 @@ class TransformPlan:
             "status": "planned",
             "contractVersion": self.contract.contract_version,
             "contract": str(self.contract.path),
-            "templateRelease": self.tag,
+            "PARENT_VERSION": self.tag,
+            "PARENT_COMMIT": self.parent_commit,
             "pluginRoot": self.contract.plugin_root,
             "sourceRoot": str(self.plugin_root_path),
             "staging": str(self.staging) if self.staging is not None else None,
@@ -968,6 +974,7 @@ def build_plan(
     staging: str | os.PathLike[str] | None = None,
     carry_forward: str | os.PathLike[str] | None = None,
     files: Iterable[SourceFile] | None = None,
+    parent_commit: str | None = None,
 ) -> TransformPlan:
     """Enumerate the source tree and match every file to one disposition.
 
@@ -975,6 +982,12 @@ def build_plan(
     rule nor an ignore entry, before any output exists (R3 AC6). `files` lets a
     caller supply an already-enumerated set; it is enumerated here otherwise.
     """
+    if parent_commit is not None and not _COMMIT_RE.match(parent_commit):
+        raise TransformError(
+            E_TRANSFORM_FAILED,
+            f"PARENT_COMMIT must be the full, lowercase 40-hex SHA of the commit the "
+            f"tag names, never an abbreviation or a branch name; got {parent_commit!r}",
+        )
     plugin_root_path, _ = resolve_plugin_root(source, contract.plugin_root)
     enumerated = (
         enumerate_source(source, contract.plugin_root)
@@ -1008,6 +1021,7 @@ def build_plan(
         ignored=tuple(ignored),
         staging=Path(staging) if staging is not None else None,
         carry_forward=Path(carry_forward) if carry_forward is not None else None,
+        parent_commit=parent_commit,
     )
 
 
@@ -1971,7 +1985,7 @@ SKILL_REQUIRED_FIELDS = ("name", "description", "license")
 #: rather than template->Power *mapping* decisions, which is why they sit here and
 #: not in the contract: they are the same for every skill and for every release,
 #: exactly as the design's adapted-frontmatter model states them. `version` and
-#: `templateRelease` are not here — both are the resolved tag, which arrives with
+#: `PARENT_VERSION` are not here — both are the resolved tag, which arrives with
 #: the plan (R2 AC1).
 SKILL_LICENSE = "Apache-2.0"
 SKILL_COMPATIBILITY = "Requires the Senzing MCP server and Docker."
@@ -2201,7 +2215,7 @@ def adapt_skill_frontmatter(
       frontmatter that will be written rather than about the one that was read
       (R8 AC5).
 
-    `version` and `templateRelease` are both the resolved Template_Release tag,
+    `version` and `PARENT_VERSION` are both the resolved Template_Release tag,
     used character-for-character (R2 AC1); `templateSkill` is the source skill
     directory name, which is `skill_name` because the destination preserves it
     byte-identically (R8 AC1).
@@ -2235,7 +2249,7 @@ def adapt_skill_frontmatter(
     metadata: dict[str, Any] = dict(declared_metadata or {})
     metadata.setdefault("author", SKILL_METADATA_AUTHOR)
     metadata.setdefault("version", tag)
-    metadata.setdefault(TEMPLATE_RELEASE_FIELD, tag)
+    metadata.setdefault(PARENT_VERSION_FIELD, tag)
     metadata.setdefault(SKILL_TEMPLATE_SKILL_FIELD, skill_name)
     adapted[SKILL_METADATA_FIELD] = metadata
 
@@ -2323,7 +2337,7 @@ def render_skill(
 # it is passed through `| tojson` in the template, so a tag like `0.5.10` lands as
 # the string it was resolved from rather than as a number that lost a digit. It is
 # written twice — to the top-level `version`, which is what the Power's version
-# *is*, and to `extensions["com.senzing.bootcamp"].templateRelease`, which is what
+# *is*, and to `extensions["com.senzing.bootcamp"].PARENT_VERSION`, which is what
 # the Power's version *came from*. The provenance sits under `extensions` because
 # the Agent Plugins v1.0.0 plugin schema's top-level field set is closed, so a
 # bare custom field would be reported and ignored (R2 AC5, design defect D3).
@@ -2431,7 +2445,12 @@ MCP_SCHEMA_URL = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
 EXTENSION_NAMESPACE = "com.senzing.bootcamp"
 
 #: The provenance field: the resolved Template_Release the Power was built from.
-TEMPLATE_RELEASE_FIELD = "templateRelease"
+PARENT_VERSION_FIELD = "PARENT_VERSION"
+#: The pinned parent commit: the full SHA the PARENT_VERSION tag named at build time.
+#: The family's provenance names are fixed (FAMILY_WORKFLOW component A); where they
+#: are stored is this host's choice — here, the extensions block and the manifest.
+PARENT_COMMIT_FIELD = "PARENT_COMMIT"
+_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 
 #: The license identifier the Power declares, matching this repository's root
 #: license (R4 AC4, R14 AC3). The same identifier adapted skill frontmatter
@@ -2555,6 +2574,7 @@ def plugin_manifest_context(plan: TransformPlan) -> dict[str, Any]:
         )
     return {
         "tag": plan.tag,
+        "parent_commit": plan.parent_commit,
         "template_repository": repository,
         "contract_version": plan.contract.contract_version,
     }
@@ -2615,9 +2635,9 @@ def verify_plugin_manifest(data: bytes, plan: TransformPlan) -> None:
       version and the Template_Release it was built from cannot differ by a
       normalization (R2 AC1, AC2).
     * The provenance is recorded at
-      `extensions["com.senzing.bootcamp"].templateRelease`, as the same tag
+      `extensions["com.senzing.bootcamp"].PARENT_VERSION`, as the same tag
       (R2 AC5).
-    * No `templateRelease` field sits at the top level, which is the half of
+    * No `PARENT_VERSION` field sits at the top level, which is the half of
       R2 AC5 that says *outside* the schema's fixed top-level field set: a bare
       custom top-level field is reported and ignored by the schema, so a document
       carrying one is recording provenance where nothing reads it.
@@ -2634,13 +2654,13 @@ def verify_plugin_manifest(data: bytes, plan: TransformPlan) -> None:
             f"tag {plan.tag!r}",
             path=PLUGIN_MANIFEST_DEST,
             version=version,
-            templateRelease=plan.tag,
+            PARENT_VERSION=plan.tag,
         )
 
-    if TEMPLATE_RELEASE_FIELD in document:
+    if PARENT_VERSION_FIELD in document:
         raise _generated_defect(
             f"the generated {PLUGIN_MANIFEST_DEST} records "
-            f"'{TEMPLATE_RELEASE_FIELD}' as a top-level field; the Agent Plugins "
+            f"'{PARENT_VERSION_FIELD}' as a top-level field; the Agent Plugins "
             "v1.0.0 plugin schema's top-level field set is fixed, so provenance "
             f"belongs under extensions[{EXTENSION_NAMESPACE!r}]",
             path=PLUGIN_MANIFEST_DEST,
@@ -2658,16 +2678,27 @@ def verify_plugin_manifest(data: bytes, plan: TransformPlan) -> None:
             path=PLUGIN_MANIFEST_DEST,
         )
 
-    recorded = namespace.get(TEMPLATE_RELEASE_FIELD)
+    recorded = namespace.get(PARENT_VERSION_FIELD)
     if recorded != plan.tag:
         raise _generated_defect(
             f"the generated {PLUGIN_MANIFEST_DEST} records "
-            f"extensions[{EXTENSION_NAMESPACE!r}].{TEMPLATE_RELEASE_FIELD} as "
+            f"extensions[{EXTENSION_NAMESPACE!r}].{PARENT_VERSION_FIELD} as "
             f"{recorded!r}, which is not character-for-character the resolved "
             f"Template_Release tag {plan.tag!r}",
             path=PLUGIN_MANIFEST_DEST,
             recorded=recorded,
-            templateRelease=plan.tag,
+            PARENT_VERSION=plan.tag,
+        )
+    commit = namespace.get(PARENT_COMMIT_FIELD, "<absent>")
+    if commit != plan.parent_commit:
+        raise _generated_defect(
+            f"the generated {PLUGIN_MANIFEST_DEST} records "
+            f"extensions[{EXTENSION_NAMESPACE!r}].{PARENT_COMMIT_FIELD} as "
+            f"{commit!r}, which is not the commit the plan was built from "
+            f"({plan.parent_commit!r})",
+            path=PLUGIN_MANIFEST_DEST,
+            recorded=commit,
+            PARENT_COMMIT=plan.parent_commit,
         )
 
     declared = document.get("license")
@@ -2958,7 +2989,7 @@ def render_output(output: PlannedOutput, data: bytes, plan: TransformPlan) -> by
         discarded, and not one of its bytes reaches the Power. Both generated
         artifacts are complete. For `plugin.json`, the resolved tag is stamped
         character-for-character into `version` and into
-        `extensions["com.senzing.bootcamp"].templateRelease`, and the declared
+        `extensions["com.senzing.bootcamp"].PARENT_VERSION`, and the declared
         license is checked against this repository's root license; the Power's own
         `LICENSE` is planned alongside it, copied byte-for-byte from the
         repository root. For `mcp.json`, the template's
@@ -3430,15 +3461,17 @@ class BuildManifest:
     an identical manifest byte-for-byte (R3 AC5).
     """
 
-    template_release: str
+    parent_version: str
     contract_version: int
     files: tuple[ManifestEntry, ...]
     manifest_version: int = MANIFEST_VERSION
+    parent_commit: str | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {
             "manifestVersion": self.manifest_version,
-            "templateRelease": self.template_release,
+            "PARENT_VERSION": self.parent_version,
+            "PARENT_COMMIT": self.parent_commit,
             "contractVersion": self.contract_version,
             "files": [entry.to_json() for entry in self.files],
         }
@@ -3624,7 +3657,8 @@ def write_staging(plan: TransformPlan) -> StagingResult:
             )
 
         manifest = BuildManifest(
-            template_release=plan.tag,
+            parent_version=plan.tag,
+            parent_commit=plan.parent_commit,
             contract_version=plan.contract.contract_version,
             files=tuple(entry.manifest_entry() for entry in staged),
         )
@@ -3788,6 +3822,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="resolved Template_Release tag, used character-for-character",
     )
     parser.add_argument(
+        "--commit",
+        default=None,
+        help=(
+            "PARENT_COMMIT: the full 40-hex SHA of the commit the tag names, as "
+            "resolve_release.py reports it. Omitted, the Power records null and is "
+            "not release-clean"
+        ),
+    )
+    parser.add_argument(
         "--staging",
         required=True,
         help="staging directory; output is built here, never in the target",
@@ -3846,6 +3889,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             tag=args.tag,
             staging=args.staging,
             carry_forward=args.carry_forward,
+            parent_commit=args.commit,
         )
         _narrate(
             f"{plan.enumerated_count} files enumerated: {len(plan.files)} matched by "
@@ -3876,7 +3920,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     _narrate(
         f"{len(result.outputs)} files written to {result.staging}, "
-        f"{MANIFEST_FILENAME} emitted for templateRelease {plan.tag}"
+        f"{MANIFEST_FILENAME} emitted for PARENT_VERSION {plan.tag}"
     )
     for gap in result.unmaterialized:
         _narrate(f"warning: no authored kiro-owned content for {gap}; nothing written")

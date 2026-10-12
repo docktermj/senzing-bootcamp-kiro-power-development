@@ -209,7 +209,7 @@ class PublicationPlan:
     """Everything a run decided, whether or not it wrote anything."""
 
     powerVersion: str
-    templateRelease: str
+    parentVersion: str
     publicationRepository: str
     powerDirectory: str
     adaptations: list[Adaptation] = field(default_factory=list)
@@ -224,7 +224,7 @@ class PublicationPlan:
         return {
             "reportVersion": 1,
             "powerVersion": self.powerVersion,
-            "templateRelease": self.templateRelease,
+            "PARENT_VERSION": self.parentVersion,
             "publicationRepository": self.publicationRepository,
             "powerDirectory": self.powerDirectory,
             "adaptations": [item.to_json() for item in self.adaptations],
@@ -523,7 +523,7 @@ def plan_publication(power: Path, staging: Path, contract: dict, expect_version:
     plugin = _read_json(plugin_path)
     manifest = _read_json(manifest_path)
     version = str(plugin.get("version", ""))
-    template_release = str(manifest.get("templateRelease", ""))
+    parent_version = str(manifest.get("PARENT_VERSION", ""))
 
     if expect_version is not None and version != expect_version:
         raise PublicationError(
@@ -534,7 +534,7 @@ def plan_publication(power: Path, staging: Path, contract: dict, expect_version:
     publication = contract["publication"]
     plan = PublicationPlan(
         powerVersion=version,
-        templateRelease=template_release,
+        parentVersion=parent_version,
         publicationRepository=str(publication["repository"]),
         powerDirectory=str(publication["powerDirectory"]),
     )
