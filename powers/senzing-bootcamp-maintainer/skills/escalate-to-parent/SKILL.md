@@ -86,13 +86,28 @@ and the parity issue for the parent's fix coming back. So:
 
 - the **parent** issue body carries the originating **child issue URL**;
 - the **child** escalation issue in this repository records the **parent issue URL/number**;
-- the child escalation is left **discoverable** — labeled or marked as an escalation — so
-  `parity-check` can list open escalations and, when the parent's fix arrives in a release,
-  link or close the escalation instead of filing a duplicate parity issue for the same thing.
+- the child escalation is marked **awaiting parity** — the `awaiting-parity` label plus a
+  machine-readable `<!-- awaiting-parity: <parent repo>#<n> -->` line naming the parent issue —
+  so `parity-check` finds it and closes it when the fix lands, instead of filing a duplicate
+  parity issue for the same thing:
+  ```
+  python3 tools/bootcamp-transform/escalations.py mark <local issue> --parent <parent issue>
+  ```
+  It prints the label and comment it would write; show them, get a yes, then re-run with
+  `--apply`. The label is the mechanism, deliberately not prose: it survives a maintainer
+  editing the issue body.
 
 When the escalation originates from an already-filed local issue, cross-reference that one.
 When it originates directly, create the local escalation record first, so the two-way link
 and the `parity-check` handshake always have both ends.
+
+### 5. When the local issue closes (R7)
+
+⛔ **Not when the parent issue closes.** A parent fix that is merged but not released has reached
+no bootcamper, and this port reads a tag, never the parent's `main` (R2). The local issue closes
+when the fix is contained in the parent release this port is **pinned** to — `PARENT_VERSION` —
+which `parity-check` confirms. A parent issue closed as *not planned* never closes the local one:
+it is labeled `needs-decision`, because the port now carries a defect the parent will not fix.
 
 ## Rules
 
