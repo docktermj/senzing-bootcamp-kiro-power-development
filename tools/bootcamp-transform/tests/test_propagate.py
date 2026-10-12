@@ -82,7 +82,7 @@ def _minimal_power(root: Path, *, extensions: bool = True, extra: dict[str, str]
         plugin += """,
   "extensions": {
     "com.senzing.bootcamp": {
-      "templateRelease": "0.5.3"
+      "PARENT_VERSION": "0.5.3"
     }
   }
 }
@@ -101,7 +101,7 @@ def _minimal_power(root: Path, *, extensions: bool = True, extra: dict[str, str]
     recorded = ["plugin.json", "mcp.json", "note.md", *(extra or {})]
     manifest = {
         "manifestVersion": 1,
-        "templateRelease": "0.5.3",
+        "PARENT_VERSION": "0.5.3",
         "files": [
             {"path": name, "ruleId": "test", "owner": "template", "sha256": _digest(root / name)}
             for name in recorded
@@ -346,7 +346,7 @@ def test_an_adapted_file_gets_its_digest_recomputed_and_nothing_else_does(tmp_pa
         assert entry["sha256"] == _digest(tmp_path / "staging" / entry["path"])
     # Every field other than the digest survives, key order included.
     assert [entry["ruleId"] for entry in staged_manifest["files"]] == ["test"] * len(staged_manifest["files"])
-    assert list(staged_manifest) == ["manifestVersion", "templateRelease", "files"]
+    assert list(staged_manifest) == ["manifestVersion", "PARENT_VERSION", "files"]
 
 
 def test_an_excluded_file_recorded_in_the_manifest_loses_its_entry_too(tmp_path):

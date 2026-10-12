@@ -126,7 +126,7 @@ class Corpus:
         if not manifest_path.is_file():
             raise SystemExit(f"no {POWER_REL}/{MANIFEST_NAME} under {repo} — wrong --repo?")
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        self.template_release = str(manifest.get("templateRelease", ""))
+        self.parent_version = str(manifest.get("PARENT_VERSION", ""))
         self.owners = {e["path"]: e.get("owner", OWNER_TEMPLATE) for e in manifest.get("files", [])}
         self.sources = {e["path"]: e.get("sourcePath") for e in manifest.get("files", [])}
         # The Publication_Contract's own exclude list: the Power's maintainer CHANGELOG.md
@@ -303,7 +303,7 @@ def parent_invariants_text(corpus: Corpus, args) -> tuple[str | None, str]:
         return path.read_text(encoding="utf-8"), str(path)
     if args.offline:
         return None, "not read (--offline)"
-    tag = corpus.template_release
+    tag = corpus.parent_version
     done = subprocess.run(
         ["gh", "api", "-H", "Accept: application/vnd.github.raw",
          f"repos/{PARENT_DEVELOPMENT_REPOSITORY}/contents/{PARENT_INVARIANTS_PATH}?ref={tag}"],

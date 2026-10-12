@@ -6,7 +6,7 @@ compatibility: Requires the Senzing MCP server and Docker.
 metadata:
   author: Senzing
   version: 0.6.1
-  templateRelease: 0.6.1
+  PARENT_VERSION: 0.6.1
   templateSkill: module-06-data-processing
 ---
 

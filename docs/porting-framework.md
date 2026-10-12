@@ -25,7 +25,7 @@ Each row is the canonical home of one component. Follow the link for the actual 
 
 | | Component | Home |
 |---|---|---|
-| A | **Provenance** — the pinned parent release, recorded once and read everywhere | [`docs/provenance-convention.md`](./provenance-convention.md) → the in-manifest `extensions["com.senzing.bootcamp"]` block |
+| A | **Provenance** — the pinned parent release `PARENT_VERSION` (an exact tag) and its `PARENT_COMMIT` (the full SHA), recorded once and read everywhere | [`docs/provenance-convention.md`](./provenance-convention.md) → the in-manifest `extensions["com.senzing.bootcamp"]` block, mirrored in `.build-manifest.json` |
 | B | **Declarative transformation contract** — every mapping rule as data; exhaustive matching with an unmatched-file early warning | [`tools/bootcamp-transform/contract.yaml`](../tools/bootcamp-transform/contract.yaml) |
 | C | **Invariant-disposition register** — every upstream `INV-NNN` marked honored / preserved-restated / discounted, gated | the `invariantDiscounts` register (R15) in [`contract.yaml`](../tools/bootcamp-transform/contract.yaml) |
 | D | **Host-native invariant namespace** — `KINV-NNN`, the guarantees true of the Kiro Power itself | [`specs/INVARIANTS.md`](../specs/INVARIANTS.md), linted by [`specs/check_invariants.py`](../specs/check_invariants.py) |

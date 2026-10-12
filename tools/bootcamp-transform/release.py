@@ -149,21 +149,21 @@ def _plugin_version(repo: Path, _version: str) -> str:
     return str(_json(repo, PLUGIN_REL).get("version", ""))
 
 
-def _plugin_template_release(repo: Path, _version: str) -> str:
+def _plugin_parent_version(repo: Path, _version: str) -> str:
     extensions = _json(repo, PLUGIN_REL).get("extensions") or {}
-    return str((extensions.get(EXTENSION_NAMESPACE) or {}).get("templateRelease", ""))
+    return str((extensions.get(EXTENSION_NAMESPACE) or {}).get("PARENT_VERSION", ""))
 
 
-def _manifest_template_release(repo: Path, _version: str) -> str:
-    return str(_json(repo, MANIFEST_REL).get("templateRelease", ""))
+def _manifest_parent_version(repo: Path, _version: str) -> str:
+    return str(_json(repo, MANIFEST_REL).get("PARENT_VERSION", ""))
 
 
 def _validation_power_version(repo: Path, version: str) -> str:
     return str(_json(repo, f"{RECORDS_DIR}/{version}-validation.json").get("powerVersion", ""))
 
 
-def _validation_template_release(repo: Path, version: str) -> str:
-    return str(_json(repo, f"{RECORDS_DIR}/{version}-validation.json").get("templateRelease", ""))
+def _validation_parent_version(repo: Path, version: str) -> str:
+    return str(_json(repo, f"{RECORDS_DIR}/{version}-validation.json").get("PARENT_VERSION", ""))
 
 
 def _record_version(repo: Path, version: str) -> str:
@@ -184,13 +184,13 @@ VERSION_SITES: tuple[VersionSite, ...] = (
         "the version Kiro reports for the installed Power",
     ),
     VersionSite(
-        f'{PLUGIN_REL} extensions["{EXTENSION_NAMESPACE}"].templateRelease',
-        _plugin_template_release,
+        f'{PLUGIN_REL} extensions["{EXTENSION_NAMESPACE}"].PARENT_VERSION',
+        _plugin_parent_version,
         "the provenance the update path compares against (KINV-002)",
     ),
     VersionSite(
-        f"{MANIFEST_REL} templateRelease",
-        _manifest_template_release,
+        f"{MANIFEST_REL} PARENT_VERSION",
+        _manifest_parent_version,
         "the release the determinism gate rebuilds",
     ),
     VersionSite(
@@ -199,8 +199,8 @@ VERSION_SITES: tuple[VersionSite, ...] = (
         "the ValidationReport half of the tagging gate",
     ),
     VersionSite(
-        f"{RECORDS_DIR}/<version>-validation.json templateRelease",
-        _validation_template_release,
+        f"{RECORDS_DIR}/<version>-validation.json PARENT_VERSION",
+        _validation_parent_version,
         "the release that ValidationReport was produced against",
     ),
     VersionSite(

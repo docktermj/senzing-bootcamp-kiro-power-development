@@ -65,10 +65,10 @@ keep the change scoped to the issue.
 For a parity issue — "bring the port level with parent release *X*" — the implementation is
 **not** a hand edit. Run the update path (`update-bootcamp-power`) to release *X*: it
 re-runs the transform, reconciles, and **rewrites the in-manifest provenance**
-(`extensions["com.senzing.bootcamp"].templateRelease`, mirrored in `.build-manifest.json`) to
-*X*. That is how the pinned parent release advances when the parity issue closes — the sense
-`parity-check` (#6) intends. There is no `PARENT_VERSION` file to write; provenance is the
-in-manifest block (`docs/provenance-convention.md`, #9). A non-parity issue changes no
+(`extensions["com.senzing.bootcamp"].PARENT_VERSION` and `PARENT_COMMIT`, mirrored in
+`.build-manifest.json`) to *X* and the commit *X* names. That is how the pinned parent release advances when the parity issue closes — the sense
+`parity-check` (#6) intends. There is no top-level `PARENT_VERSION` file to write; the
+fields live in the in-manifest block (`docs/provenance-convention.md`, #9, #26). A non-parity issue changes no
 provenance. If implementing brings down a parent fix that resolves an open escalation
 (`escalate-to-parent`, #5), link or close that escalation rather than leaving a duplicate.
 

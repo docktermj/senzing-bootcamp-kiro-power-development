@@ -14,10 +14,11 @@
 # watch-upstream-release.yml's job and stays separate; this gate rebuilds at the
 # *currently pinned* tag only. It writes nothing anywhere.
 #
-# The pinned tag is read from the Power's own provenance — plugin.json
-# extensions["com.senzing.bootcamp"].templateRelease, with .build-manifest.json
-# as the fallback — the single provenance convention documented in
-# docs/provenance-convention.md. The upstream repository is the contract's to
+# The pinned tag and commit are read from the Power's own provenance —
+# plugin.json extensions["com.senzing.bootcamp"].PARENT_VERSION and PARENT_COMMIT,
+# with .build-manifest.json as the fallback — the single provenance convention
+# documented in docs/provenance-convention.md. A non-tag PARENT_VERSION, a
+# non-SHA PARENT_COMMIT, and a tag that now names a different commit all fail. The upstream repository is the contract's to
 # own; resolve_release.py reads template.repository from contract.yaml.
 name: Verify build determinism
 on:
@@ -62,13 +63,14 @@ jobs:
         # else; the transform renders templates through the pinned jinja2.
         run: python -m pip install --disable-pip-version-check ".[dev]"
       - name: One provenance convention — no competing top-level file
-        # docs/provenance-convention.md makes the in-manifest extensions block the
-        # single spelling. A bare top-level PARENT_VERSION / UPSTREAM_VERSION /
-        # UPSTREAM_COMMIT would be a second, drift-prone home for the same fact.
+        # docs/provenance-convention.md: the family's names are PARENT_VERSION and
+        # PARENT_COMMIT, recorded in plugin.json's extensions block and mirrored in
+        # .build-manifest.json. A bare top-level file of the same name, or of the
+        # rejected UPSTREAM_* names, would be a second, drift-prone home for the fact.
         run: |
           set -euo pipefail
           competing=""
-          for name in PARENT_VERSION UPSTREAM_VERSION UPSTREAM_COMMIT; do
+          for name in PARENT_VERSION PARENT_COMMIT UPSTREAM_VERSION UPSTREAM_COMMIT; do
             if [ -e "$name" ]; then
               competing="$competing $name"
             fi
@@ -78,7 +80,7 @@ jobs:
               "plugin.json extensions[\"com.senzing.bootcamp\"] (docs/provenance-convention.md)"
             exit 1
           fi
-      - name: Read the pinned Template_Release from the committed Power
+      - name: Read PARENT_VERSION and PARENT_COMMIT from the committed Power
         id: pinned
         run: |
           set -euo pipefail
@@ -86,26 +88,42 @@ jobs:
           import json, os, pathlib
           power = pathlib.Path("powers/senzing-bootcamp")
           plugin, manifest = power / "plugin.json", power / ".build-manifest.json"
-          version, source = "", ""
+          version = commit = source = ""
           if plugin.is_file():
               data = json.loads(plugin.read_text(encoding="utf-8"))
               extension = (data.get("extensions") or {}).get("com.senzing.bootcamp") or {}
-              candidate = str(extension.get("templateRelease") or "").strip()
-              if candidate:
-                  version, source = candidate, f'{plugin} extensions["com.senzing.bootcamp"].templateRelease'
+              version = str(extension.get("PARENT_VERSION") or "").strip()
+              commit = str(extension.get("PARENT_COMMIT") or "").strip()
+              source = f'{plugin} extensions["com.senzing.bootcamp"]'
           if not version and manifest.is_file():
               data = json.loads(manifest.read_text(encoding="utf-8"))
-              candidate = str(data.get("templateRelease") or "").strip()
-              if candidate:
-                  version, source = candidate, f"{manifest} templateRelease"
+              version = str(data.get("PARENT_VERSION") or "").strip()
+              commit = str(data.get("PARENT_COMMIT") or "").strip()
+              source = str(manifest)
           if not version:
-              raise SystemExit(
-                  "no committed Power records a Template_Release; nothing to rebuild against"
-              )
-          print(f"rebuilding at Template_Release {version}, read from {source}")
+              raise SystemExit("no committed Power records a PARENT_VERSION; nothing to rebuild against")
+          print(f"rebuilding at PARENT_VERSION {version}, PARENT_COMMIT {commit or '(none)'}, read from {source}")
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
               handle.write(f"version={version}\n")
+              handle.write(f"commit={commit}\n")
           PY
+      - name: PARENT_VERSION is an exact release tag, and PARENT_COMMIT a full SHA (R2)
+        # ⛔ Never main, never HEAD, never a v-prefixed or abbreviated value. A port
+        # targets a tagged release; a branch head is a moving target. The resolver
+        # refuses a non-semver --tag too, but this step says so by name.
+        env:
+          PINNED_VERSION: ${{ steps.pinned.outputs.version }}
+          PINNED_COMMIT: ${{ steps.pinned.outputs.commit }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$PINNED_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::PARENT_VERSION is '$PINNED_VERSION', not a bare MAJOR.MINOR.PATCH release tag"
+            exit 1
+          fi
+          if ! printf '%s' "$PINNED_COMMIT" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::PARENT_COMMIT is '$PINNED_COMMIT', not the full 40-hex SHA of the tagged commit"
+            exit 1
+          fi
       - name: Fetch the upstream source tree at the pinned tag
         id: fetch
         env:
@@ -113,16 +131,24 @@ jobs:
           # hitting the anonymous rate limit; the fetch itself is a public clone.
           GH_TOKEN: ${{ github.token }}
           PINNED_VERSION: ${{ steps.pinned.outputs.version }}
+          PINNED_COMMIT: ${{ steps.pinned.outputs.commit }}
         run: |
           set -euo pipefail
           python3 tools/bootcamp-transform/resolve_release.py \
             --tag "$PINNED_VERSION" \
             --out "$RUNNER_TEMP/upstream" > "$RUNNER_TEMP/resolved.json"
           extracted="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["extractedTo"])' "$RUNNER_TEMP/resolved.json")"
+          resolved_commit="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["commit"] or "")' "$RUNNER_TEMP/resolved.json")"
+          if [ "$resolved_commit" != "$PINNED_COMMIT" ]; then
+            echo "::error::tag $PINNED_VERSION now names commit '$resolved_commit', but the committed" \
+              "Power records PARENT_COMMIT $PINNED_COMMIT — the tag moved since the Power was built"
+            exit 1
+          fi
           echo "extractedTo=$extracted" >> "$GITHUB_OUTPUT"
       - name: Rebuild the Power into a scratch tree
         env:
           PINNED_VERSION: ${{ steps.pinned.outputs.version }}
+          PINNED_COMMIT: ${{ steps.pinned.outputs.commit }}
           EXTRACTED_TO: ${{ steps.fetch.outputs.extractedTo }}
         run: |
           set -euo pipefail
@@ -130,6 +156,7 @@ jobs:
             --contract tools/bootcamp-transform/contract.yaml \
             --source "$EXTRACTED_TO" \
             --tag "$PINNED_VERSION" \
+            --commit "$PINNED_COMMIT" \
             --staging "$RUNNER_TEMP/rebuilt"
       - name: Compare the rebuild against the committed Power
         run: |

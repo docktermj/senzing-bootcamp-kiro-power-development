@@ -11,7 +11,8 @@
   "extensions": {
     "com.senzing.bootcamp": {
       "templateRepository": "https://github.com/Senzing/senzing-bootcamp-claude-plugin",
-      "templateRelease": "0.6.1",
+      "PARENT_VERSION": "0.6.1",
+      "PARENT_COMMIT": "d3d99523f88957cd9dda2d29375892bf2c557663",
       "contractVersion": 1
     }
   }

@@ -390,7 +390,7 @@ from transform import (
     REPOSITORY_LICENSE,
     SENZING_MCP_URL,
     SENZING_SERVER_KEY,
-    TEMPLATE_RELEASE_FIELD,
+    PARENT_VERSION_FIELD,
     TransformError,
     TransformPlan,
     build_plan,
@@ -519,7 +519,9 @@ def test_the_power_declares_apache_2_0_and_ships_the_license_it_declares(
     ), "the Power's LICENSE text is not the license its manifest declares"
     # The template declared something else, and none of it survived: the license
     # is a fact about the Power, not content ported from upstream.
-    assert TEMPLATE_PLUGIN_LICENSE not in rendered[PLUGIN_MANIFEST_DEST].decode("utf-8")
+    # Matched as a JSON string value, not a substring: `MIT` is also a substring of
+    # the `PARENT_COMMIT` key (#26), which says nothing about the license.
+    assert json.dumps(TEMPLATE_PLUGIN_LICENSE) not in rendered[PLUGIN_MANIFEST_DEST].decode("utf-8")
     assert manifest["name"] != TEMPLATE_PLUGIN_NAME
 
 
@@ -628,15 +630,15 @@ def test_the_resolved_tag_is_stamped_into_the_version_and_the_provenance(
     tidy, so "character-for-character" is observable rather than incidental. The
     provenance sits under `extensions["com.senzing.bootcamp"]` and nowhere else:
     the plugin schema's top-level field set is fixed, so a bare top-level
-    `templateRelease` would record provenance where nothing reads it.
+    `PARENT_VERSION` would record provenance where nothing reads it.
     """
     tag = "0.6.0-rc.1"
     _plan, rendered = _build_generated(tmp_path, tag=tag)
     manifest = json.loads(rendered[PLUGIN_MANIFEST_DEST])
 
     assert manifest["version"] == tag
-    assert manifest["extensions"][EXTENSION_NAMESPACE][TEMPLATE_RELEASE_FIELD] == tag
-    assert TEMPLATE_RELEASE_FIELD not in manifest
+    assert manifest["extensions"][EXTENSION_NAMESPACE][PARENT_VERSION_FIELD] == tag
+    assert PARENT_VERSION_FIELD not in manifest
     # The template's own version is not the Power's.
     assert manifest["version"] != json.loads(TEMPLATE_PLUGIN_DOCUMENT)["version"]
 
@@ -1173,7 +1175,7 @@ def _power_and_staging(tmp_path: Path) -> tuple[Path, Path]:
         (root / "README.md").write_bytes(content)
     manifest = {
         "manifestVersion": 1,
-        "templateRelease": FROM_RELEASE,
+        "PARENT_VERSION": FROM_RELEASE,
         "contractVersion": 1,
         "files": [
             {
@@ -1785,7 +1787,7 @@ def _existing_power(target: Path) -> dict[str, bytes]:
                 "version": PRIOR_TAG,
                 "license": "Apache-2.0",
                 "extensions": {
-                    EXTENSION_NAMESPACE: {TEMPLATE_RELEASE_FIELD: PRIOR_TAG}
+                    EXTENSION_NAMESPACE: {PARENT_VERSION_FIELD: PRIOR_TAG}
                 },
             },
             indent=2,
@@ -1794,7 +1796,7 @@ def _existing_power(target: Path) -> dict[str, bytes]:
         encoding="utf-8",
     )
     (target / MANIFEST_FILENAME).write_text(
-        json.dumps({"manifestVersion": 1, "templateRelease": PRIOR_TAG, "files": []})
+        json.dumps({"manifestVersion": 1, "PARENT_VERSION": PRIOR_TAG, "files": []})
         + "\n",
         encoding="utf-8",
     )
@@ -1901,13 +1903,13 @@ def test_a_build_over_an_existing_power_writes_only_into_staging(
 
     assert _read_tree(target) == before, "the build modified the existing Power"
     assert MANIFEST_FILENAME in staged
-    assert result.manifest.template_release == BUILD_TAG
+    assert result.manifest.parent_version == BUILD_TAG
     # The staged tree is a different release from the one on disk, and none of it
     # arrived: the target still records the release of its own last build.
     assert (
-        json.loads(staged[MANIFEST_FILENAME])["templateRelease"] == BUILD_TAG
+        json.loads(staged[MANIFEST_FILENAME])["PARENT_VERSION"] == BUILD_TAG
     )
-    assert json.loads(before[MANIFEST_FILENAME])["templateRelease"] == PRIOR_TAG
+    assert json.loads(before[MANIFEST_FILENAME])["PARENT_VERSION"] == PRIOR_TAG
     assert _asides(target.parent) == ()
 
 
@@ -2181,7 +2183,7 @@ def _manifest_document(*records: Mapping[str, Any]) -> dict[str, Any]:
     """A Build_Manifest document in the shape `transform.BuildManifest` writes."""
     return {
         "manifestVersion": MANIFEST_VERSION,
-        "templateRelease": BUILD_TAG,
+        "PARENT_VERSION": BUILD_TAG,
         "contractVersion": 1,
         "files": list(records),
     }

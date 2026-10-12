@@ -3,7 +3,7 @@
 
     testrecord.py emit  --version <semver> --out docs/test-records/<version>.md
                         [--checklist docs/test-checklist.md]
-                        [--template-release <semver>] [--maintainer NAME]
+                        [--parent-version <semver>] [--maintainer NAME]
                         [--date YYYY-MM-DD] [--validation-status STATUS]
 
     testrecord.py check --record docs/test-records/<version>.md
@@ -804,7 +804,7 @@ class TestRecord:
     """
 
     version: str = ""
-    template_release: str = ""
+    parent_version: str = ""
     maintainer: str = ""
     date: str = ""
     validation_status: str = ""
@@ -921,7 +921,7 @@ def parse_record(
     format_version = _fact(facts, "record format version")
     return TestRecord(
         version=_fact(facts, "version under test", "version"),
-        template_release=_fact(facts, "template release"),
+        parent_version=_fact(facts, "parent version"),
         maintainer=_fact(facts, "maintainer"),
         date=_fact(facts, "date"),
         validation_status=_fact(
@@ -1123,7 +1123,7 @@ def render_record(
     version: str,
     *,
     outcomes: Mapping[int, Any] | None = None,
-    template_release: str = "",
+    parent_version: str = "",
     maintainer: str = "",
     date: str = "",
     validation_status: str = "",
@@ -1186,7 +1186,7 @@ def render_record(
     out.append("")
     out.append(f"- **Record format version:** `{RECORD_FORMAT_VERSION}`")
     out.append(f"- **Version under test:** {_slot(version)}")
-    out.append(f"- **Template_Release:** {_slot(template_release)}")
+    out.append(f"- **PARENT_VERSION:** {_slot(parent_version)}")
     out.append(f"- **Maintainer:** {_slot(maintainer)}")
     out.append(f"- **Date:** {_slot(date)}")
     out.append(f"- **ValidationReport status:** {_slot(validation_status)}")
@@ -1334,7 +1334,7 @@ class TestRecordReport:
             "recordFormatVersion": self.record.format_version,
             "version": self.version,
             "recordedVersion": self.record.version or None,
-            "templateRelease": self.record.template_release or None,
+            "PARENT_VERSION": self.record.parent_version or None,
             "maintainer": self.record.maintainer or None,
             "date": self.record.date or None,
             "validationStatus": self.record.validation_status or None,
@@ -1578,7 +1578,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"where the record is written, normally {RECORDS_DIRECTORY}/<version>.md",
     )
     emit_parser.add_argument(
-        "--template-release",
+        "--parent-version",
         default="",
         metavar="SEMVER",
         help="the resolved Template_Release the Power under test was built from",
@@ -1642,7 +1642,7 @@ def _emit(args: argparse.Namespace) -> int:
     text = render_record(
         definition,
         args.version,
-        template_release=args.template_release,
+        parent_version=args.parent_version,
         maintainer=args.maintainer,
         date=args.date,
         validation_status=args.validation_status,

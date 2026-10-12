@@ -69,15 +69,15 @@ plugin = json.loads((power / 'plugin.json').read_text(encoding='utf-8'))
 manifest = json.loads((power / '.build-manifest.json').read_text(encoding='utf-8'))
 print(json.dumps({
     'version': plugin.get('version'),
-    'templateRelease': plugin.get('extensions', {}).get('com.senzing.bootcamp', {}).get('templateRelease'),
-    'manifestTemplateRelease': manifest.get('templateRelease'),
+    'PARENT_VERSION': plugin.get('extensions', {}).get('com.senzing.bootcamp', {}).get('PARENT_VERSION'),
+    'manifestParentVersion': manifest.get('PARENT_VERSION'),
     'manifestFiles': len(manifest.get('files', [])),
 }, indent=2))
 "
 ```
 
 `version` is the Power's current version identifier and the floor the resolver compares
-against in step 2 *(R5 AC1)*. `templateRelease` is the release it was built from, and by
+against in step 2 *(R5 AC1)*. `PARENT_VERSION` is the release it was built from, and by
 construction the two are the same string *(R2 AC5)*. `.build-manifest.json` is the baseline the
 reconciliation needs: it records the hash of every file **as the engine wrote it**, which is
 the only witness of what was generated as opposed to what is on disk now.
@@ -88,7 +88,7 @@ Two conditions stop the run here, before anything is fetched:
   reconcile against. Report the path and say that `create-bootcamp-power` is the skill for an
   initial build. Do not fall back to a create: this skill preserves local content and that one
   replaces the directory wholesale.
-- **`version` and `templateRelease` disagree.** The Power does not describe a single release,
+- **`version` and `PARENT_VERSION` disagree.** The Power does not describe a single release,
   so "newer than the current version" has two answers. Report both values and stop; the
   Schema_Validator's version-match check is the same fault, and it is fixed by rebuilding, not
   by updating.
@@ -106,8 +106,9 @@ published, non-draft, non-prerelease releases with a bare semver tag, and fetche
 `refs/tags/<tag>` — never `main` — **only** when that maximum is greater than the version you
 pass *(R5 AC1)*. It takes a bare semver string, which is exactly what step 1 read.
 
-Read `tag`, `extractedTo`, and `pluginRoot` from the JSON rather than reconstructing them, and
-carry the resolved tag character-for-character everywhere downstream *(R1 AC5, R2)*.
+Read `tag`, `commit`, `extractedTo`, and `pluginRoot` from the JSON rather than reconstructing
+them, and carry the resolved tag (`PARENT_VERSION`) and its commit (`PARENT_COMMIT`)
+character-for-character everywhere downstream *(R1 AC5, R2)*.
 
 Three outcomes, and they are not all errors:
 
@@ -169,7 +170,7 @@ from resolve_release import RESOLUTION_BUDGET_SECONDS, contract_template, fetch_
 repository, _ = contract_template()
 tree = fetch_source_tree(repository, sys.argv[1], sys.argv[2], timeout=RESOLUTION_BUDGET_SECONDS)
 print(json.dumps({'repository': repository, 'tag': sys.argv[1], 'extractedTo': str(tree)}, indent=2))
-" <templateRelease from step 1> /tmp/senzing-bootcamp-build
+" <PARENT_VERSION from step 1> /tmp/senzing-bootcamp-build
 ```
 
 The repository comes from the contract's `template` block, so this step invents no upstream
@@ -193,6 +194,7 @@ and re-read each register entry against the parent's `specs/INVARIANTS.md` at th
 python3 tools/bootcamp-transform/transform.py \
   --source <extractedTo from step 2> \
   --tag <tag from step 2> \
+  --commit <commit from step 2> \
   --staging powers/.senzing-bootcamp.staging \
   --carry-forward powers/senzing-bootcamp
 ```
@@ -217,7 +219,7 @@ it reports what every source file matched and writes nothing, not even to stagin
 
 On success the JSON reports `"status": "staged"`, the counts (enumerated, matched, ignored,
 outputs, written), the per-file `ruleId` and `owner` for everything written, and
-`.build-manifest.json` recording the newer `templateRelease` and a SHA-256 per output.
+`.build-manifest.json` recording the newer `PARENT_VERSION` and a SHA-256 per output.
 Narration also lists any `unmaterialized` destination — a `kiro-owned` rule with no authored
 content behind it. Read those warnings.
 
@@ -240,7 +242,7 @@ python3 tools/bootcamp-transform/reconcile.py \
   --power powers/senzing-bootcamp \
   --staging powers/.senzing-bootcamp.staging \
   --to-release <tag from step 2> \
-  --from-release <templateRelease from step 1> \
+  --from-release <PARENT_VERSION from step 1> \
   --from-release-tree <extractedTo from step 3> \
   --to-release-tree <extractedTo from step 2> \
   --report docs/test-records/<tag>-reconciliation.json \
@@ -267,7 +269,7 @@ The two flags are what make the report true rather than advisory, and both write
   would have the entry rewritten away. The entry is rendered from the reconciliation, carries
   no date or timestamp, and is appended: nothing already in the changelog is rewritten.
 
-`--from-release` defaults to the `templateRelease` recorded in the previous manifest; pass it
+`--from-release` defaults to the `PARENT_VERSION` recorded in the previous manifest; pass it
 explicitly so the entry's "Updated from … to …" wording is not left to a default. Drop
 `--from-release-tree` and `--to-release-tree` together if step 3 could not fetch the older tree.
 

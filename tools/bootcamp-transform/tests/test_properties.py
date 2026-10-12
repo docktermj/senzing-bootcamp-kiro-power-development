@@ -195,7 +195,7 @@ from transform import (
     OWNER_TEMPLATE,
     SCRIPT_SUFFIX,
     SKILL_METADATA_FIELD,
-    TEMPLATE_RELEASE_FIELD,
+    PARENT_VERSION_FIELD,
     VENDOR_SEGMENT,
     Contract,
     StagingResult,
@@ -642,7 +642,7 @@ def test_release_selection_is_the_semver_maximum_of_eligible_releases(
 # One number, written in three places, and R2 is the claim that whoever reads any
 # one of them learns the same thing: the resolved tag the build was driven from,
 # the `plugin.json` `version` a client displays *(R2 AC1, AC2)*, and the
-# provenance at `extensions["com.senzing.bootcamp"].templateRelease` *(R2 AC5)*.
+# provenance at `extensions["com.senzing.bootcamp"].PARENT_VERSION` *(R2 AC5)*.
 # "Round trip" is therefore two directions, and this property drives both,
 # because each one's evidence is only worth what the other's blindness leaves it:
 #
@@ -664,7 +664,7 @@ def test_release_selection_is_the_semver_maximum_of_eligible_releases(
 # spelling still conforms — so a clause that merely asked "was something
 # reported?" cannot let schema conformance stand in for the check under test.
 # The same schema is what makes R2 AC5's *outside* half checkable: its top-level
-# field set is closed, so a bare top-level `templateRelease` is a conformance
+# field set is closed, so a bare top-level `PARENT_VERSION` is a conformance
 # violation while the identical string under `extensions` is not.
 #
 # Why the template's own manifest declares the wrong version
@@ -705,7 +705,7 @@ def test_release_selection_is_the_semver_maximum_of_eligible_releases(
 #   — and never looks at a value at all.
 #
 # Their equality is the biconditional, and the positions a mismatch is reported
-# at (`version`, `extensions.com.senzing.bootcamp.templateRelease`) are literals
+# at (`version`, `extensions.com.senzing.bootcamp.PARENT_VERSION`) are literals
 # too, because they are what a Maintainer reads to find the string at fault.
 # Every shape puts something that is not a string somewhere, or the same string
 # everywhere, so the two-absent-fields case — where a missing guard would let a
@@ -740,7 +740,7 @@ _VERSION_CHECK_ID = "version-match"
 _VERSION_FIELD = "version"
 _MANIFEST_EXTENSIONS_FIELD = "extensions"
 _BOOTCAMP_NAMESPACE = "com.senzing.bootcamp"
-_PROVENANCE_FIELD = "templateRelease"
+_PROVENANCE_FIELD = "PARENT_VERSION"
 _PROVENANCE_POSITION = (
     _MANIFEST_EXTENSIONS_FIELD,
     _BOOTCAMP_NAMESPACE,
@@ -751,7 +751,7 @@ _PROVENANCE_POSITION = (
 #: report order. Literals for the same reason as the positions above.
 _ROLE_TAG = "resolvedTag"
 _ROLE_STAMP = "powerVersion"
-_ROLE_PROVENANCE = "templateRelease"
+_ROLE_PROVENANCE = "PARENT_VERSION"
 _ROLE_NAMES = (_ROLE_TAG, _ROLE_STAMP, _ROLE_PROVENANCE)
 _COMPARED_PAIRS = (
     (_ROLE_STAMP, _ROLE_TAG),
@@ -762,7 +762,7 @@ _COMPARED_PAIRS = (
 #: settle that pair. The stamp-against-tag pair points at the stamp because the
 #: tag is an input to the run rather than a field of the artifact.
 _STAMP_LOCATION = "version"
-_PROVENANCE_LOCATION = "extensions.com.senzing.bootcamp.templateRelease"
+_PROVENANCE_LOCATION = "extensions.com.senzing.bootcamp.PARENT_VERSION"
 _PAIR_LOCATIONS: Mapping[tuple[str, str], str] = {
     (_ROLE_STAMP, _ROLE_TAG): _STAMP_LOCATION,
     (_ROLE_STAMP, _ROLE_PROVENANCE): _PROVENANCE_LOCATION,
@@ -1112,7 +1112,7 @@ def _assert_gate_reports_exactly(
     # beside a sibling result that passed, so a withheld tag can only have come
     # from this check.
     report = ValidationReport(
-        template_release=tag,
+        parent_version=tag,
         power_version=read_power_version(tree),
         checks=(_PASSING_PLUGIN_SCHEMA_SIBLING, recorded),
     )
@@ -1145,7 +1145,7 @@ def test_version_stamp_and_provenance_round_trip(
     assert POWER_VERSION_FIELD == _VERSION_FIELD
     assert EXTENSIONS_FIELD == _MANIFEST_EXTENSIONS_FIELD
     assert EXTENSION_NAMESPACE == _BOOTCAMP_NAMESPACE
-    assert TEMPLATE_RELEASE_FIELD == _PROVENANCE_FIELD
+    assert PARENT_VERSION_FIELD == _PROVENANCE_FIELD
     assert PROVENANCE_PATH == _PROVENANCE_POSITION
     assert (VERSION_ROLE_TAG, VERSION_ROLE_STAMP, VERSION_ROLE_PROVENANCE) == (
         _ROLE_TAG,
@@ -1803,7 +1803,7 @@ _VOLATILE_PATTERNS: Mapping[str, re.Pattern[bytes]] = {
 #: a build stamp is the obvious thing to add to a manifest and the one thing that
 #: would make every hash comparison a false "modified" *(R16 AC9)*.
 _MANIFEST_KEYS = frozenset(
-    {"manifestVersion", "templateRelease", "contractVersion", "files"}
+    {"manifestVersion", "PARENT_VERSION", "PARENT_COMMIT", "contractVersion", "files"}
 )
 _MANIFEST_FILE_KEYS = frozenset({"path", "ruleId", "owner", "sourcePath", "sha256"})
 
@@ -2029,7 +2029,7 @@ def test_transformation_is_deterministic_and_idempotent(
         # --- Clause 4: the manifest records content, never the run ---------
         manifest = json.loads(first_tree[MANIFEST_FILENAME])
         assert set(manifest) == _MANIFEST_KEYS
-        assert manifest["templateRelease"] == _RESOLVED_TAG
+        assert manifest["PARENT_VERSION"] == _RESOLVED_TAG
         assert [row["path"] for row in manifest["files"]] == sorted(
             path for path in first_tree if path != MANIFEST_FILENAME
         )
@@ -4117,7 +4117,7 @@ def _assert_reports_exactly_the_seeded_references(
     assert fold_status((result,)) == (STATUS_PASSED if clean else STATUS_INCOMPLETE)
 
     report = ValidationReport(
-        template_release=_RESOLVED_TAG,
+        parent_version=_RESOLVED_TAG,
         power_version=_RESOLVED_TAG,
         checks=(_CLEAN_SCHEMA_SIBLING, result),
     )
@@ -4134,7 +4134,7 @@ def _assert_reports_exactly_the_seeded_references(
     assert len({STATUS_PASSED, STATUS_INCOMPLETE, STATUS_FAILED}) == 3
     assert report.status != STATUS_FAILED
     broken = ValidationReport(
-        template_release=_RESOLVED_TAG,
+        parent_version=_RESOLVED_TAG,
         power_version=_RESOLVED_TAG,
         checks=(_BROKEN_SCHEMA_SIBLING, result),
     )
@@ -5595,7 +5595,7 @@ def _assert_gate_follows(result: CheckResult, *, code: str) -> None:
     assert result.result == (RESULT_PASS if clean else RESULT_FAIL)
     assert result.passed is clean
     report = ValidationReport(
-        template_release=_RESOLVED_TAG,
+        parent_version=_RESOLVED_TAG,
         power_version=_RESOLVED_TAG,
         checks=(_PASSING_SCRIPT_SIBLING, result),
     )
@@ -6578,7 +6578,7 @@ def _assert_reports_exactly_the_broken_links(
     assert result.result == (RESULT_PASS if clean else RESULT_FAIL)
     assert result.passed is clean
     report = ValidationReport(
-        template_release=_RESOLVED_TAG,
+        parent_version=_RESOLVED_TAG,
         power_version=_RESOLVED_TAG,
         checks=(_PASSING_SCHEMA_SIBLING, result),
     )
@@ -7293,7 +7293,7 @@ def test_skill_frontmatter_is_complete_correct_and_individually_reported(
         assert skill_frontmatter_result(context, path) == result
 
     report = ValidationReport(
-        template_release=_RESOLVED_TAG,
+        parent_version=_RESOLVED_TAG,
         power_version=_RESOLVED_TAG,
         checks=(_PASSING_MCP_SIBLING, *results),
     )
@@ -7709,7 +7709,7 @@ def test_the_senzing_mcp_declaration_is_exact(
         assert len(recorded.extra["violations"]) == len(recorded.findings)
 
         report = ValidationReport(
-            template_release=_RESOLVED_TAG,
+            parent_version=_RESOLVED_TAG,
             power_version=_RESOLVED_TAG,
             checks=(_PASSING_SIBLING, recorded),
         )
@@ -7955,7 +7955,7 @@ def _linked_sibling_documents() -> tuple[str, ...]:
     return tuple(sorted(documents))
 
 
-def _template_release() -> dict[str, bytes]:
+def _release_source_tree() -> dict[str, bytes]:
     """A Template_Release the engine transforms into a Power that passes.
 
     Every entry is here because some check needs it: the two superseded manifests
@@ -8052,7 +8052,7 @@ def _base_power() -> _BasePower:
         source = root / "release"
         plugin_root = source.joinpath(*TEMPLATE_PLUGIN_ROOT.split("/"))
         plugin_root.mkdir(parents=True)
-        for path, content in sorted(_template_release().items()):
+        for path, content in sorted(_release_source_tree().items()):
             absolute = plugin_root.joinpath(*path.split("/"))
             absolute.parent.mkdir(parents=True, exist_ok=True)
             absolute.write_bytes(content)
@@ -8503,7 +8503,7 @@ def _assert_record_is_complete(
     # The serialized artifact carries the same record and the same verdict.
     payload = report.to_json()
     assert payload["reportVersion"] == REPORT_VERSION
-    assert payload["templateRelease"] == _RESOLVED_TAG
+    assert payload["PARENT_VERSION"] == _RESOLVED_TAG
     assert len(payload["checks"]) == len(report.checks)
     assert payload["status"] == report.status
     assert payload["tagAllowed"] is report.tag_allowed
@@ -9264,7 +9264,7 @@ def _assert_reports_exactly(
     ]
 
     report = ValidationReport(
-        template_release=_RESOLVED_TAG,
+        parent_version=_RESOLVED_TAG,
         power_version=_RESOLVED_TAG,
         checks=(_PASSING_INVENTORY_SIBLING, result),
     )
@@ -10123,7 +10123,7 @@ def _assert_progression_reports_exactly(
     ]
 
     report = ValidationReport(
-        template_release=_RESOLVED_TAG,
+        parent_version=_RESOLVED_TAG,
         power_version=_RESOLVED_TAG,
         checks=(_PASSING_PROGRESSION_SIBLING, result),
     )
@@ -12143,7 +12143,7 @@ def _seeded_table_inputs(
     baseline = ManifestBaseline.from_json(
         {
             "manifestVersion": 1,
-            "templateRelease": _PREVIOUS_RELEASE,
+            "PARENT_VERSION": _PREVIOUS_RELEASE,
             "contractVersion": 1,
             "files": manifest_files,
         }
@@ -12285,9 +12285,9 @@ def test_reconciliation_classifies_every_path_exactly_once(
 
     # --- Clause 4: the verdict is about the files, not about the releases ---
     assert report.to_release == _TO_RELEASE
-    assert report.from_release == triple.manifest["templateRelease"]
+    assert report.from_release == triple.manifest["PARENT_VERSION"]
     assert report.flagged_invariant_discounts == ()
-    assert _OVERRIDE_RELEASE != baseline.template_release
+    assert _OVERRIDE_RELEASE != baseline.parent_version
     overridden = reconcile(
         baseline,
         on_disk,
@@ -12585,7 +12585,7 @@ def _survival_manifest(
     """
     document = {
         "manifestVersion": MANIFEST_VERSION,
-        "templateRelease": release,
+        "PARENT_VERSION": release,
         "contractVersion": 1,
         "files": [
             {
@@ -13057,7 +13057,7 @@ def test_a_successful_update_records_exactly_one_changelog_entry(
     step: int,
     shape: str,
 ) -> None:
-    from_tag = triple.manifest["templateRelease"]
+    from_tag = triple.manifest["PARENT_VERSION"]
     to_tag = _newer_tag(from_tag, component, step)
     # The update under test is always an update, and the tag it records is not
     # one the changelog shapes already carry.
@@ -13325,7 +13325,7 @@ class _TestRecordHeader:
     non-ASCII prose and a pipe character, not arbitrary text.
     """
 
-    template_release: str
+    parent_version: str
     maintainer: str
     date: str
     validation_status: str
@@ -13535,7 +13535,7 @@ def test_the_test_record_gates_tagging_and_round_trips_faithfully(
             definition,
             case.record_version,
             outcomes=case.outcomes,
-            template_release=header.template_release,
+            parent_version=header.parent_version,
             maintainer=header.maintainer,
             date=header.date,
             validation_status=header.validation_status,
@@ -13575,7 +13575,7 @@ def test_the_test_record_gates_tagging_and_round_trips_faithfully(
         assert parsed.notes == notes
         assert parsed.cell_notes == cell_notes
         assert parsed.version == case.record_version
-        assert parsed.template_release == header.template_release
+        assert parsed.parent_version == header.parent_version
         assert parsed.maintainer == header.maintainer
         assert parsed.date == header.date
         assert parsed.validation_status == header.validation_status
@@ -14269,7 +14269,7 @@ def _assert_gate_follows_from(result: CheckResult) -> None:
     assert result.result == (RESULT_PASS if clean else RESULT_FAIL)
     assert result.passed is clean
     report = ValidationReport(
-        template_release=_RESOLVED_TAG,
+        parent_version=_RESOLVED_TAG,
         power_version=_RESOLVED_TAG,
         checks=(_PASSING_HOOK_SIBLING, result),
     )
@@ -14613,7 +14613,7 @@ def test_every_generated_hook_command_is_absolute_quoted_and_shell_free(
     assert set(comparison.matched) == present - {path for path, _ in owed_files}
     # The manifest a Maintainer is pointed back at names the release it recorded,
     # and every row says what produced its file.
-    assert comparison.manifest.template_release == _RESOLVED_TAG
+    assert comparison.manifest.parent_version == _RESOLVED_TAG
     assert comparison.manifest.manifest_version == MANIFEST_VERSION
     assert {record.owner for record in comparison.manifest.records} <= {
         OWNER_TEMPLATE,
@@ -15366,7 +15366,7 @@ def _assert_citations_are_never_reported(
         ValidationContext(tree=tree, tag=_RESOLVED_TAG)
     ) == result
     report = ValidationReport(
-        template_release=_RESOLVED_TAG,
+        parent_version=_RESOLVED_TAG,
         power_version=_RESOLVED_TAG,
         checks=(_PASSING_SCHEMA_SIBLING, result),
     )
