@@ -70,7 +70,11 @@ re-runs the transform, reconciles, and **rewrites the in-manifest provenance**
 `parity-check` (#6) intends. There is no top-level `PARENT_VERSION` file to write; the
 fields live in the in-manifest block (`docs/provenance-convention.md`, #9, #26). A non-parity issue changes no
 provenance. If implementing brings down a parent fix that resolves an open escalation
-(`escalate-to-parent`, #5), link or close that escalation rather than leaving a duplicate.
+(`escalate-to-parent`, #5; R7, #28), the escalation closes when **this** update lands, not before:
+after the update, run
+`python3 tools/bootcamp-transform/escalations.py check --pinned <X>` and put a `Closes #<n>` line
+in the pull request for every issue it reports `arrived`. Merging the update is what closes them,
+so an escalation is never closed while the committed Power still carries the defect.
 
 ## Step 5: Verify
 

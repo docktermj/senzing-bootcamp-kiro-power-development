@@ -90,15 +90,32 @@ Read release notes and the changelog with `gh release view <tag> --repo <parent>
 rather than one undifferentiated "update to <tag>" lump — a reviewable delta is the
 whole point.
 
-### 3. Check open escalations before filing
+### 3. Check open escalations before filing (R7)
 
-Before writing anything, list this repository's open issues that were escalated
-upstream (issue #5's `escalate-to-parent` path, once it exists) and the parent issues
-they map to. If a change in the delta is the parent's fix for something this repo
-escalated, **link or close that escalation** rather than filing a duplicate parity
-issue for the same thing — the round trip (escalate up, fix in the parent, bring the
-fix down) is the system working, and it must not leave two open issues for one problem.
-When no escalations exist yet, record that you checked and continue.
+Every escalation carries the `awaiting-parity` label and names its parent issue. Sort
+them against both the pinned release and the target:
+
+```
+python3 tools/bootcamp-transform/escalations.py check --target <target tag>
+```
+
+Each gets exactly one verdict. The parent issue must be closed as completed **and**
+every commit that fixed it must be an ancestor of the tag:
+
+| Verdict | Meaning | What happens |
+|---|---|---|
+| `arrived` | the **pinned** `PARENT_VERSION` already contains the fix | close it, naming the tag |
+| `in-target` | the target tag contains it; the pinned one does not | comment once; it stays open, and the parity issue for that change says `Closes #<n>` |
+| `pending-release` | fixed in the parent, in no tag checked | stays open |
+| `pending` | the parent issue is still open | stays open |
+| `declined` | the parent closed it as not planned or duplicate | label `needs-decision` and surface it; ⛔ **never close** |
+| `undetermined` | no fix commit or no readable marker | label `needs-decision` and surface it; never close |
+
+⛔ **An escalation closes on the parity landing, never on this report of it.** `in-target`
+means the Kiro Power still carries the defect, so the parity issue you file for that
+change names the escalation (`Closes #<n>` in its body) instead of a duplicate being filed.
+Show the planned writes and get a yes, then re-run with `--apply`. When nothing carries
+the label, record that you checked and continue.
 
 ### 4. File one parity issue per coherent change
 
