@@ -200,7 +200,8 @@ issue or an escalation. A finding described only in the report is not recorded.
 - **Say what you verified as correct**, briefly, and **what you scoped the sweep to**.
 - ⛔ **State the coverage limits explicitly**: the conversational invariants, any platform or path
   this environment could not exercise, and any `UNVERIFIED` count `citations` reported.
-- **Offer the `Test_Checklist`** as the next step; this skill is the gate before it.
+- **Offer the `Test_Checklist` and [`dry-run`](../dry-run/SKILL.md)** as the next steps; this skill is the
+  static gate before both.
 
 ## What the parent's audit has that this one restates or records
 
@@ -213,7 +214,8 @@ and a stdlib-only test directory. None of those exist here, and none is dropped 
   branch). There is no unattended runner here, so INV-314's and INV-318's unattended branch never
   applies and every run is attended.
 - **The citation verifier** → the `citations` view.
-- **The `dry-run` coverage report** → not yet available in this repository; disclose it as a gap.
+- **The `dry-run` coverage report** → [`dry-run`](../dry-run/SKILL.md)'s phase 1 worklists (`calls`,
+  `negatives`) cover the MCP half; the parent's test-coverage half has no equivalent here, so disclose it.
 - **"Write a repo-level test, stdlib only" (INV-108)** → cannot be followed as written: this
   repository's suite runs under pytest with pinned dev dependencies. Recorded as a discount in the
   disposition register in `contract.yaml`, with what is preserved.

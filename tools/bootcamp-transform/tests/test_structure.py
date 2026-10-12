@@ -1264,6 +1264,7 @@ MAINTAINER_TRIGGER_PHRASES = {
     "propagate-to-public": "propagate the senzing bootcamp power to public",
     "retrofit-from-public": "retrofit the senzing bootcamp power from public",
     "production-readiness-audit": "audit the senzing bootcamp power for production readiness",
+    "dry-run": "dry-run the senzing bootcamp power",
     "parity-check": "check the senzing bootcamp power for parity",
     "escalate-to-parent": "escalate feedback to the parent",
 }

@@ -44,6 +44,13 @@ does, with lead generators in [`tools/bootcamp-transform/audit.py`](../tools/boo
 after E passes and before G is worked, files what it finds (parent-bound findings through I's `escalate-to-parent`),
 and gates nothing mechanically. A parent audit check this repository cannot express is recorded in C, never dropped.
 
+**Beside G sits the dry run**, the runtime counterpart of that static read.
+[`dry-run`](../powers/senzing-bootcamp-maintainer/skills/dry-run/SKILL.md) exercises the bootcamp itself against the
+live Senzing MCP server, the Power's real hook installer, and the Kiro host, with helpers in
+[`tools/bootcamp-transform/dry_run.py`](../tools/bootcamp-transform/dry_run.py). G records the host-mechanism answers;
+the dry run runs the bootcamp on top of them, adds any host fact it discovers to G, and records each phase — including
+one that could not run on Kiro, as a degradation — in `docs/test-records/<version>-dry-run.md`.
+
 ## Principles (identical across every child)
 
 - The parent owns the curriculum and the `INV-NNN` invariants; children **transform, never fork**.
