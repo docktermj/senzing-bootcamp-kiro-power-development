@@ -5,8 +5,8 @@ __pycache__/
 *.egg-info/
 .history/
 
-# A bootcamper's feedback file, dropped here for triage by `/feedback-to-specs`.
-# Transient by design: the skill archives it under `docs/feedback/` (Step 9), and the
+# A bootcamper's feedback file, dropped here for triage by `/feedback-to-issues`.
+# Transient by design: the skill archives it under `docs/feedback/` (Step 6), and the
 # archive IS tracked — the negation below is what keeps it so. Ignoring the candidate
 # stops a half-triaged copy from being committed at the root, where the next drop would
 # overwrite it.

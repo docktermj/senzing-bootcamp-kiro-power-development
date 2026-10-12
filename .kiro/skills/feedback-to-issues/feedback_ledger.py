@@ -8,7 +8,7 @@ Feedback files arrive from **multiple bootcampers at multiple times**, so the re
 collision is not "the identical file twice" — it is a file that *overlaps* a previous
 one. A bootcamper's project accumulates entries during a run; a later copy dropped into
 this repository holds the earlier entries **plus** new ones. Comparing whole files gets
-that wrong in both directions: a byte-compare calls it new and every entry is re-specced,
+that wrong in both directions: a byte-compare calls it new and every entry is re-filed,
 and a whole-file duplicate verdict would discard the genuinely new entries.
 
 So identity here is **per entry**, and it is content-addressed:
@@ -28,21 +28,21 @@ ONE FILENAME. ``SENZING_BOOTCAMP_POWER_FEEDBACK.md`` is the Kiro Power's feedbac
 ``SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md`` is **reserved for the Senzing Bootcamp Claude
 plugin** and is deliberately not accepted here: the two artifacts are developed in separate
 repositories, and a helper that silently took either name would let a Claude plugin's
-feedback be triaged into Kiro specs — routed to homes (`contract`, `kiro-owned`, `engine`)
+feedback be triaged into Kiro issues — routed to homes (`contract`, `kiro-owned`, `engine`)
 that do not exist on that side. Refusing the reserved name is what keeps the two streams
 from crossing.
 
 The ledger is ``docs/feedback/PROCESSED.jsonl`` — one JSON object per processed entry,
 append-only and read **last-wins**, so a disposition can be corrected by appending a
 superseding line (``annotate``) without ever rewriting history. It answers "has this been
-processed?" in one read, and also answers the question nothing else can: **which spec came
-from this entry?**
+processed?" in one read, and also answers the question nothing else can: **which issue, or
+which escalation, came from this entry?**
 
 Usage::
 
     feedback_ledger.py find [--repo <dir>]
     feedback_ledger.py check <candidate.md> [--repo <dir>]
-    feedback_ledger.py commit <candidate.md> [--repo <dir>] [--disposition title=spec ...]
+    feedback_ledger.py commit <candidate.md> [--repo <dir>] [--disposition title=outcome ...]
     feedback_ledger.py annotate <entry_id> "<disposition>" [--repo <dir>]
 
 ``find`` lists candidate files, archive and rejected duplicates excluded. ``check``
@@ -370,7 +370,7 @@ def cmd_commit(args: argparse.Namespace) -> int:
 
     # rpartition, not partition: an entry title legitimately contains "=" — e.g.
     # "sdk_guide(topic='configure') snippet fails …" — and splitting on the FIRST "="
-    # truncates the key and silently drops the disposition. A spec path never contains
+    # truncates the key and silently drops the disposition. An issue URL never contains
     # "=", so the last one is the separator. An entry_id is accepted as the key too, for
     # a title that is awkward to quote on a command line.
     dispositions: dict[str, str] = {}
@@ -416,8 +416,8 @@ def cmd_commit(args: argparse.Namespace) -> int:
     if unrecorded:
         sys.stderr.write(
             f'WARNING:  {unrecorded} entr(y/ies) recorded with disposition "unrecorded" '
-            '— pass --disposition "<title>=<spec-or-outcome>" so the ledger says which '
-            "spec each entry produced.\n"
+            '— pass --disposition "<title>=<issue-url-or-outcome>" so the ledger says which '
+            "issue or escalation each entry produced.\n"
         )
     return 0
 
@@ -467,9 +467,9 @@ def main(argv: list[str] | None = None) -> int:
     commit.add_argument(
         "--disposition",
         action="append",
-        metavar="TITLE=SPEC",
+        metavar="TITLE=OUTCOME",
         help='what an entry produced, e.g. "Screenshot capture fails='
-        '.kiro/specs/screenshot-capture-fails/" or "Vague thing=needs-clarification". '
+        'https://github.com/docktermj/senzing-bootcamp-kiro-power-development/issues/42" or "Vague thing=needs-clarification". '
         "Repeatable.",
     )
     commit.set_defaults(func=cmd_commit)

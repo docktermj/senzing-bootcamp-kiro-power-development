@@ -60,6 +60,7 @@ side is a release blocker, not advisory documentation.
 - **Hook parity tiers:** KINV-008, KINV-009, KINV-010
 - **Interaction parity gaps:** KINV-011, KINV-012
 - **Model and effort surface:** KINV-013
+- **Work tracking:** KINV-014
 
 ## Packaging shape
 
@@ -127,3 +128,13 @@ side is a release blocker, not advisory documentation.
   model and effort pickers, never as Claude slash-command pairs (`/model`, `/effort`); the
   recommended model and effort names are retained as written, because they are the Kiro
   equivalents.
+
+## Work tracking
+
+- **KINV-014** — An operation in this repository MUST NOT write a spec file: work is tracked as
+  GitHub issues, and `.kiro/specs/` MUST remain a frozen, read-only archive whose files are pinned
+  by name and compared against the directory in both directions, so a spec added, removed, or
+  renamed fails the suite. This is the Kiro port's own record of the family's deprecation of specs
+  (FAMILY_WORKFLOW R5); it restates no upstream invariant, because the parent's `specs/` freeze
+  governs a different directory in a different repository. Enforced by
+  `tools/bootcamp-transform/tests/test_specs_are_frozen.py`.

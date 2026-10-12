@@ -41,16 +41,15 @@ a parent **GitHub issue**; a wrong answer from the Senzing MCP server is a
 
 ### The local feedback router triages; it never files upstream
 
-The command that turns collected bootcamp feedback into local work — `feedback-to-issues`
-in the issue-driven model, and today `feedback-to-specs` — MUST **triage before writing**:
+The command that turns collected bootcamp feedback into local work — `feedback-to-issues` —
+MUST **triage before writing**:
 classify each item as parent-bound or local, show that decision **per item** (never
 silently), hand every parent-bound item to `escalate-to-parent`, and write local work
 only for genuine port problems. It MUST NOT file into another repository itself, and MUST
 NOT write local work for a parent-bound item. `escalate-to-parent` is the single hand-off
-point that obligation routes to. (The issue-driven `feedback-to-issues` router does not
-exist in this repository yet; this contract binds it when it lands. `feedback-to-specs`
-routes to specs and reaches Senzing only through `submit_feedback`, so it already files no
-cross-repo GitHub issue.)
+point that obligation routes to. (`feedback-to-issues` is the only feedback router; the
+spec-writing `feedback-to-specs` was retired in #25, and no operation here writes a spec,
+KINV-014.)
 
 ## Steps
 
@@ -108,7 +107,7 @@ and the `parity-check` handshake always have both ends.
 
 ## Who owns what
 
-- **the local feedback router** (`feedback-to-issues`; today `feedback-to-specs`) — triages
+- **the local feedback router** (`feedback-to-issues`) — triages
   and hands parent-bound items here; files no cross-repo issue itself.
 - **`escalate-to-parent`** — files the one upstream issue and records both ends of the link.
 - **the parent** — fixes the curriculum problem canonically, in one place, for every platform.
