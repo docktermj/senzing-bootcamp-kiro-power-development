@@ -139,7 +139,31 @@ template:
 # live in the KINV-NNN namespace at specs/INVARIANTS.md. Neither record restates
 # the other (the parent's INV-300 no-fork discipline): a KINV never reproduces an
 # INV-NNN or an entry here, and an entry here never states a Kiro-native rule.
-invariantDiscounts: []
+#
+# The register also records the ADVISORY DEGRADATION of a parent check the port cannot
+# express (FAMILY_WORKFLOW §9): where a family operation ported from the parent relies
+# on an invariant whose mechanism this repository does not have, the gap is recorded
+# here rather than dropped. Release 0.6.1's production-readiness-audit port is the
+# first such case.
+invariantDiscounts:
+  - invariant: "INV-108"
+    conflictsWith: >-
+      The parent's production-readiness-audit closes each finding with "write a
+      repo-level test (tests/, stdlib only)" under INV-108, which requires dev-only
+      tests to live in a top-level tests/ directory, use only the standard library, and
+      run via `python3 -m unittest discover -s tests`. This repository's suite lives
+      at tools/bootcamp-transform/tests/, .kiro/skills/feedback-to-specs/tests/ and
+      specs/tests/, and runs under pytest with hypothesis and the other pinned dev
+      dependencies in pyproject.toml, so a test the Kiro audit adds cannot be
+      stdlib-only or unittest-discovered.
+    resolution: >-
+      The guarantee INV-108 protects — dev-only tests never reach a bootcamper — is
+      preserved: no test lives under powers/senzing-bootcamp/, and propagate-to-public
+      mirrors only that directory into the public repository, so nothing else ships.
+      The stdlib-only and unittest-runner clauses are discounted: a test the audit adds
+      joins the existing pytest suite and runs with the pinned dev extra
+      (`python3 -m pytest -m "not integration" -q`). Recorded in the
+      production-readiness-audit skill's "What the parent's audit has" section.
 
 # ---------------------------------------------------------------------------
 # Output policy

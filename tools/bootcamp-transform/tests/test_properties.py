@@ -15566,9 +15566,11 @@ def test_the_discount_register_is_complete_and_citations_survive_untouched(
     contract = load_contract()
     assert _REGISTER_KEY in contract.raw
     committed = declared_discounts(contract)
-    # What ships today: nothing is discounted, which is a verdict and not an
-    # absence — INV-052's guarantee is preserved under R16 rather than given up.
-    assert list(committed) == []
+    # What ships today is a set of deliberate discounts, each one complete, and never
+    # INV-052, whose guarantee is preserved under R16 rather than given up. Which
+    # invariants are discounted is the contract's judgment, not this test's: the
+    # assertion is that whatever is committed passes the gate with no finding, and
+    # names no honored invariant (checked just below).
     shipped = _assert_register_reports_exactly(
         list(committed), incomplete=frozenset(), disallowed=frozenset()
     )

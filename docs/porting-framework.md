@@ -35,6 +35,15 @@ Each row is the canonical home of one component. Follow the link for the actual 
 | H | **CI determinism gate** — rebuilds at the pinned tag and fails on any drift | [`.github/workflows/verify-build-determinism.yml`](../.github/workflows/verify-build-determinism.yml) |
 | I | **Cross-repo governance** — the parent↔child issue paths, and the release path to and from the public mirror | [`parity-check`](../powers/senzing-bootcamp-maintainer/skills/parity-check/SKILL.md) (parent→child) and [`escalate-to-parent`](../powers/senzing-bootcamp-maintainer/skills/escalate-to-parent/SKILL.md) (child→parent); [`release`](../powers/senzing-bootcamp-maintainer/skills/release/SKILL.md) (version, changelog and tag, this repository only) then [`propagate-to-public`](../powers/senzing-bootcamp-maintainer/skills/propagate-to-public/SKILL.md) (public working tree only, no commit or push), and its inverse [`retrofit-from-public`](../powers/senzing-bootcamp-maintainer/skills/retrofit-from-public/SKILL.md) (public divergence → triaged issues, writing nothing) |
 
+**Between E and G sits the production-readiness audit**, which is not a tenth component but a phase-3 operation
+that reads the output of both ends. E proves the transform produced a well-formed Power; G records how it behaves
+on Kiro. Neither reads the Power as one body of instructions — a rule stated in one module and contradicted in
+another, a skill referenced by a name nothing ships — and
+[`production-readiness-audit`](../powers/senzing-bootcamp-maintainer/skills/production-readiness-audit/SKILL.md)
+does, with lead generators in [`tools/bootcamp-transform/audit.py`](../tools/bootcamp-transform/audit.py). It runs
+after E passes and before G is worked, files what it finds (parent-bound findings through I's `escalate-to-parent`),
+and gates nothing mechanically. A parent audit check this repository cannot express is recorded in C, never dropped.
+
 ## Principles (identical across every child)
 
 - The parent owns the curriculum and the `INV-NNN` invariants; children **transform, never fork**.

@@ -1263,6 +1263,7 @@ MAINTAINER_TRIGGER_PHRASES = {
     "release": "release the senzing bootcamp power",
     "propagate-to-public": "propagate the senzing bootcamp power to public",
     "retrofit-from-public": "retrofit the senzing bootcamp power from public",
+    "production-readiness-audit": "audit the senzing bootcamp power for production readiness",
     "parity-check": "check the senzing bootcamp power for parity",
     "escalate-to-parent": "escalate feedback to the parent",
 }
