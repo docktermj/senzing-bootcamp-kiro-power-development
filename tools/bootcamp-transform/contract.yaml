@@ -152,7 +152,7 @@ invariantDiscounts:
       repo-level test (tests/, stdlib only)" under INV-108, which requires dev-only
       tests to live in a top-level tests/ directory, use only the standard library, and
       run via `python3 -m unittest discover -s tests`. This repository's suite lives
-      at tools/bootcamp-transform/tests/, .kiro/skills/feedback-to-specs/tests/ and
+      at tools/bootcamp-transform/tests/, .kiro/skills/feedback-to-issues/tests/ and
       specs/tests/, and runs under pytest with hypothesis and the other pinned dev
       dependencies in pyproject.toml, so a test the Kiro audit adds cannot be
       stdlib-only or unittest-discovered.
@@ -533,7 +533,7 @@ substitutionSets:
   # artifacts, developed in two different repositories, and the filename is the only thing
   # that says which artifact a given feedback file is about. Left unported, a Kiro
   # Bootcamper's feedback lands under the Claude plugin's name, and the maintainer tooling
-  # that consumes it — `.kiro/skills/feedback-to-specs/`, which refuses the reserved name by
+  # that consumes it — `.kiro/skills/feedback-to-issues/`, which refuses the reserved name by
   # design — never sees it.
   #
   # ONE ENTRY, on the STEM rather than on the full filename, so every spelling the corpus

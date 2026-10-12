@@ -35,15 +35,15 @@ packages = []
 [tool.pytest.ini_options]
 minversion = "9.0"
 # Three roots. `tools/bootcamp-transform/tests` is the transformation engine's suite. The
-# second is the gate on specs the `/feedback-to-specs` maintainer skill generates, and it
-# lives beside the skill it enforces rather than inside the engine's suite — it says
-# nothing about the engine. The third is the structural linter for the Kiro port invariants
+# second holds the tests of the `/feedback-to-issues` maintainer skill's own helpers — its
+# pre-filing absence-claim gate — and lives beside the skill it enforces rather than inside
+# the engine's suite, because it says nothing about the engine. The third is the structural linter for the Kiro port invariants
 # ledger (`specs/INVARIANTS.md`), which likewise lives beside the artifact it enforces. Each
 # is listed here, rather than left to be run by hand, because a gate nothing runs is not a
 # gate.
 testpaths = [
   "tools/bootcamp-transform/tests",
-  ".kiro/skills/feedback-to-specs/tests",
+  ".kiro/skills/feedback-to-issues/tests",
   "specs/tests",
 ]
 pythonpath = ["tools/bootcamp-transform", "tools/bootcamp-transform/tests", "specs"]
