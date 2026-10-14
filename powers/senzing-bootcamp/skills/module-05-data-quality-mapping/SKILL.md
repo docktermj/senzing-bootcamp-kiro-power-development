@@ -49,13 +49,12 @@ transformation programs tested + output validated with quality >70%.
   definitions in Phase 1 (field completeness, format consistency, duplicate rate). The
   dimension definitions in Phase 1 are the authority; there is no standalone methodology guide.
   Use `search_docs` for any Senzing-specific quality guidance.
-  ⛔ Because the completeness helper is authored fresh each run until that guide is ported, use
+  ⛔ Because the completeness helper is authored fresh each run, use
   the **presence test defined in Phase 1 step 6** rather than writing one from scratch. Two traps
   it exists to close: never use a truthiness test (`if value:`) — `false` and `0` are present
   values — and never use key presence as coverage, which reports 100% for a field that is an
   empty array in every record. Both are INV-128, which is the statement of record for what counts
-  as present and what counts as absent. When the guide is ported, implement presence exactly as Phase 1
-  defines it and carry the caution into the ported methodology.
+  as present and what counts as absent.
 - **Multi-language data:** If a source contains non-Latin characters (Chinese, Arabic,
   Cyrillic, etc.), retrieve current guidance on UTF-8 encoding, non-Latin character support,
   cross-script name matching, and multi-language data quality practices. Never answer from

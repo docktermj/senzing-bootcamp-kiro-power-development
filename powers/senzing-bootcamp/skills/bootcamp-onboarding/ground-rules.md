@@ -810,7 +810,7 @@ How to file it: `feedback.md` → "Silent in-run append", with
   (all five categories at 0) for experts who want to move fast; it reduces only explanatory output
   and NEVER suppresses required output — 👉 questions, gates, module banners, end-of-module
   summaries, and the recap always appear. (The full five-category verbosity system is
-  condensed here; expand it when `verbosity-control` is ported.)
+  condensed here.)
 - ⛔ **Where output has a prescribed SHAPE and the preset budgets fewer lines, required elements
   MERGE onto the permitted lines — they are never dropped to fit.** (INV-214 — a preset governs
   form as well as kind.) Join them with `; ` and keep

@@ -240,7 +240,7 @@
       "ruleId": "skill-onboarding",
       "owner": "template",
       "sourcePath": "plugins/senzing-bootcamp/skills/bootcamp-onboarding/SKILL.md",
-      "sha256": "793e3225b56473db76168c863eb33ebe3e1b86fbe9a48fb3c5dce1a4b50c32da"
+      "sha256": "d0e2321185049f5d6d8df96d35cf0b0a53be222177b407cce9669ce0f476bb8e"
     },
     {
       "path": "skills/bootcamp-onboarding/assets/kiro-hooks/hook-parity-coverage.json",
@@ -317,7 +317,7 @@
       "ruleId": "skill-onboarding",
       "owner": "template",
       "sourcePath": "plugins/senzing-bootcamp/skills/bootcamp-onboarding/ground-rules.md",
-      "sha256": "4e985abff61e5c90a9e7d15d77add772f97979e34511385ecefbb39650dd440d"
+      "sha256": "a18ed312471b340f572be16b421689503e38dc13c31b3eba4864c65ac0258131"
     },
     {
       "path": "skills/bootcamp-onboarding/module-completion.md",
@@ -632,7 +632,7 @@
       "ruleId": "skills-modules",
       "owner": "template",
       "sourcePath": "plugins/senzing-bootcamp/skills/module-05-data-quality-mapping/SKILL.md",
-      "sha256": "31bac655a75208a71ac315b1fa6b2cfc5845d63cd44e62a6fde8b52dc56a7ca5"
+      "sha256": "cb5b772ccc0a8feba42e37d7f6c8a54855b47331e9a6daf33a286907ebe65bef"
     },
     {
       "path": "skills/module-05-data-quality-mapping/phase1-quality-assessment.md",
@@ -660,7 +660,7 @@
       "ruleId": "skills-modules",
       "owner": "template",
       "sourcePath": "plugins/senzing-bootcamp/skills/module-06-data-processing/SKILL.md",
-      "sha256": "7404cbce15a0fd7512ccf9bdbea3c905415b24b719150028304ebbe34dfde920"
+      "sha256": "d06a700ecc686503f6c8e529a3d834fd298faabe03a01e800b982a59d89c667b"
     },
     {
       "path": "skills/module-06-data-processing/phaseA-build-loading.md",
