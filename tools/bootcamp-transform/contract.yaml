@@ -1281,6 +1281,36 @@ substitutionSets:
            reference, so use `search_docs` to look up the symptom, e.g.
            `search_docs(query="loading", category="anti_patterns", version="current")`.
       literal: true
+    # Release 0.6.1 extended the module-06 sentence above with a "whose loading pitfalls are
+    # in its second hit" clause, so the entry before this one goes inert against it and the
+    # aside shipped. Both stay, for the same reason the catalogue/catalog pair does: older
+    # releases are rebuilt on purpose.
+    - find: |2
+        module (full `common-pitfalls` reference is a
+           later porting phase; for now, use `search_docs` to look up the symptom, e.g.
+           `search_docs(query="loading", category="anti_patterns", version="current")`, whose loading
+           pitfalls are in its second hit, *Senzing Anti-Patterns: Architecture and Performance*: read
+           past the first hit).
+      replace: |2
+        module. There is no bundled `common-pitfalls`
+           reference, so use `search_docs` to look up the symptom, e.g.
+           `search_docs(query="loading", category="anti_patterns", version="current")`, whose loading
+           pitfalls are in its second hit, *Senzing Anti-Patterns: Architecture and Performance*: read
+           past the first hit.
+      literal: true
+    - find: "is authored fresh each run until that guide is ported, use"
+      replace: "is authored fresh each run, use"
+      literal: true
+    - find: " When the guide is ported, implement presence exactly as Phase 1\n  defines it and carry the caution into the ported methodology."
+      replace: ""
+      literal: true
+    - find: |2
+        (The full five-category verbosity system is
+          condensed here; expand it when `verbosity-control` is ported.)
+      replace: |2
+        (The full five-category verbosity system is
+          condensed here.)
+      literal: true
     - find: |2
         (The Kiro CORD-freshness helper
         `../bootcamp-onboarding/scripts/cord_metadata.py` is a later porting phase; give the reminder inline for now.)
@@ -1409,6 +1439,16 @@ substitutionSets:
         module/step. (Full session-resume behavior is a later porting
              phase; for now, read `current_module`/`current_step` and continue from there.)
       replace: |2
+        module/step: read `current_module`/`current_step` and
+             continue from there.
+      literal: true
+    # The same aside where the template continues the line (" Before continuing, …") instead
+    # of ending it, as release 0.6.1 does: the entry above requires the line break after
+    # ".)" and so matches nothing there. Hence the strip (`|2-`) form.
+    - find: |2-
+        module/step. (Full session-resume behavior is a later porting
+             phase; for now, read `current_module`/`current_step` and continue from there.)
+      replace: |2-
         module/step: read `current_module`/`current_step` and
              continue from there.
       literal: true
